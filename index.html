@@ -8,9 +8,9 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Font Awesome -->
     <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
-    <!-- Inter Font -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <!-- html2canvas for PNG export -->
+    <!-- Inter Font + 中文字体 -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- html2canvas for PNG export & PDF content capture -->
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <!-- jsPDF for PDF export -->
     <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
@@ -27,7 +27,7 @@
                         'neutral-dark': '#1F2937'
                     },
                     fontFamily: {
-                        sans: ['Inter', 'sans-serif']
+                        sans: ['Inter', 'Noto Sans SC', 'sans-serif']
                     },
                     boxShadow: {
                         'custom': '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
@@ -56,6 +56,7 @@
                 width: 2.5rem;
                 border-radius: 0.375rem;
                 font-size: 1.25rem;
+                font-family: "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif;
             }
             
             .emoji-item:hover {
@@ -82,6 +83,7 @@
                 border: 2px solid transparent;
                 min-width: 2rem;
                 min-height: 2rem;
+                font-family: "Noto Sans SC", "Segoe UI Emoji", sans-serif;
             }
             
             .preview-item:hover {
@@ -159,6 +161,53 @@
             
             .custom-scrollbar::-webkit-scrollbar-thumb:hover {
                 background: #9CA3AF;
+            }
+            
+            /* PDF导出专用样式 - 强制字体保证显示 */
+            .pdf-content-wrapper {
+                width: 100%;
+                max-width: 595px; /* A4宽度(px)：210mm = 595px */
+                margin: 0 auto;
+                padding: 20px;
+                background: white;
+                font-family: 'Noto Sans SC', 'Inter', sans-serif !important;
+            }
+            
+            .pdf-header {
+                text-align: center;
+                padding-bottom: 20px;
+                border-bottom: 2px solid #3B82F6;
+                margin-bottom: 20px;
+                font-family: 'Noto Sans SC', sans-serif !important;
+            }
+            
+            .pdf-customer-info {
+                margin-bottom: 20px;
+                padding: 15px;
+                background: #F9FAFB;
+                border-radius: 8px;
+                font-family: 'Noto Sans SC', sans-serif !important;
+            }
+            
+            .pdf-custom-content {
+                padding: 20px;
+                background: #F3F4F6;
+                border-radius: 8px;
+                text-align: center;
+                font-size: 24px;
+                min-height: 150px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-family: "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", "Noto Sans SC", sans-serif !important;
+            }
+            
+            .pdf-footer {
+                margin-top: 20px;
+                text-align: center;
+                color: #6B7280;
+                font-size: 12px;
+                font-family: 'Noto Sans SC', sans-serif !important;
             }
         }
     </style>
@@ -314,6 +363,15 @@
                 >
                     <i class="fa fa-download mr-2"></i>导出PNG
                 </button>
+                
+                <!-- 新增：生成PDF按钮 -->
+                <button 
+                    id="export-pdf" 
+                    class="px-8 py-3 bg-accent hover:bg-yellow-600 text-white rounded-lg font-medium shadow-custom hover:shadow-custom-hover transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled
+                >
+                    <i class="fa fa-file-pdf-o mr-2"></i>生成PDF
+                </button>
             </div>
             
             <!-- 管理员区域（默认隐藏） -->
@@ -430,6 +488,27 @@
                 </div>
             </div>
         </div>
+        
+        <!-- PDF导出专用隐藏容器（用于渲染PDF内容） -->
+        <div id="pdf-render-container" class="hidden">
+            <div class="pdf-content-wrapper">
+                <div class="pdf-header">
+                    <h1 class="text-2xl font-bold text-primary">移动电源定制确认单</h1>
+                </div>
+                <div class="pdf-customer-info">
+                    <p class="text-lg"><strong>客户姓名：</strong> <span id="pdf-customer-name"></span></p>
+                    <p class="text-sm text-gray-600 mt-2"><strong>定制时间：</strong> <span id="pdf-custom-time"></span></p>
+                    <p class="text-sm text-gray-600 mt-1"><strong>总字符数：</strong> <span id="pdf-total-chars"></span>/15</p>
+                </div>
+                <div class="pdf-custom-content" id="pdf-custom-content">
+                    <!-- 定制内容将动态填充 -->
+                </div>
+                <div class="pdf-footer">
+                    <p>本确认单为电子凭证，如有疑问请联系客服</p>
+                    <p id="pdf-footer-time"></p>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -452,6 +531,8 @@
         
         // 存储待删除的客户ID
         let deleteCustomerId = null;
+        // 拖拽元素变量
+        let draggedItem = null;
 
         // DOM元素
         const customerName = document.getElementById('customer-name');
@@ -469,6 +550,7 @@
         const emojiGrid = document.getElementById('emoji-grid');
         const submitBtn = document.getElementById('submit-customization');
         const exportPngBtn = document.getElementById('export-png');
+        const exportPdfBtn = document.getElementById('export-pdf'); // 新增PDF按钮
         const successModal = document.getElementById('success-modal');
         const closeModalBtn = document.getElementById('close-modal');
         const exportSinglePngBtn = document.getElementById('export-single-png');
@@ -480,17 +562,25 @@
         const combinedChars = document.getElementById('combined-chars');
         const copyCombinedBtn = document.getElementById('copy-combined');
         
-        // 新增：管理员密码验证相关元素
+        // PDF导出专用DOM元素
+        const pdfRenderContainer = document.getElementById('pdf-render-container');
+        const pdfCustomerName = document.getElementById('pdf-customer-name');
+        const pdfCustomTime = document.getElementById('pdf-custom-time');
+        const pdfTotalChars = document.getElementById('pdf-total-chars');
+        const pdfCustomContent = document.getElementById('pdf-custom-content');
+        const pdfFooterTime = document.getElementById('pdf-footer-time');
+        
+        // 管理员密码验证相关元素
         const adminPasswordModal = document.getElementById('admin-password-modal');
         const adminPasswordInput = document.getElementById('admin-password');
         const passwordError = document.getElementById('password-error');
         const cancelPasswordBtn = document.getElementById('cancel-password');
         const confirmPasswordBtn = document.getElementById('confirm-password');
         
-        // 新增：姓名筛选相关元素
+        // 姓名筛选相关元素
         const customerFilterInput = document.getElementById('customer-filter');
         
-        // 新增：删除确认弹窗相关元素
+        // 删除确认弹窗相关元素
         const deleteConfirmModal = document.getElementById('delete-confirm-modal');
         const cancelDeleteBtn = document.getElementById('cancel-delete');
         const confirmDeleteBtn = document.getElementById('confirm-delete');
@@ -512,19 +602,20 @@
             clearPreviewBtn.addEventListener('click', clearPreview);
             submitBtn.addEventListener('click', submitCustomization);
             exportPngBtn.addEventListener('click', exportToPNG);
+            exportPdfBtn.addEventListener('click', exportToPDF); // 绑定PDF导出事件
             closeModalBtn.addEventListener('click', () => successModal.classList.add('hidden'));
             exportSinglePngBtn.addEventListener('click', () => {
                 exportToPNG();
                 successModal.classList.add('hidden');
             });
             
-            // 新增：管理员面板相关事件
+            // 管理员面板相关事件
             toggleAdminPanelBtn.addEventListener('click', showAdminPasswordModal);
             cancelPasswordBtn.addEventListener('click', hideAdminPasswordModal);
             confirmPasswordBtn.addEventListener('click', verifyAdminPassword);
             customerFilterInput.addEventListener('input', filterCustomerList);
             
-            // 新增：删除确认弹窗相关事件
+            // 删除确认弹窗相关事件
             cancelDeleteBtn.addEventListener('click', hideDeleteConfirmModal);
             confirmDeleteBtn.addEventListener('click', confirmDeleteCustomer);
             
@@ -972,6 +1063,7 @@
             const formValid = nameValid && totalCharsValid && finalTextValid;
             submitBtn.disabled = !formValid;
             exportPngBtn.disabled = !formValid;
+            exportPdfBtn.disabled = !formValid; // 同步启用/禁用PDF按钮
         }
         
         // 提交定制
@@ -1030,67 +1122,177 @@
             });
         }
         
-        // 导出所有为 PDF（完整版可用）
+        // 核心修改：纯图片渲染PDF（解决乱码，放弃文字可复制）
+        function exportToPDF() {
+            // 1. 填充PDF模板数据
+            const now = new Date();
+            const combinedText = selectedItems.map(item => item.content).join(' ');
+            const totalCharCount = calculateTotalChars();
+            
+            pdfCustomerName.textContent = customerName.value.trim();
+            pdfCustomTime.textContent = new Date().toLocaleString();
+            pdfTotalChars.textContent = totalCharCount;
+            pdfCustomContent.textContent = combinedText;
+            pdfFooterTime.textContent = `生成时间：${now.toLocaleString()}`;
+            
+            // 2. 关键配置：强制纯图片渲染，解决乱码
+            const canvasOptions = {
+                scale: 3, // 超高清渲染，保证PDF清晰度
+                useCORS: true,
+                allowTaint: true,
+                backgroundColor: '#ffffff',
+                logging: false,
+                letterRendering: true,
+                imageTimeout: 15000,
+                // 强制使用Canvas渲染所有文字/Emoji
+                fontRendering: 'canvas',
+                // 忽略干扰元素
+                ignoreElements: (element) => {
+                    return element.id === 'success-modal' || element.id === 'delete-confirm-modal' || element.id === 'admin-password-modal';
+                },
+                // 强制设置字体
+                onclone: (document) => {
+                    const pdfContainer = document.getElementById('pdf-render-container');
+                    if (pdfContainer) {
+                        pdfContainer.style.fontFamily = '"Noto Sans SC", "Segoe UI Emoji", "Apple Color Emoji", sans-serif !important';
+                    }
+                }
+            };
+            
+            // 3. 渲染为Canvas（纯图片）
+            html2canvas(pdfRenderContainer, canvasOptions).then(canvas => {
+                // 4. 初始化jsPDF，仅用于封装图片为PDF
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF({
+                    orientation: 'portrait',
+                    unit: 'mm',
+                    format: 'a4',
+                    compress: true
+                });
+                
+                // Canvas转Base64图片（纯图片，无文字编码问题）
+                const imgData = canvas.toDataURL('image/png', 1.0); // 1.0=无损压缩
+                const imgWidth = 210; // A4宽度(mm)
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                
+                // 5. 自动分页处理（纯图片分页）
+                let pageHeight = 297; // A4高度(mm)
+                let imgHeightLeft = imgHeight;
+                let position = 0;
+                
+                // 第一页
+                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeightLeft > pageHeight ? pageHeight : imgHeightLeft);
+                imgHeightLeft -= pageHeight;
+                
+                // 后续分页（如果内容超过一页）
+                while (imgHeightLeft > 0) {
+                    position = imgHeightLeft - imgHeight;
+                    pdf.addPage();
+                    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                    imgHeightLeft -= pageHeight;
+                }
+                
+                // 6. 保存PDF（纯图片格式，无乱码）
+                pdf.save(`移动电源定制单_${customerName.value.trim()}_${now.getTime()}.pdf`);
+                
+            }).catch(err => {
+                console.error('PDF导出失败:', err);
+                alert('PDF导出失败，请检查网络或重试！');
+            });
+        }
+        
+        // 管理员批量导出PDF（也改为纯图片渲染）
         function exportAllToPDF() {
             if (customerData.length === 0) {
                 alert('暂无客户数据可导出');
                 return;
             }
-        
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF('p', 'mm', 'a4');
-            const pageWidth = doc.internal.pageSize.getWidth();
-            let yPos = 20;
-            const lineHeight = 8;
-        
-            // 标题
-            doc.setFontSize(16);
-            doc.text('移动电源定制订单汇总', pageWidth / 2, yPos, { align: 'center' });
-            yPos += 15;
-        
-            doc.setFontSize(11);
-            doc.text(`导出时间：${new Date().toLocaleString()}`, 15, yPos);
-            yPos += 15;
-        
-            // 遍历客户
+            
+            // 创建临时容器用于渲染所有订单
+            const tempContainer = document.createElement('div');
+            tempContainer.style.width = '595px';
+            tempContainer.style.padding = '20px';
+            tempContainer.style.background = 'white';
+            tempContainer.style.fontFamily = '"Noto Sans SC", sans-serif';
+            document.body.appendChild(tempContainer);
+            
+            // 填充所有订单数据
+            let htmlContent = '<div class="pdf-header"><h1 class="text-2xl font-bold text-primary text-center">移动电源定制订单汇总</h1></div>';
+            htmlContent += `<p class="text-sm mb-4">导出时间：${new Date().toLocaleString()}</p>`;
+            
             customerData.forEach((item, index) => {
-                if (yPos > 270) {
-                    doc.addPage();
-                    yPos = 20;
-                }
-        
-                doc.setFontSize(12);
-                doc.text(`【订单 ${index + 1}】`, 15, yPos);
-                yPos += lineHeight;
-        
-                doc.setFontSize(10);
-                doc.text(`客户姓名：${item.name}`, 15, yPos);
-                yPos += lineHeight;
-                doc.text(`定制内容：${item.text1 || ''} ${item.emojis?.join('') || ''} ${item.text2 || ''}`, 15, yPos);
-                yPos += lineHeight;
-                doc.text(`总字符：${item.totalChars}`, 15, yPos);
-                yPos += lineHeight;
-                doc.text(`提交时间：${new Date(item.timestamp).toLocaleString()}`, 15, yPos);
-                yPos += lineHeight + 3;
+                htmlContent += `
+                    <div style="margin: 10px 0; padding: 10px; border-bottom: 1px solid #eee;">
+                        <p><strong>订单 ${index + 1}：</strong>${item.name}</p>
+                        <p>定制内容：${item.text1 || ''} ${item.emojis?.join(' ') || ''} ${item.text2 || ''}</p>
+                        <p>总字符：${item.totalChars} | 提交时间：${new Date(item.timestamp).toLocaleString()}</p>
+                    </div>
+                `;
             });
-        
-            // 保存
-            doc.save(`定制订单汇总_${new Date().toLocaleDateString()}.pdf`);
+            
+            tempContainer.innerHTML = htmlContent;
+            
+            // 纯图片渲染批量PDF
+            const canvasOptions = {
+                scale: 3,
+                useCORS: true,
+                allowTaint: true,
+                backgroundColor: '#ffffff',
+                logging: false
+            };
+            
+            html2canvas(tempContainer, canvasOptions).then(canvas => {
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF({
+                    orientation: 'portrait',
+                    unit: 'mm',
+                    format: 'a4',
+                    compress: true
+                });
+                
+                const imgData = canvas.toDataURL('image/png', 1.0);
+                const imgWidth = 210;
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                
+                // 自动分页
+                let pageHeight = 297;
+                let imgHeightLeft = imgHeight;
+                let position = 0;
+                
+                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeightLeft > pageHeight ? pageHeight : imgHeightLeft);
+                imgHeightLeft -= pageHeight;
+                
+                while (imgHeightLeft > 0) {
+                    position = imgHeightLeft - imgHeight;
+                    pdf.addPage();
+                    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                    imgHeightLeft -= pageHeight;
+                }
+                
+                // 保存并清理临时容器
+                pdf.save(`定制订单汇总_${new Date().toLocaleDateString()}.pdf`);
+                document.body.removeChild(tempContainer);
+                
+            }).catch(err => {
+                console.error('批量PDF导出失败:', err);
+                alert('批量PDF导出失败，请重试！');
+                document.body.removeChild(tempContainer);
+            });
         }
         
-        // 新增：显示管理员密码弹窗
+        // 显示管理员密码弹窗
         function showAdminPasswordModal() {
             adminPasswordInput.value = '';
             passwordError.classList.add('hidden');
             adminPasswordModal.classList.remove('hidden');
         }
         
-        // 新增：隐藏管理员密码弹窗
+        // 隐藏管理员密码弹窗
         function hideAdminPasswordModal() {
             adminPasswordModal.classList.add('hidden');
         }
         
-        // 新增：验证管理员密码
+        // 验证管理员密码
         function verifyAdminPassword() {
             const password = adminPasswordInput.value.trim();
             
@@ -1109,25 +1311,25 @@
             }
         }
         
-        // 新增：筛选客户列表
+        // 筛选客户列表
         function filterCustomerList() {
             const filterText = customerFilterInput.value.trim().toLowerCase();
             updateCustomerList(filterText);
         }
         
-        // 新增：显示删除确认弹窗
+        // 显示删除确认弹窗
         function showDeleteConfirmModal(id) {
             deleteCustomerId = id;
             deleteConfirmModal.classList.remove('hidden');
         }
         
-        // 新增：隐藏删除确认弹窗
+        // 隐藏删除确认弹窗
         function hideDeleteConfirmModal() {
             deleteConfirmModal.classList.add('hidden');
             deleteCustomerId = null;
         }
         
-        // 新增：确认删除客户
+        // 确认删除客户
         function confirmDeleteCustomer() {
             if (!deleteCustomerId) return;
             
