@@ -16,9 +16,6 @@
     <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
     <!-- SheetJS for Excel export -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <!-- 新增：JSZip用于打包多个PDF -->
-    <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
     
     <script>
         tailwind.config = {
@@ -198,38 +195,6 @@
                 justify-content: center;
                 background: #ffffff !important; /* 纯白底色 */
                 font-family: "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", "Noto Sans SC", sans-serif !important;
-            }
-            
-            /* 加载提示样式 */
-            .loading-overlay {
-                position: fixed;
-                top: 0;
-                left: 0;
-                right: 0;
-                bottom: 0;
-                background: rgba(0,0,0,0.5);
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                z-index: 9999;
-                color: white;
-                font-size: 18px;
-                flex-direction: column;
-            }
-            
-            .loading-spinner {
-                border: 4px solid rgba(255,255,255,0.3);
-                border-radius: 50%;
-                border-top: 4px solid white;
-                width: 40px;
-                height: 40px;
-                animation: spin 1s linear infinite;
-                margin-bottom: 16px;
-            }
-            
-            @keyframes spin {
-                0% { transform: rotate(0deg); }
-                100% { transform: rotate(360deg); }
             }
         }
     </style>
@@ -465,7 +430,7 @@
                             <i class="fa fa-file-excel-o mr-1"></i> 导出姓名(Excel)
                         </button>
                         <button id="export-all-pdf" class="px-4 py-2 bg-accent hover:bg-yellow-600 text-white rounded-lg text-sm transition-colors flex items-center">
-                            <i class="fa fa-file-pdf-o mr-1"></i> 导出全部PDF（独立文件）
+                            <i class="fa fa-file-pdf-o mr-1"></i> 导出全部PDF
                         </button>
                     </div>
                 </div>
@@ -522,12 +487,6 @@
                     <!-- 定制内容将动态填充 -->
                 </div>
             </div>
-        </div>
-        
-        <!-- 加载提示 -->
-        <div id="loading-overlay" class="loading-overlay hidden">
-            <div class="loading-spinner"></div>
-            <span id="loading-text">正在生成PDF文件，请稍候...</span>
         </div>
     </div>
 
@@ -604,10 +563,6 @@
         const cancelDeleteBtn = document.getElementById('cancel-delete');
         const confirmDeleteBtn = document.getElementById('confirm-delete');
         
-        // 加载提示元素
-        const loadingOverlay = document.getElementById('loading-overlay');
-        const loadingText = document.getElementById('loading-text');
-        
         // 存储客户定制数据
         let customerData = JSON.parse(localStorage.getItem('customerData')) || [];
         let currentCustomerId = null;
@@ -645,8 +600,7 @@
             cancelDeleteBtn.addEventListener('click', hideDeleteConfirmModal);
             confirmDeleteBtn.addEventListener('click', confirmDeleteCustomer);
             
-            // 修改：批量导出独立PDF
-            exportAllPdfBtn.addEventListener('click', exportAllCustomersToPDF);
+            exportAllPdfBtn.addEventListener('click', exportAllToPDF);
             copyCombinedBtn.addEventListener('click', copyCombinedText);
             
             // 预览区域拖拽功能 - 修复版
@@ -1065,7 +1019,7 @@
             });
         }
         
-        // 导出单个PDF
+        // 导出PDF
         function exportToPDF() {
             const now = new Date();
             const combinedText = selectedItems.map(item => item.content).join('');
@@ -1125,114 +1079,78 @@
             });
         }
         
-        // 新增：批量导出独立PDF（一个客户一个文件，打包为ZIP）
-        async function exportAllCustomersToPDF() {
+        // 管理员批量导出PDF
+        function exportAllToPDF() {
             if (customerData.length === 0) {
                 alert('暂无客户数据可导出');
                 return;
             }
             
-            // 显示加载提示
-            loadingOverlay.classList.remove('hidden');
+            const tempContainer = document.createElement('div');
+            tempContainer.style.width = '595px';
+            tempContainer.style.padding = '20px';
+            tempContainer.style.background = 'white';
+            tempContainer.style.fontFamily = '"Noto Sans SC", sans-serif';
+            document.body.appendChild(tempContainer);
             
-            try {
-                // 创建ZIP文件
-                const zip = new JSZip();
-                const pdfFolder = zip.folder("移动电源定制PDF");
-                
-                // 遍历所有客户，为每个客户生成独立PDF
-                for (let i = 0; i < customerData.length; i++) {
-                    const customer = customerData[i];
-                    loadingText.textContent = `正在生成 ${customer.name} 的PDF (${i+1}/${customerData.length})...`;
-                    
-                    // 构建客户的定制内容
-                    let combinedText = '';
-                    if (customer.text1) combinedText += customer.text1;
-                    if (customer.emojis && customer.emojis.length > 0) {
-                        combinedText += ' ' + customer.emojis.join(' ');
-                    }
-                    if (customer.text2) combinedText += ' ' + customer.text2;
-                    
-                    // 填充PDF内容
-                    pdfCustomContent.textContent = combinedText;
-                    
-                    // 准备PDF渲染容器
-                    pdfRenderContainer.style.display = 'block';
-                    pdfRenderContainer.style.position = 'absolute';
-                    pdfRenderContainer.style.left = '-9999px';
-                    pdfRenderContainer.style.top = '0';
-                    pdfRenderContainer.style.width = '595px';
-                    pdfRenderContainer.style.background = '#ffffff';
-                    
-                    // 生成canvas
-                    const canvas = await html2canvas(pdfRenderContainer, {
-                        scale: 2,
-                        useCORS: true,
-                        allowTaint: true,
-                        backgroundColor: '#ffffff',
-                        logging: false,
-                        letterRendering: true,
-                        imageTimeout: 15000,
-                        fontRendering: 'canvas'
-                    });
-                    
-                    // 生成PDF
-                    const { jsPDF } = window.jspdf;
-                    const pdf = new jsPDF({
-                        orientation: 'portrait',
-                        unit: 'mm',
-                        format: 'a4',
-                        compress: true
-                    });
-                    
-                    const imgData = canvas.toDataURL('image/png', 1.0);
-                    const imgWidth = 210;
-                    const imgHeight = (canvas.height * imgWidth) / canvas.width;
-                    const x = 0;
-                    const y = (297 - imgHeight) / 2;
-                    
-                    pdf.addImage(imgData, 'PNG', x, y, imgWidth, imgHeight);
-                    
-                    // 将PDF添加到ZIP文件
-                    const pdfBlob = pdf.output('blob');
-                    const fileName = `移动电源定制_${customer.name}_${new Date(customer.timestamp).getTime()}.pdf`;
-                    pdfFolder.file(fileName, pdfBlob);
-                    
-                    // 清理
-                    pdfRenderContainer.style.display = 'none';
-                    pdfRenderContainer.style.position = '';
-                    pdfRenderContainer.style.left = '';
-                    pdfRenderContainer.style.top = '';
-                    pdfRenderContainer.style.width = '';
-                    pdfRenderContainer.style.background = '';
-                    
-                    // 短暂延迟，避免浏览器卡顿
-                    await new Promise(resolve => setTimeout(resolve, 100));
-                }
-                
-                // 生成ZIP文件并下载
-                loadingText.textContent = '正在打包ZIP文件...';
-                const zipContent = await zip.generateAsync({
-                    type: 'blob',
-                    compression: 'DEFLATE',
-                    compressionOptions: { level: 6 }
+            let htmlContent = '<div class="pdf-header"><h1 class="text-2xl font-bold text-primary text-center">移动电源定制订单汇总</h1></div>';
+            htmlContent += `<p class="text-sm mb-4">导出时间：${new Date().toLocaleString()}</p>`;
+            
+            customerData.forEach((item, index) => {
+                htmlContent += `
+                    <div style="margin: 10px 0; padding: 10px; border-bottom: 1px solid #eee;">
+                        <p><strong>订单 ${index + 1}：</strong>${item.name}</p>
+                        <p>定制内容：${item.text1 || ''} ${item.emojis?.join(' ') || ''} ${item.text2 || ''}</p>
+                        <p>总字符：${item.totalChars} | 提交时间：${new Date(item.timestamp).toLocaleString()}</p>
+                    </div>
+                `;
+            });
+            
+            tempContainer.innerHTML = htmlContent;
+            
+            const canvasOptions = {
+                scale: 2,
+                useCORS: true,
+                allowTaint: true,
+                backgroundColor: '#ffffff',
+                logging: false
+            };
+            
+            html2canvas(tempContainer, canvasOptions).then(canvas => {
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF({
+                    orientation: 'portrait',
+                    unit: 'mm',
+                    format: 'a4',
+                    compress: true
                 });
                 
-                // 下载ZIP文件
-                const now = new Date();
-                const zipFileName = `移动电源定制PDF_${now.getFullYear()}${(now.getMonth()+1).toString().padStart(2,'0')}${now.getDate().toString().padStart(2,'0')}.zip`;
-                saveAs(zipContent, zipFileName);
+                const imgData = canvas.toDataURL('image/png', 1.0);
+                const imgWidth = 210;
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
                 
-                alert(`成功生成 ${customerData.length} 个PDF文件，已打包为ZIP文件下载！`);
+                let pageHeight = 297;
+                let imgHeightLeft = imgHeight;
+                let position = 0;
                 
-            } catch (err) {
+                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeightLeft > pageHeight ? pageHeight : imgHeightLeft);
+                imgHeightLeft -= pageHeight;
+                
+                while (imgHeightLeft > 0) {
+                    position = imgHeightLeft - imgHeight;
+                    pdf.addPage();
+                    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                    imgHeightLeft -= pageHeight;
+                }
+                
+                pdf.save(`定制订单汇总_${new Date().toLocaleDateString()}.pdf`);
+                document.body.removeChild(tempContainer);
+                
+            }).catch(err => {
                 console.error('批量PDF导出失败:', err);
                 alert('批量PDF导出失败，请重试！');
-            } finally {
-                // 隐藏加载提示
-                loadingOverlay.classList.add('hidden');
-                loadingText.textContent = '正在生成PDF文件，请稍候...';
-            }
+                document.body.removeChild(tempContainer);
+            });
         }
         
         // 导出客户姓名到Excel
