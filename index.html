@@ -10,8 +10,10 @@
     <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
     <!-- Inter Font -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <!-- html2canvas for export functionality -->
+    <!-- html2canvas for PNG export -->
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <!-- jsPDF for PDF export -->
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
     
     <script>
         tailwind.config = {
@@ -567,8 +569,6 @@
             // 输入过程不显示错误提示，避免影响中文输入体验
             if (!isValid && value.length > 0) {
                 // 暂时注释掉输入中的错误提示
-                // input.classList.add('input-error');
-                // textError.classList.remove('hidden');
             } else {
                 input.classList.remove('input-error');
                 textError.classList.add('hidden');
@@ -1030,6 +1030,54 @@
             });
         }
         
+        // 导出所有为 PDF（完整版可用）
+        function exportAllToPDF() {
+            if (customerData.length === 0) {
+                alert('暂无客户数据可导出');
+                return;
+            }
+        
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('p', 'mm', 'a4');
+            const pageWidth = doc.internal.pageSize.getWidth();
+            let yPos = 20;
+            const lineHeight = 8;
+        
+            // 标题
+            doc.setFontSize(16);
+            doc.text('移动电源定制订单汇总', pageWidth / 2, yPos, { align: 'center' });
+            yPos += 15;
+        
+            doc.setFontSize(11);
+            doc.text(`导出时间：${new Date().toLocaleString()}`, 15, yPos);
+            yPos += 15;
+        
+            // 遍历客户
+            customerData.forEach((item, index) => {
+                if (yPos > 270) {
+                    doc.addPage();
+                    yPos = 20;
+                }
+        
+                doc.setFontSize(12);
+                doc.text(`【订单 ${index + 1}】`, 15, yPos);
+                yPos += lineHeight;
+        
+                doc.setFontSize(10);
+                doc.text(`客户姓名：${item.name}`, 15, yPos);
+                yPos += lineHeight;
+                doc.text(`定制内容：${item.text1 || ''} ${item.emojis?.join('') || ''} ${item.text2 || ''}`, 15, yPos);
+                yPos += lineHeight;
+                doc.text(`总字符：${item.totalChars}`, 15, yPos);
+                yPos += lineHeight;
+                doc.text(`提交时间：${new Date(item.timestamp).toLocaleString()}`, 15, yPos);
+                yPos += lineHeight + 3;
+            });
+        
+            // 保存
+            doc.save(`定制订单汇总_${new Date().toLocaleDateString()}.pdf`);
+        }
+        
         // 新增：显示管理员密码弹窗
         function showAdminPasswordModal() {
             adminPasswordInput.value = '';
@@ -1141,7 +1189,7 @@
                         <button class="text-green-500 hover:text-green-700 mr-2" onclick="exportCustomerPNG(${customer.id})">
                             <i class="fa fa-download"></i>
                         </button>
-                        <button class="text-red-500 hover:text-green-700" onclick="showDeleteConfirmModal(${customer.id})">
+                        <button class="text-red-500 hover:text-red-700" onclick="showDeleteConfirmModal(${customer.id})">
                             <i class="fa fa-trash"></i>
                         </button>
                     </td>
@@ -1223,17 +1271,6 @@
         function exportCustomerPNG(id) {
             viewCustomerDetail(id);
             setTimeout(exportToPNG, 500);
-        }
-        
-        // 导出所有为PDF
-        function exportAllToPDF() {
-            if (customerData.length === 0) {
-                alert('暂无客户数据');
-                return;
-            }
-            
-            alert('PDF导出功能正在开发中，敬请期待！');
-            // 实际项目中可以使用jsPDF等库实现PDF导出功能
         }
 
         // 初始化应用
