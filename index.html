@@ -14,7 +14,7 @@
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <!-- jsPDF for PDF export -->
     <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-    <!-- SheetJS for Excel/CSV export -->
+    <!-- SheetJS for Excel export -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     
     <script>
@@ -86,7 +86,6 @@
                 min-width: 2rem;
                 min-height: 2rem;
                 font-family: "Noto Sans SC", "Segoe UI Emoji", sans-serif;
-                /* 拖拽优化：增加z-index防止被遮挡 */
                 position: relative;
                 z-index: 10;
             }
@@ -104,9 +103,8 @@
                 border-color: #2563EB;
             }
             
-            /* 拖拽中的样式优化 */
             .preview-item.dragging {
-                opacity: 0.7;
+                opacity: 0.8;
                 transform: scale(1.05);
                 z-index: 20;
                 background-color: #DBEAFE;
@@ -431,9 +429,6 @@
                         <button id="export-names-excel" class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm transition-colors flex items-center">
                             <i class="fa fa-file-excel-o mr-1"></i> 导出姓名(Excel)
                         </button>
-                        <button id="export-names-csv" class="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm transition-colors flex items-center">
-                            <i class="fa fa-file-text-o mr-1"></i> 导出姓名(CSV)
-                        </button>
                         <button id="export-all-pdf" class="px-4 py-2 bg-accent hover:bg-yellow-600 text-white rounded-lg text-sm transition-colors flex items-center">
                             <i class="fa fa-file-pdf-o mr-1"></i> 导出全部PDF
                         </button>
@@ -515,10 +510,8 @@
         
         // 存储待删除的客户ID
         let deleteCustomerId = null;
-        // 拖拽元素变量 - 优化：增加拖拽状态管理
+        // 拖拽元素变量
         let draggedItem = null;
-        let dragStartIndex = -1;
-        let isDragging = false;
 
         // DOM元素
         const customerName = document.getElementById('customer-name');
@@ -536,7 +529,7 @@
         const emojiGrid = document.getElementById('emoji-grid');
         const submitBtn = document.getElementById('submit-customization');
         const exportPngBtn = document.getElementById('export-png');
-        const exportPdfBtn = document.getElementById('export-pdf'); // 新增PDF按钮
+        const exportPdfBtn = document.getElementById('export-pdf');
         const successModal = document.getElementById('success-modal');
         const closeModalBtn = document.getElementById('close-modal');
         const exportSinglePngBtn = document.getElementById('export-single-png');
@@ -548,11 +541,10 @@
         const combinedChars = document.getElementById('combined-chars');
         const copyCombinedBtn = document.getElementById('copy-combined');
         
-        // 新增：Excel/CSV导出按钮
+        // Excel导出按钮
         const exportNamesExcelBtn = document.getElementById('export-names-excel');
-        const exportNamesCsvBtn = document.getElementById('export-names-csv');
         
-        // PDF导出专用DOM元素（仅保留合并预览内容）
+        // PDF导出专用DOM元素
         const pdfRenderContainer = document.getElementById('pdf-render-container');
         const pdfCustomContent = document.getElementById('pdf-custom-content');
         
@@ -588,7 +580,7 @@
             clearPreviewBtn.addEventListener('click', clearPreview);
             submitBtn.addEventListener('click', submitCustomization);
             exportPngBtn.addEventListener('click', exportToPNG);
-            exportPdfBtn.addEventListener('click', exportToPDF); // 绑定PDF导出事件
+            exportPdfBtn.addEventListener('click', exportToPDF);
             closeModalBtn.addEventListener('click', () => successModal.classList.add('hidden'));
             exportSinglePngBtn.addEventListener('click', () => {
                 exportToPNG();
@@ -601,9 +593,8 @@
             confirmPasswordBtn.addEventListener('click', verifyAdminPassword);
             customerFilterInput.addEventListener('input', filterCustomerList);
             
-            // 新增：Excel/CSV导出事件
+            // Excel导出事件
             exportNamesExcelBtn.addEventListener('click', exportNamesToExcel);
-            exportNamesCsvBtn.addEventListener('click', exportNamesToCSV);
             
             // 删除确认弹窗相关事件
             cancelDeleteBtn.addEventListener('click', hideDeleteConfirmModal);
@@ -612,13 +603,11 @@
             exportAllPdfBtn.addEventListener('click', exportAllToPDF);
             copyCombinedBtn.addEventListener('click', copyCombinedText);
             
-            // 预览区域拖拽功能 - 优化版
+            // 预览区域拖拽功能 - 修复版
             previewContainer.addEventListener('dragstart', handleDragStart);
             previewContainer.addEventListener('dragend', handleDragEnd);
-            previewContainer.addEventListener('dragover', handleDragOver);
+            previewContainer.addEventListener('dragover', (e) => e.preventDefault());
             previewContainer.addEventListener('drop', handleDrop);
-            // 优化：添加mousemove事件减少闪烁
-            previewContainer.addEventListener('mousemove', handleMouseMove);
             
             // 加载客户列表
             updateCustomerList();
@@ -640,17 +629,16 @@
             });
         }
 
-        // 处理文本输入（已修复中文输入异常）
+        // 处理文本输入
         function handleTextInput(e) {
             const input = e.target;
             const value = input.value;
             const counter = input === textInput1 ? textCounter1 : textCounter2;
 
-            // 输入过程不拦截，只在提交时校验，避免中文输入法被打断
+            // 输入过程不拦截，只在提交时校验
             const validPattern = /^[\u4e00-\u9fa5a-zA-Z0-9]*$/;
             const isValid = validPattern.test(value);
 
-            // 输入过程不显示错误提示，避免影响中文输入体验
             if (!isValid && value.length > 0) {
                 // 暂时注释掉输入中的错误提示
             } else {
@@ -667,12 +655,11 @@
             updateTotalCharCount();
         }
 
-        // 计算字符数（中文算2个字符，英文和数字算1个字符）
+        // 计算字符数
         function calculateCharCount(text) {
             let count = 0;
             for (let i = 0; i < text.length; i++) {
                 const char = text.charAt(i);
-                // 中文字符
                 if (/[\u4e00-\u9fa5]/.test(char)) {
                     count += 2;
                 } else {
@@ -687,35 +674,25 @@
             const emojiItem = document.querySelector(`[data-emoji="${emoji}"]`);
             
             if (emojiItem.classList.contains('selected')) {
-                // 取消选择
                 emojiItem.classList.remove('selected');
-                
-                // 从选中列表中移除
                 const index = selectedItems.findIndex(item => item.type === 'emoji' && item.content === emoji);
                 if (index !== -1) {
                     selectedItems.splice(index, 1);
                 }
             } else {
-                // 检查总字符数是否会超过限制
-                const emojiCharCount = 3; // Emoji算3个字符
+                const emojiCharCount = 3;
                 const currentTotalChars = calculateTotalChars();
                 
                 if (currentTotalChars + emojiCharCount <= 15) {
-                    // 选中Emoji
                     emojiItem.classList.add('selected');
-                    
-                    // 添加到选中列表
                     selectedItems.push({
                         type: 'emoji',
                         content: emoji,
                         charCount: emojiCharCount
                     });
-                    
-                    // 更新预览
                     updatePreview();
                     updateTotalCharCount();
                 } else {
-                    // 显示总字符数错误
                     totalCharsError.classList.remove('hidden');
                     setTimeout(() => {
                         totalCharsError.classList.add('hidden');
@@ -726,17 +703,14 @@
 
         // 更新预览区域
         function updatePreview() {
-            // 清空预览区域
             previewContainer.innerHTML = '';
             
-            // 如果没有选中任何内容，显示提示文本
             if (selectedItems.length === 0) {
                 previewContainer.innerHTML = '<p class="text-gray-400 text-center">请输入文字并选择表情符号</p>';
                 updateCombinedPreview();
                 return;
             }
             
-            // 添加选中的项目到预览区域
             selectedItems.forEach((item, index) => {
                 const previewItem = document.createElement('div');
                 previewItem.className = 'preview-item';
@@ -762,20 +736,17 @@
                 previewContainer.appendChild(previewItem);
             });
             
-            // 更新合并预览
             updateCombinedPreview();
         }
         
         // 更新合并预览
         function updateCombinedPreview() {
-            // 如果没有选中任何内容，显示提示文本
             if (selectedItems.length === 0) {
                 combinedPreview.innerHTML = '<p class="text-gray-400">合并后的内容将显示在这里</p>';
                 combinedChars.textContent = '0';
                 return;
             }
             
-            // 合并所有选中的项目内容
             let combinedText = '';
             let totalChars = 0;
             
@@ -784,11 +755,9 @@
                 totalChars += item.charCount;
             });
             
-            // 更新合并预览
             combinedPreview.textContent = combinedText;
             combinedChars.textContent = totalChars;
             
-            // 根据字符数更新颜色
             if (totalChars > 15) {
                 combinedChars.classList.add('text-red-500');
             } else if (totalChars >= 12) {
@@ -803,15 +772,12 @@
         function copyCombinedText() {
             if (selectedItems.length === 0) return;
             
-            // 合并所有选中的项目内容
             let combinedText = '';
             selectedItems.forEach(item => {
                 combinedText += item.content;
             });
             
-            // 复制到剪贴板
             navigator.clipboard.writeText(combinedText).then(() => {
-                // 显示复制成功提示
                 const originalText = copyCombinedBtn.innerHTML;
                 copyCombinedBtn.innerHTML = '<i class="fa fa-check mr-1"></i> 已复制';
                 copyCombinedBtn.classList.remove('bg-gray-200', 'hover:bg-gray-300');
@@ -830,7 +796,6 @@
 
         // 移除预览项目
         function removePreviewItem(index) {
-            // 如果是文本项，清除对应的输入框
             if (selectedItems[index].type === 'text') {
                 if (selectedItems[index].inputId === 'text-input-1') {
                     textInput1.value = '';
@@ -839,9 +804,7 @@
                     textInput2.value = '';
                     textCounter2.textContent = '0/15';
                 }
-            } 
-            // 如果是Emoji项，移除选中状态
-            else if (selectedItems[index].type === 'emoji') {
+            } else if (selectedItems[index].type === 'emoji') {
                 const emoji = selectedItems[index].content;
                 const emojiItem = document.querySelector(`[data-emoji="${emoji}"]`);
                 if (emojiItem) {
@@ -849,35 +812,26 @@
                 }
             }
             
-            // 从选中列表中移除
             selectedItems.splice(index, 1);
-            
-            // 更新预览和总字符数
             updatePreview();
             updateTotalCharCount();
         }
 
         // 清空预览
         function clearPreview() {
-            // 清空文本输入框
             textInput1.value = '';
             textInput2.value = '';
             textCounter1.textContent = '0/15';
             textCounter2.textContent = '0/15';
             
-            // 移除所有Emoji的选中状态
             document.querySelectorAll('.emoji-item.selected').forEach(item => {
                 item.classList.remove('selected');
             });
             
-            // 清空选中列表
             selectedItems = [];
-            
-            // 更新预览和总字符数
             updatePreview();
             updateTotalCharCount();
             
-            // 隐藏错误信息
             textError.classList.add('hidden');
             totalCharsError.classList.add('hidden');
         }
@@ -889,22 +843,17 @@
 
         // 更新总字符数显示
         function updateTotalCharCount() {
-            // 获取当前文本输入的字符数
             const text1Count = textInput1.value ? calculateCharCount(textInput1.value) : 0;
             const text2Count = textInput2.value ? calculateCharCount(textInput2.value) : 0;
             
-            // 更新选中列表中的文本项
             updateSelectedTextItems(textInput1, text1Count);
             updateSelectedTextItems(textInput2, text2Count);
             
-            // 计算总字符数
             const total = calculateTotalChars();
             
-            // 更新显示
             totalChars.textContent = total;
             charProgress.style.width = `${(total / 15) * 100}%`;
             
-            // 根据总字符数更新进度条颜色
             if (total >= 15) {
                 charProgress.classList.remove('bg-primary');
                 charProgress.classList.add('bg-green-500');
@@ -917,7 +866,6 @@
                 charProgress.classList.add('bg-primary');
             }
             
-            // 验证表单并启用/禁用按钮
             validateForm();
         }
 
@@ -926,10 +874,8 @@
             const inputId = input.id;
             const value = input.value;
             
-            // 查找是否已存在该输入框的文本项
             const existingIndex = selectedItems.findIndex(item => item.type === 'text' && item.inputId === inputId);
             
-            // 无论字符数多少，都更新或添加文本项，但在validateForm中控制按钮状态
             if (value) {
                 const textItem = {
                     type: 'text',
@@ -939,155 +885,77 @@
                 };
                 
                 if (existingIndex !== -1) {
-                    // 更新已存在的文本项
                     selectedItems[existingIndex] = textItem;
                 } else {
-                    // 添加新的文本项
                     selectedItems.push(textItem);
                 }
             } else if (existingIndex !== -1) {
-                // 如果文本为空，移除已存在的文本项
                 selectedItems.splice(existingIndex, 1);
             }
         }
 
-        // 拖拽开始 - 优化版
+        // 拖拽开始 - 修复版
         function handleDragStart(e) {
             if (e.target.classList.contains('preview-item')) {
-                // 防止拖拽闪烁
-                e.dataTransfer.effectAllowed = 'move';
+                draggedItem = e.target;
                 e.dataTransfer.setData('text/plain', e.target.dataset.index);
                 
-                draggedItem = e.target;
-                dragStartIndex = parseInt(e.target.dataset.index);
-                isDragging = true;
-                
-                // 添加拖拽中样式
+                // 添加拖拽样式
                 setTimeout(() => {
                     draggedItem.classList.add('dragging');
                 }, 0);
-                
-                // 优化：阻止默认拖拽行为
-                e.preventDefault();
             }
         }
 
-        // 拖拽结束 - 新增
+        // 拖拽结束
         function handleDragEnd(e) {
             if (draggedItem) {
                 draggedItem.classList.remove('dragging');
-            }
-            isDragging = false;
-            draggedItem = null;
-            dragStartIndex = -1;
-        }
-
-        // 鼠标移动 - 优化：减少闪烁
-        function handleMouseMove(e) {
-            if (!isDragging) return;
-            
-            // 阻止默认行为防止闪烁
-            e.preventDefault();
-            e.stopPropagation();
-        }
-
-        // 拖拽经过 - 优化版
-        function handleDragOver(e) {
-            e.preventDefault();
-            e.dataTransfer.dropEffect = 'move';
-            
-            if (!draggedItem) return;
-            
-            // 优化：减少DOM操作频率
-            const afterElement = getDragAfterElement(previewContainer, e.clientY);
-            const parent = draggedItem.parentNode;
-            
-            if (afterElement && afterElement !== draggedItem && afterElement.parentNode === parent) {
-                parent.insertBefore(draggedItem, afterElement);
-            } else if (!afterElement && parent.lastChild !== draggedItem) {
-                parent.appendChild(draggedItem);
+                draggedItem = null;
             }
         }
 
-        // 拖拽放置 - 优化版
+        // 拖拽放置 - 修复版
         function handleDrop(e) {
             e.preventDefault();
-            e.stopPropagation();
             
             if (!draggedItem) return;
             
             // 移除拖拽样式
             draggedItem.classList.remove('dragging');
             
-            // 更新选中列表顺序 - 优化：减少更新频率
-            updateSelectedItemsOrder();
+            // 获取目标位置
+            const dropTarget = e.target.closest('.preview-item');
+            const dragIndex = parseInt(draggedItem.dataset.index);
             
-            // 更新预览（轻量级更新，仅更新索引）
-            updatePreviewItemIndexes();
-            
-            // 重置拖拽状态
-            isDragging = false;
-            draggedItem = null;
-            dragStartIndex = -1;
-        }
-
-        // 轻量级更新预览项索引 - 新增
-        function updatePreviewItemIndexes() {
-            const previewItems = [...previewContainer.querySelectorAll('.preview-item')];
-            previewItems.forEach((item, newIndex) => {
-                item.dataset.index = newIndex;
-            });
-            updateCombinedPreview();
-        }
-
-        // 获取拖拽元素应该放置的位置 - 优化版
-        function getDragAfterElement(container, y) {
-            const draggableElements = [...container.querySelectorAll('.preview-item:not(.dragging)')];
-            
-            return draggableElements.reduce((closest, child) => {
-                const box = child.getBoundingClientRect();
-                const offset = y - box.top - box.height / 2;
+            if (dropTarget && dropTarget !== draggedItem) {
+                const dropIndex = parseInt(dropTarget.dataset.index);
                 
-                if (offset < 0 && offset > closest.offset) {
-                    return { offset: offset, element: child };
-                } else {
-                    return closest;
-                }
-            }, { offset: Number.NEGATIVE_INFINITY }).element;
+                // 重新排列数组
+                const [removed] = selectedItems.splice(dragIndex, 1);
+                selectedItems.splice(dropIndex, 0, removed);
+                
+                // 更新预览
+                updatePreview();
+            }
         }
 
-        // 更新选中列表顺序 - 优化版
-        function updateSelectedItemsOrder() {
-            const previewItems = [...previewContainer.querySelectorAll('.preview-item')];
-            const newSelectedItems = [];
-            
-            previewItems.forEach(item => {
-                const oldIndex = parseInt(item.dataset.index);
-                newSelectedItems.push(selectedItems[oldIndex]);
-            });
-            
-            selectedItems = newSelectedItems;
-        }
-
-        // 验证表单（修复中文输入校验逻辑）
+        // 验证表单
         function validateForm() {
             const nameValid = customerName.value.trim() !== '';
             const totalCharsValid = calculateTotalChars() > 0 && calculateTotalChars() <= 15;
 
-            // 提交前最终校验文字是否合法（中文/英文/数字）
             const validPattern = /^[\u4e00-\u9fa5a-zA-Z0-9]*$/;
             const text1Valid = validPattern.test(textInput1.value || '');
             const text2Valid = validPattern.test(textInput2.value || '');
             const finalTextValid = text1Valid && text2Valid;
 
-            // 显示/隐藏文本错误提示
             if (!finalTextValid && (textInput1.value || textInput2.value)) {
                 textError.classList.remove('hidden');
             } else {
                 textError.classList.add('hidden');
             }
 
-            // 姓名验证
             if (!nameValid) {
                 customerName.classList.add('input-error');
                 nameError.classList.remove('hidden');
@@ -1096,23 +964,20 @@
                 nameError.classList.add('hidden');
             }
 
-            // 按钮启用条件
             const formValid = nameValid && totalCharsValid && finalTextValid;
             submitBtn.disabled = !formValid;
             exportPngBtn.disabled = !formValid;
-            exportPdfBtn.disabled = !formValid; // 同步启用/禁用PDF按钮
+            exportPdfBtn.disabled = !formValid;
         }
         
         // 提交定制
         function submitCustomization() {
-            // 验证表单
             if (!customerName.value.trim()) {
                 customerName.classList.add('input-error');
                 nameError.classList.remove('hidden');
                 return;
             }
             
-            // 创建客户数据
             const customerId = Date.now();
             const customizationData = {
                 id: customerId,
@@ -1124,17 +989,13 @@
                 timestamp: new Date().toISOString()
             };
             
-            // 保存到本地存储
             customerData.push(customizationData);
             localStorage.setItem('customerData', JSON.stringify(customerData));
             
-            // 更新客户列表
             updateCustomerList();
             
-            // 保存当前客户ID
             currentCustomerId = customerId;
             
-            // 显示成功弹窗
             successModal.classList.remove('hidden');
         }
         
@@ -1148,7 +1009,6 @@
                 logging: false,
                 useCORS: true
             }).then(canvas => {
-                // 创建下载链接
                 const link = document.createElement('a');
                 link.download = `powerbank-${customerName.value.trim()}-${Date.now()}.png`;
                 link.href = canvas.toDataURL('image/png');
@@ -1159,14 +1019,12 @@
             });
         }
         
-        // 核心修改：PDF仅显示合并预览内容+纯白底色
+        // 导出PDF
         function exportToPDF() {
-            // 1. 填充PDF模板数据（仅合并预览内容）
             const now = new Date();
-            const combinedText = selectedItems.map(item => item.content).join(''); // 无空格拼接
-            pdfCustomContent.textContent = combinedText; // 仅设置合并预览内容
+            const combinedText = selectedItems.map(item => item.content).join('');
+            pdfCustomContent.textContent = combinedText;
 
-            // 关键修复：临时显示PDF容器（移到屏幕外），让渲染能拿到正确宽高
             pdfRenderContainer.style.display = 'block';
             pdfRenderContainer.style.position = 'absolute';
             pdfRenderContainer.style.left = '-9999px';
@@ -1174,12 +1032,11 @@
             pdfRenderContainer.style.width = '595px';
             pdfRenderContainer.style.background = '#ffffff';
 
-            // 2. 关键配置：强制纯图片渲染+纯白底色
             const canvasOptions = {
-                scale: 2, // 2倍缩放保证清晰度
+                scale: 2,
                 useCORS: true,
                 allowTaint: true,
-                backgroundColor: '#ffffff', // 强制纯白底色
+                backgroundColor: '#ffffff',
                 logging: false,
                 letterRendering: true,
                 imageTimeout: 15000,
@@ -1189,9 +1046,7 @@
                 }
             };
             
-            // 3. 渲染为Canvas（纯图片）
             html2canvas(pdfRenderContainer, canvasOptions).then(canvas => {
-                // 4. 初始化jsPDF，仅用于封装图片为PDF
                 const { jsPDF } = window.jspdf;
                 const pdf = new jsPDF({
                     orientation: 'portrait',
@@ -1200,26 +1055,21 @@
                     compress: true
                 });
                 
-                // Canvas转Base64图片（纯图片，无文字编码问题）
-                const imgData = canvas.toDataURL('image/png', 1.0); // 1.0=无损压缩
-                const imgWidth = 210; // A4宽度(mm)
+                const imgData = canvas.toDataURL('image/png', 1.0);
+                const imgWidth = 210;
                 const imgHeight = (canvas.height * imgWidth) / canvas.width;
                 
-                // 5. 居中显示内容
                 const x = 0;
-                const y = (297 - imgHeight) / 2; // 垂直居中
+                const y = (297 - imgHeight) / 2;
                 
-                // 添加图片到PDF（纯白底色+仅合并内容）
                 pdf.addImage(imgData, 'PNG', x, y, imgWidth, imgHeight);
                 
-                // 6. 保存PDF
                 pdf.save(`移动电源定制_${customerName.value.trim()}_${now.getTime()}.pdf`);
                 
             }).catch(err => {
                 console.error('PDF导出失败:', err);
                 alert('PDF导出失败，请检查网络或重试！');
             }).finally(() => {
-                // 导出完成后恢复隐藏状态
                 pdfRenderContainer.style.display = 'none';
                 pdfRenderContainer.style.position = '';
                 pdfRenderContainer.style.left = '';
@@ -1229,14 +1079,13 @@
             });
         }
         
-        // 管理员批量导出PDF（保持原有逻辑）
+        // 管理员批量导出PDF
         function exportAllToPDF() {
             if (customerData.length === 0) {
                 alert('暂无客户数据可导出');
                 return;
             }
             
-            // 创建临时容器用于渲染所有订单
             const tempContainer = document.createElement('div');
             tempContainer.style.width = '595px';
             tempContainer.style.padding = '20px';
@@ -1244,7 +1093,6 @@
             tempContainer.style.fontFamily = '"Noto Sans SC", sans-serif';
             document.body.appendChild(tempContainer);
             
-            // 填充所有订单数据
             let htmlContent = '<div class="pdf-header"><h1 class="text-2xl font-bold text-primary text-center">移动电源定制订单汇总</h1></div>';
             htmlContent += `<p class="text-sm mb-4">导出时间：${new Date().toLocaleString()}</p>`;
             
@@ -1260,7 +1108,6 @@
             
             tempContainer.innerHTML = htmlContent;
             
-            // 纯图片渲染批量PDF
             const canvasOptions = {
                 scale: 2,
                 useCORS: true,
@@ -1282,7 +1129,6 @@
                 const imgWidth = 210;
                 const imgHeight = (canvas.height * imgWidth) / canvas.width;
                 
-                // 自动分页
                 let pageHeight = 297;
                 let imgHeightLeft = imgHeight;
                 let position = 0;
@@ -1297,7 +1143,6 @@
                     imgHeightLeft -= pageHeight;
                 }
                 
-                // 保存并清理临时容器
                 pdf.save(`定制订单汇总_${new Date().toLocaleDateString()}.pdf`);
                 document.body.removeChild(tempContainer);
                 
@@ -1308,7 +1153,7 @@
             });
         }
         
-        // 新增：导出客户姓名到Excel
+        // 导出客户姓名到Excel
         function exportNamesToExcel() {
             if (customerData.length === 0) {
                 alert('暂无客户数据可导出');
@@ -1325,37 +1170,6 @@
             
             // 导出Excel文件
             XLSX.writeFile(wb, `客户姓名列表_${new Date().toLocaleDateString()}.xlsx`);
-        }
-        
-        // 新增：导出客户姓名到CSV
-        function exportNamesToCSV() {
-            if (customerData.length === 0) {
-                alert('暂无客户数据可导出');
-                return;
-            }
-            
-            // 只提取姓名列
-            const nameData = customerData.map(item => ({ '客户姓名': item.name }));
-            
-            // 创建工作簿和工作表
-            const ws = XLSX.utils.json_to_sheet(nameData);
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "客户姓名列表");
-            
-            // 导出CSV文件
-            const csv = XLSX.utils.sheet_to_csv(ws);
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-            
-            // 创建下载链接
-            const link = document.createElement('a');
-            const url = URL.createObjectURL(blob);
-            link.setAttribute('href', url);
-            link.setAttribute('download', `客户姓名列表_${new Date().toLocaleDateString()}.csv`);
-            link.style.visibility = 'hidden';
-            
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
         }
         
         // 显示管理员密码弹窗
@@ -1381,7 +1195,6 @@
                 passwordError.classList.remove('hidden');
                 adminPasswordInput.classList.add('input-error');
                 
-                // 3秒后自动隐藏错误提示
                 setTimeout(() => {
                     passwordError.classList.add('hidden');
                     adminPasswordInput.classList.remove('input-error');
@@ -1411,19 +1224,14 @@
         function confirmDeleteCustomer() {
             if (!deleteCustomerId) return;
             
-            // 从数组中删除
             customerData = customerData.filter(customer => customer.id !== deleteCustomerId);
             
-            // 更新本地存储
             localStorage.setItem('customerData', JSON.stringify(customerData));
             
-            // 更新客户列表
             updateCustomerList(customerFilterInput.value.trim().toLowerCase());
             
-            // 隐藏弹窗
             hideDeleteConfirmModal();
             
-            // 提示删除成功
             alert('客户记录已成功删除');
         }
         
@@ -1431,7 +1239,6 @@
         function updateCustomerList(filterText = '') {
             customerList.innerHTML = '';
             
-            // 筛选客户数据
             let filteredData = customerData;
             if (filterText) {
                 filteredData = customerData.filter(customer => 
@@ -1451,7 +1258,6 @@
             filteredData.forEach(customer => {
                 const row = document.createElement('tr');
                 
-                // 格式化定制内容
                 let customizationContent = '';
                 if (customer.text1) customizationContent += customer.text1;
                 if (customer.emojis && customer.emojis.length > 0) {
@@ -1484,18 +1290,15 @@
             const customer = customerData.find(c => c.id === id);
             if (!customer) return;
             
-            // 填充表单
             customerName.value = customer.name;
             textInput1.value = customer.text1 || '';
             textInput2.value = customer.text2 || '';
             
-            // 清空当前选中的项目
             selectedItems = [];
             document.querySelectorAll('.emoji-item.selected').forEach(item => {
                 item.classList.remove('selected');
             });
             
-            // 添加文本项
             if (customer.text1) {
                 const text1Count = calculateCharCount(customer.text1);
                 selectedItems.push({
@@ -1506,16 +1309,13 @@
                 });
             }
             
-            // 添加Emoji项
             if (customer.emojis && customer.emojis.length > 0) {
                 customer.emojis.forEach(emoji => {
-                    // 选中Emoji
                     const emojiItem = document.querySelector(`[data-emoji="${emoji}"]`);
                     if (emojiItem) {
                         emojiItem.classList.add('selected');
                     }
                     
-                    // 添加到选中列表
                     selectedItems.push({
                         type: 'emoji',
                         content: emoji,
@@ -1524,7 +1324,6 @@
                 });
             }
             
-            // 添加文本项2
             if (customer.text2) {
                 const text2Count = calculateCharCount(customer.text2);
                 selectedItems.push({
@@ -1535,15 +1334,12 @@
                 });
             }
             
-            // 更新预览和字符计数
             updatePreview();
             updateTotalCharCount();
             
-            // 更新字符计数器
             textCounter1.textContent = `${calculateCharCount(customer.text1 || '')}/15`;
             textCounter2.textContent = `${calculateCharCount(customer.text2 || '')}/15`;
             
-            // 滚动到顶部
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
         
