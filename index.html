@@ -500,8 +500,20 @@
         <!-- PDF导出专用隐藏容器（用于渲染PDF内容） -->
         <div id="pdf-render-container" class="hidden">
             <div class="pdf-content-wrapper">
+                <div class="pdf-header">
+                    <h1 class="text-2xl font-bold text-primary">移动电源定制确认单</h1>
+                </div>
+                <div class="pdf-customer-info">
+                    <p class="text-lg"><strong>姓名：</strong> <span id="pdf-customer-name"></span></p>
+                    <p class="text-sm text-gray-600 mt-2"><strong>定制时间：</strong> <span id="pdf-custom-time"></span></p>
+                    <p class="text-sm text-gray-600 mt-1"><strong>总字符数：</strong> <span id="pdf-total-chars"></span>/15</p>
+                </div>
                 <div class="pdf-custom-content" id="pdf-custom-content">
-                    <!-- 仅显示定制的文字/Emoji -->
+                    <!-- 定制内容将动态填充 -->
+                </div>
+                <div class="pdf-footer">
+                    <p>本确认单为电子凭证，如有疑问请联系客服</p>
+                    <p id="pdf-footer-time"></p>
                 </div>
             </div>
         </div>
