@@ -163,51 +163,25 @@
                 background: #9CA3AF;
             }
             
-            /* PDF导出专用样式 - 强制字体保证显示 */
+            /* PDF导出专用样式 - 仅保留合并预览内容+纯白底色 */
             .pdf-content-wrapper {
                 width: 100%;
                 max-width: 595px; /* A4宽度(px)：210mm = 595px */
                 margin: 0 auto;
                 padding: 20px;
-                background: white;
+                background: #ffffff !important; /* 强制纯白底色 */
                 font-family: 'Noto Sans SC', 'Inter', sans-serif !important;
             }
             
-            .pdf-header {
-                text-align: center;
-                padding-bottom: 20px;
-                border-bottom: 2px solid #3B82F6;
-                margin-bottom: 20px;
-                font-family: 'Noto Sans SC', sans-serif !important;
-            }
-            
-            .pdf-customer-info {
-                margin-bottom: 20px;
-                padding: 15px;
-                background: #F9FAFB;
-                border-radius: 8px;
-                font-family: 'Noto Sans SC', sans-serif !important;
-            }
-            
             .pdf-custom-content {
-                padding: 20px;
-                background: #F3F4F6;
-                border-radius: 8px;
                 text-align: center;
-                font-size: 24px;
-                min-height: 150px;
+                font-size: 28px; /* 放大字体，突出内容 */
+                min-height: 200px;
                 display: flex;
                 align-items: center;
                 justify-content: center;
+                background: #ffffff !important; /* 纯白底色 */
                 font-family: "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", "Noto Sans SC", sans-serif !important;
-            }
-            
-            .pdf-footer {
-                margin-top: 20px;
-                text-align: center;
-                color: #6B7280;
-                font-size: 12px;
-                font-family: 'Noto Sans SC', sans-serif !important;
             }
         }
     </style>
@@ -489,23 +463,12 @@
             </div>
         </div>
         
-        <!-- PDF导出专用隐藏容器（用于渲染PDF内容） -->
+        <!-- PDF导出专用隐藏容器（仅保留合并预览内容+纯白底色） -->
         <div id="pdf-render-container" class="hidden">
             <div class="pdf-content-wrapper">
-                <div class="pdf-header">
-                    <h1 class="text-2xl font-bold text-primary">移动电源定制确认单</h1>
-                </div>
-                <div class="pdf-customer-info">
-                    <p class="text-lg"><strong>客户姓名：</strong> <span id="pdf-customer-name"></span></p>
-                    <p class="text-sm text-gray-600 mt-2"><strong>定制时间：</strong> <span id="pdf-custom-time"></span></p>
-                    <p class="text-sm text-gray-600 mt-1"><strong>总字符数：</strong> <span id="pdf-total-chars"></span>/15</p>
-                </div>
+                <!-- 仅保留合并预览内容，删除所有其他信息 -->
                 <div class="pdf-custom-content" id="pdf-custom-content">
                     <!-- 定制内容将动态填充 -->
-                </div>
-                <div class="pdf-footer">
-                    <p>本确认单为电子凭证，如有疑问请联系客服</p>
-                    <p id="pdf-footer-time"></p>
                 </div>
             </div>
         </div>
@@ -562,13 +525,9 @@
         const combinedChars = document.getElementById('combined-chars');
         const copyCombinedBtn = document.getElementById('copy-combined');
         
-        // PDF导出专用DOM元素
+        // PDF导出专用DOM元素（仅保留合并预览内容）
         const pdfRenderContainer = document.getElementById('pdf-render-container');
-        const pdfCustomerName = document.getElementById('pdf-customer-name');
-        const pdfCustomTime = document.getElementById('pdf-custom-time');
-        const pdfTotalChars = document.getElementById('pdf-total-chars');
         const pdfCustomContent = document.getElementById('pdf-custom-content');
-        const pdfFooterTime = document.getElementById('pdf-footer-time');
         
         // 管理员密码验证相关元素
         const adminPasswordModal = document.getElementById('admin-password-modal');
@@ -1122,18 +1081,12 @@
             });
         }
         
-        // 核心修改：纯图片渲染PDF（解决乱码+修复hidden容器渲染问题）
+        // 核心修改：PDF仅显示合并预览内容+纯白底色
         function exportToPDF() {
-            // 1. 填充PDF模板数据
+            // 1. 填充PDF模板数据（仅合并预览内容）
             const now = new Date();
-            const combinedText = selectedItems.map(item => item.content).join(' ');
-            const totalCharCount = calculateTotalChars();
-            
-            pdfCustomerName.textContent = customerName.value.trim();
-            pdfCustomTime.textContent = new Date().toLocaleString();
-            pdfTotalChars.textContent = totalCharCount;
-            pdfCustomContent.textContent = combinedText;
-            pdfFooterTime.textContent = `生成时间：${now.toLocaleString()}`;
+            const combinedText = selectedItems.map(item => item.content).join(''); // 无空格拼接
+            pdfCustomContent.textContent = combinedText; // 仅设置合并预览内容
 
             // 关键修复：临时显示PDF容器（移到屏幕外），让渲染能拿到正确宽高
             pdfRenderContainer.style.display = 'block';
@@ -1143,18 +1096,16 @@
             pdfRenderContainer.style.width = '595px';
             pdfRenderContainer.style.background = '#ffffff';
 
-            // 2. 关键配置：强制纯图片渲染，解决乱码
+            // 2. 关键配置：强制纯图片渲染+纯白底色
             const canvasOptions = {
-                scale: 2, // 2倍缩放保证清晰度，避免3倍导致文件过大
+                scale: 2, // 2倍缩放保证清晰度
                 useCORS: true,
                 allowTaint: true,
-                backgroundColor: '#ffffff',
+                backgroundColor: '#ffffff', // 强制纯白底色
                 logging: false,
                 letterRendering: true,
                 imageTimeout: 15000,
-                // 强制使用Canvas渲染所有文字/Emoji
                 fontRendering: 'canvas',
-                // 忽略干扰元素
                 ignoreElements: (element) => {
                     return element.id === 'success-modal' || element.id === 'delete-confirm-modal' || element.id === 'admin-password-modal';
                 }
@@ -1176,25 +1127,15 @@
                 const imgWidth = 210; // A4宽度(mm)
                 const imgHeight = (canvas.height * imgWidth) / canvas.width;
                 
-                // 5. 自动分页处理（纯图片分页）
-                let pageHeight = 297; // A4高度(mm)
-                let imgHeightLeft = imgHeight;
-                let position = 0;
+                // 5. 居中显示内容
+                const x = 0;
+                const y = (297 - imgHeight) / 2; // 垂直居中
                 
-                // 第一页
-                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeightLeft > pageHeight ? pageHeight : imgHeightLeft);
-                imgHeightLeft -= pageHeight;
+                // 添加图片到PDF（纯白底色+仅合并内容）
+                pdf.addImage(imgData, 'PNG', x, y, imgWidth, imgHeight);
                 
-                // 后续分页（如果内容超过一页）
-                while (imgHeightLeft > 0) {
-                    position = imgHeightLeft - imgHeight;
-                    pdf.addPage();
-                    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-                    imgHeightLeft -= pageHeight;
-                }
-                
-                // 6. 保存PDF（纯图片格式，无乱码）
-                pdf.save(`移动电源定制单_${customerName.value.trim()}_${now.getTime()}.pdf`);
+                // 6. 保存PDF
+                pdf.save(`移动电源定制_${customerName.value.trim()}_${now.getTime()}.pdf`);
                 
             }).catch(err => {
                 console.error('PDF导出失败:', err);
@@ -1210,7 +1151,7 @@
             });
         }
         
-        // 管理员批量导出PDF（纯图片渲染）
+        // 管理员批量导出PDF（保持原有逻辑）
         function exportAllToPDF() {
             if (customerData.length === 0) {
                 alert('暂无客户数据可导出');
