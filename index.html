@@ -234,17 +234,17 @@
                 
                 <!-- 客户信息 -->
                 <div class="mb-4">
-                    <label for="customer-name" class="block text-sm font-medium text-gray-700 mb-1">客户姓名 <span class="text-red-500">*</span></label>
+                    <label for="customer-name" class="block text-sm font-medium text-gray-700 mb-1">姓名 <span class="text-red-500">*</span></label>
                     <input 
                         type="text" 
                         id="customer-name" 
                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all"
-                        placeholder="请输入客户姓名"
+                        placeholder="请输入姓名"
                         required
                     >
                     <div class="error-message hidden" id="name-error">
                         <i class="fa fa-exclamation-circle mr-1"></i>
-                        请输入客户姓名
+                        请输入姓名
                     </div>
                 </div>
                 
@@ -423,7 +423,7 @@
                             type="text" 
                             id="customer-filter" 
                             class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all"
-                            placeholder="输入客户姓名筛选..."
+                            placeholder="输入姓名筛选..."
                         >
                     </div>
                     
@@ -431,7 +431,7 @@
                         <table class="min-w-full bg-white">
                             <thead class="bg-gray-100">
                                 <tr>
-                                    <th class="py-2 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">客户姓名</th>
+                                    <th class="py-2 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">姓名</th>
                                     <th class="py-2 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">定制内容</th>
                                     <th class="py-2 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
                                 </tr>
@@ -500,7 +500,7 @@
                     <h1 class="text-2xl font-bold text-primary">移动电源定制确认单</h1>
                 </div>
                 <div class="pdf-customer-info">
-                    <p class="text-lg"><strong>客户姓名：</strong> <span id="pdf-customer-name"></span></p>
+                    <p class="text-lg"><strong>姓名：</strong> <span id="pdf-customer-name"></span></p>
                     <p class="text-sm text-gray-600 mt-2"><strong>定制时间：</strong> <span id="pdf-custom-time"></span></p>
                     <p class="text-sm text-gray-600 mt-1"><strong>总字符数：</strong> <span id="pdf-total-chars"></span>/15</p>
                 </div>
