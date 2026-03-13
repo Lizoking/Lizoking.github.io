@@ -14,6 +14,8 @@
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <!-- jsPDF for PDF export -->
     <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+    <!-- SheetJS for Excel/CSV export -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     
     <script>
         tailwind.config = {
@@ -84,6 +86,9 @@
                 min-width: 2rem;
                 min-height: 2rem;
                 font-family: "Noto Sans SC", "Segoe UI Emoji", sans-serif;
+                /* 拖拽优化：增加z-index防止被遮挡 */
+                position: relative;
+                z-index: 10;
             }
             
             .preview-item:hover {
@@ -97,6 +102,16 @@
                 cursor: grabbing;
                 background-color: #DBEAFE;
                 border-color: #2563EB;
+            }
+            
+            /* 拖拽中的样式优化 */
+            .preview-item.dragging {
+                opacity: 0.7;
+                transform: scale(1.05);
+                z-index: 20;
+                background-color: #DBEAFE;
+                border-color: #2563EB;
+                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
             }
             
             .input-error {
@@ -274,7 +289,7 @@
                 </h2>
                 
                 <div class="powerbank-preview mb-4">
-                    <div id="preview-container" class="flex flex-wrap items-center justify-center gap-2">
+                    <div id="preview-container" class="flex flex-wrap items-center justify-center gap-2 w-full">
                         <p class="text-gray-400 text-center">请输入文字并选择表情符号</p>
                     </div>
                 </div>
@@ -412,7 +427,13 @@
                         </table>
                     </div>
                     
-                    <div class="mt-4 flex justify-end">
+                    <div class="mt-4 flex justify-end gap-3">
+                        <button id="export-names-excel" class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm transition-colors flex items-center">
+                            <i class="fa fa-file-excel-o mr-1"></i> 导出姓名(Excel)
+                        </button>
+                        <button id="export-names-csv" class="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm transition-colors flex items-center">
+                            <i class="fa fa-file-text-o mr-1"></i> 导出姓名(CSV)
+                        </button>
                         <button id="export-all-pdf" class="px-4 py-2 bg-accent hover:bg-yellow-600 text-white rounded-lg text-sm transition-colors flex items-center">
                             <i class="fa fa-file-pdf-o mr-1"></i> 导出全部PDF
                         </button>
@@ -494,8 +515,10 @@
         
         // 存储待删除的客户ID
         let deleteCustomerId = null;
-        // 拖拽元素变量
+        // 拖拽元素变量 - 优化：增加拖拽状态管理
         let draggedItem = null;
+        let dragStartIndex = -1;
+        let isDragging = false;
 
         // DOM元素
         const customerName = document.getElementById('customer-name');
@@ -524,6 +547,10 @@
         const combinedPreview = document.getElementById('combined-preview');
         const combinedChars = document.getElementById('combined-chars');
         const copyCombinedBtn = document.getElementById('copy-combined');
+        
+        // 新增：Excel/CSV导出按钮
+        const exportNamesExcelBtn = document.getElementById('export-names-excel');
+        const exportNamesCsvBtn = document.getElementById('export-names-csv');
         
         // PDF导出专用DOM元素（仅保留合并预览内容）
         const pdfRenderContainer = document.getElementById('pdf-render-container');
@@ -574,6 +601,10 @@
             confirmPasswordBtn.addEventListener('click', verifyAdminPassword);
             customerFilterInput.addEventListener('input', filterCustomerList);
             
+            // 新增：Excel/CSV导出事件
+            exportNamesExcelBtn.addEventListener('click', exportNamesToExcel);
+            exportNamesCsvBtn.addEventListener('click', exportNamesToCSV);
+            
             // 删除确认弹窗相关事件
             cancelDeleteBtn.addEventListener('click', hideDeleteConfirmModal);
             confirmDeleteBtn.addEventListener('click', confirmDeleteCustomer);
@@ -581,10 +612,13 @@
             exportAllPdfBtn.addEventListener('click', exportAllToPDF);
             copyCombinedBtn.addEventListener('click', copyCombinedText);
             
-            // 预览区域拖拽功能
+            // 预览区域拖拽功能 - 优化版
             previewContainer.addEventListener('dragstart', handleDragStart);
+            previewContainer.addEventListener('dragend', handleDragEnd);
             previewContainer.addEventListener('dragover', handleDragOver);
             previewContainer.addEventListener('drop', handleDrop);
+            // 优化：添加mousemove事件减少闪烁
+            previewContainer.addEventListener('mousemove', handleMouseMove);
             
             // 加载客户列表
             updateCustomerList();
@@ -917,54 +951,98 @@
             }
         }
 
-        // 拖拽开始
+        // 拖拽开始 - 优化版
         function handleDragStart(e) {
             if (e.target.classList.contains('preview-item')) {
-                draggedItem = e.target;
+                // 防止拖拽闪烁
                 e.dataTransfer.effectAllowed = 'move';
-                e.dataTransfer.setData('text/html', e.target.innerHTML);
+                e.dataTransfer.setData('text/plain', e.target.dataset.index);
+                
+                draggedItem = e.target;
+                dragStartIndex = parseInt(e.target.dataset.index);
+                isDragging = true;
+                
+                // 添加拖拽中样式
                 setTimeout(() => {
-                    e.target.classList.add('opacity-50');
+                    draggedItem.classList.add('dragging');
                 }, 0);
+                
+                // 优化：阻止默认拖拽行为
+                e.preventDefault();
             }
         }
 
-        // 拖拽经过
+        // 拖拽结束 - 新增
+        function handleDragEnd(e) {
+            if (draggedItem) {
+                draggedItem.classList.remove('dragging');
+            }
+            isDragging = false;
+            draggedItem = null;
+            dragStartIndex = -1;
+        }
+
+        // 鼠标移动 - 优化：减少闪烁
+        function handleMouseMove(e) {
+            if (!isDragging) return;
+            
+            // 阻止默认行为防止闪烁
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        // 拖拽经过 - 优化版
         function handleDragOver(e) {
             e.preventDefault();
             e.dataTransfer.dropEffect = 'move';
             
-            const afterElement = getDragAfterElement(previewContainer, e.clientY);
-            const draggable = document.querySelector('.preview-item.opacity-50');
+            if (!draggedItem) return;
             
-            if (draggable) {
-                if (afterElement == null) {
-                    previewContainer.appendChild(draggable);
-                } else {
-                    previewContainer.insertBefore(draggable, afterElement);
-                }
+            // 优化：减少DOM操作频率
+            const afterElement = getDragAfterElement(previewContainer, e.clientY);
+            const parent = draggedItem.parentNode;
+            
+            if (afterElement && afterElement !== draggedItem && afterElement.parentNode === parent) {
+                parent.insertBefore(draggedItem, afterElement);
+            } else if (!afterElement && parent.lastChild !== draggedItem) {
+                parent.appendChild(draggedItem);
             }
         }
 
-        // 拖拽放置
+        // 拖拽放置 - 优化版
         function handleDrop(e) {
             e.preventDefault();
+            e.stopPropagation();
             
-            const draggable = document.querySelector('.preview-item.opacity-50');
-            if (draggable) {
-                draggable.classList.remove('opacity-50');
-            }
+            if (!draggedItem) return;
             
-            // 更新选中列表顺序
+            // 移除拖拽样式
+            draggedItem.classList.remove('dragging');
+            
+            // 更新选中列表顺序 - 优化：减少更新频率
             updateSelectedItemsOrder();
             
-            // 更新预览
-            updatePreview();
+            // 更新预览（轻量级更新，仅更新索引）
+            updatePreviewItemIndexes();
+            
+            // 重置拖拽状态
+            isDragging = false;
+            draggedItem = null;
+            dragStartIndex = -1;
         }
 
-        // 获取拖拽元素应该放置的位置
+        // 轻量级更新预览项索引 - 新增
+        function updatePreviewItemIndexes() {
+            const previewItems = [...previewContainer.querySelectorAll('.preview-item')];
+            previewItems.forEach((item, newIndex) => {
+                item.dataset.index = newIndex;
+            });
+            updateCombinedPreview();
+        }
+
+        // 获取拖拽元素应该放置的位置 - 优化版
         function getDragAfterElement(container, y) {
-            const draggableElements = [...container.querySelectorAll('.preview-item:not(.opacity-50)')];
+            const draggableElements = [...container.querySelectorAll('.preview-item:not(.dragging)')];
             
             return draggableElements.reduce((closest, child) => {
                 const box = child.getBoundingClientRect();
@@ -978,14 +1056,14 @@
             }, { offset: Number.NEGATIVE_INFINITY }).element;
         }
 
-        // 更新选中列表顺序
+        // 更新选中列表顺序 - 优化版
         function updateSelectedItemsOrder() {
             const previewItems = [...previewContainer.querySelectorAll('.preview-item')];
             const newSelectedItems = [];
             
             previewItems.forEach(item => {
-                const index = parseInt(item.dataset.index);
-                newSelectedItems.push(selectedItems[index]);
+                const oldIndex = parseInt(item.dataset.index);
+                newSelectedItems.push(selectedItems[oldIndex]);
             });
             
             selectedItems = newSelectedItems;
@@ -1228,6 +1306,56 @@
                 alert('批量PDF导出失败，请重试！');
                 document.body.removeChild(tempContainer);
             });
+        }
+        
+        // 新增：导出客户姓名到Excel
+        function exportNamesToExcel() {
+            if (customerData.length === 0) {
+                alert('暂无客户数据可导出');
+                return;
+            }
+            
+            // 只提取姓名列
+            const nameData = customerData.map(item => ({ '客户姓名': item.name }));
+            
+            // 创建工作簿和工作表
+            const ws = XLSX.utils.json_to_sheet(nameData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "客户姓名列表");
+            
+            // 导出Excel文件
+            XLSX.writeFile(wb, `客户姓名列表_${new Date().toLocaleDateString()}.xlsx`);
+        }
+        
+        // 新增：导出客户姓名到CSV
+        function exportNamesToCSV() {
+            if (customerData.length === 0) {
+                alert('暂无客户数据可导出');
+                return;
+            }
+            
+            // 只提取姓名列
+            const nameData = customerData.map(item => ({ '客户姓名': item.name }));
+            
+            // 创建工作簿和工作表
+            const ws = XLSX.utils.json_to_sheet(nameData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "客户姓名列表");
+            
+            // 导出CSV文件
+            const csv = XLSX.utils.sheet_to_csv(ws);
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            
+            // 创建下载链接
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', `客户姓名列表_${new Date().toLocaleDateString()}.csv`);
+            link.style.visibility = 'hidden';
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         }
         
         // 显示管理员密码弹窗
