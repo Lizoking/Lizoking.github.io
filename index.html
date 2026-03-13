@@ -1122,7 +1122,7 @@
             });
         }
         
-        // 核心修改：纯图片渲染PDF（解决乱码，放弃文字可复制）
+        // 核心修改：纯图片渲染PDF（解决乱码+修复hidden容器渲染问题）
         function exportToPDF() {
             // 1. 填充PDF模板数据
             const now = new Date();
@@ -1134,10 +1134,18 @@
             pdfTotalChars.textContent = totalCharCount;
             pdfCustomContent.textContent = combinedText;
             pdfFooterTime.textContent = `生成时间：${now.toLocaleString()}`;
-            
+
+            // 关键修复：临时显示PDF容器（移到屏幕外），让渲染能拿到正确宽高
+            pdfRenderContainer.style.display = 'block';
+            pdfRenderContainer.style.position = 'absolute';
+            pdfRenderContainer.style.left = '-9999px';
+            pdfRenderContainer.style.top = '0';
+            pdfRenderContainer.style.width = '595px';
+            pdfRenderContainer.style.background = '#ffffff';
+
             // 2. 关键配置：强制纯图片渲染，解决乱码
             const canvasOptions = {
-                scale: 3, // 超高清渲染，保证PDF清晰度
+                scale: 2, // 2倍缩放保证清晰度，避免3倍导致文件过大
                 useCORS: true,
                 allowTaint: true,
                 backgroundColor: '#ffffff',
@@ -1149,13 +1157,6 @@
                 // 忽略干扰元素
                 ignoreElements: (element) => {
                     return element.id === 'success-modal' || element.id === 'delete-confirm-modal' || element.id === 'admin-password-modal';
-                },
-                // 强制设置字体
-                onclone: (document) => {
-                    const pdfContainer = document.getElementById('pdf-render-container');
-                    if (pdfContainer) {
-                        pdfContainer.style.fontFamily = '"Noto Sans SC", "Segoe UI Emoji", "Apple Color Emoji", sans-serif !important';
-                    }
                 }
             };
             
@@ -1198,10 +1199,18 @@
             }).catch(err => {
                 console.error('PDF导出失败:', err);
                 alert('PDF导出失败，请检查网络或重试！');
+            }).finally(() => {
+                // 导出完成后恢复隐藏状态
+                pdfRenderContainer.style.display = 'none';
+                pdfRenderContainer.style.position = '';
+                pdfRenderContainer.style.left = '';
+                pdfRenderContainer.style.top = '';
+                pdfRenderContainer.style.width = '';
+                pdfRenderContainer.style.background = '';
             });
         }
         
-        // 管理员批量导出PDF（也改为纯图片渲染）
+        // 管理员批量导出PDF（纯图片渲染）
         function exportAllToPDF() {
             if (customerData.length === 0) {
                 alert('暂无客户数据可导出');
@@ -1234,7 +1243,7 @@
             
             // 纯图片渲染批量PDF
             const canvasOptions = {
-                scale: 3,
+                scale: 2,
                 useCORS: true,
                 allowTaint: true,
                 backgroundColor: '#ffffff',
