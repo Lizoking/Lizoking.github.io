@@ -59,6 +59,7 @@
                 border-radius: 0.375rem;
                 font-size: 1.25rem;
                 font-family: "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif;
+                overflow: hidden; /* 新增：防止图片溢出 */
             }
             
             .emoji-item:hover {
@@ -69,6 +70,13 @@
             .emoji-item.selected {
                 background-color: rgba(59, 130, 246, 0.2);
                 border: 2px solid #3B82F6;
+            }
+            
+            /* 新增：自定义图片样式 */
+            .emoji-item img, .preview-item img {
+                max-width: 100%;
+                max-height: 100%;
+                object-fit: contain;
             }
             
             .preview-item {
@@ -195,6 +203,15 @@
                 justify-content: center;
                 background: #ffffff !important; /* 纯白底色 */
                 font-family: "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", "Noto Sans SC", sans-serif !important;
+                flex-wrap: wrap; /* 新增：适配多元素换行 */
+                gap: 10px; /* 新增：元素间距 */
+            }
+            
+            /* PDF中自定义图片样式 */
+            .pdf-custom-content img {
+                width: 40px;
+                height: 40px;
+                object-fit: contain;
             }
         }
     </style>
@@ -288,7 +305,7 @@
                 
                 <div class="powerbank-preview mb-4">
                     <div id="preview-container" class="flex flex-wrap items-center justify-center gap-2 w-full">
-                        <p class="text-gray-400 text-center">请输入文字并选择表情符号</p>
+                        <p class="text-gray-400 text-center">请输入文字并选择自定义图标</p>
                     </div>
                 </div>
                 
@@ -321,14 +338,14 @@
             </div>
         </main>
         
-        <!-- Emoji选择器区域 -->
+        <!-- 自定义图标选择器区域（原Emoji区域） -->
         <section class="mt-8 bg-white rounded-xl shadow-custom p-6">
             <h2 class="text-xl font-semibold mb-4 flex items-center">
-                <i class="fa fa-smile-o mr-2 text-primary"></i>表情符号选择
+                <i class="fa fa-image mr-2 text-primary"></i>自定义图标选择
             </h2>
             
             <div class="emoji-grid custom-scrollbar overflow-auto" id="emoji-grid">
-                <!-- Emoji将通过JavaScript动态生成 -->
+                <!-- 自定义图片将通过JavaScript动态生成 -->
             </div>
         </section>
         
@@ -491,18 +508,12 @@
     </div>
 
     <script>
-        // 100个常用Emoji表情符号
+        // 替换为4个自定义图片路径
         const emojiList = [
-            '😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '😊', '😇',
-            '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚',
-            '😋', '😛', '😝', '😜', '🤪', '🤨', '🧐', '🤓', '😎', '🤩',
-            '🥳', '😏', '😒', '😞', '😔', '😟', '😕', '🙁', '☹️', '😣',
-            '😖', '😫', '😩', '🥺', '😢', '😭', '😤', '😠', '😡', '🤬',
-            '🤯', '😳', '🥵', '🥶', '😱', '😨', '😰', '😥', '😓', '🤗',
-            '🤔', '🤭', '🤫', '🤥', '😶', '😐', '😑', '😬', '🙄', '😯',
-            '😦', '😧', '😮', '😲', '🥱', '😴', '🤤', '😪', '😵', '🤐',
-            '🥴', '🤢', '🤮', '🤧', '😷', '🤒', '🤕', '🤑', '🤠', '😈',
-            '👿', '👹', '👺', '🤡', '💩', '👻', '💀', '☠️', '👽', '👾'
+            'images/images1.png', 
+            'images/images2.png', 
+            'images/images3.png', 
+            'images/images4.png'
         ];
 
         // 管理员密码（可自行修改）
@@ -570,7 +581,7 @@
 
         // 初始化
         function init() {
-            // 生成Emoji网格
+            // 生成自定义图片网格
             generateEmojiGrid();
             
             // 添加事件监听器
@@ -613,17 +624,18 @@
             updateCustomerList();
         }
 
-        // 生成Emoji网格
+        // 生成自定义图片网格（替换原Emoji网格）
         function generateEmojiGrid() {
             emojiGrid.innerHTML = '';
             
-            emojiList.forEach(emoji => {
+            emojiList.forEach(imgPath => {
                 const emojiItem = document.createElement('div');
                 emojiItem.className = 'emoji-item';
-                emojiItem.textContent = emoji;
-                emojiItem.dataset.emoji = emoji;
+                // 渲染自定义图片
+                emojiItem.innerHTML = `<img src="${imgPath}" alt="自定义图标" class="w-8 h-8 object-contain">`;
+                emojiItem.dataset.emoji = imgPath; // 存储图片路径
                 
-                emojiItem.addEventListener('click', () => toggleEmojiSelection(emoji));
+                emojiItem.addEventListener('click', () => toggleEmojiSelection(imgPath));
                 
                 emojiGrid.appendChild(emojiItem);
             });
@@ -669,13 +681,13 @@
             return count;
         }
 
-        // 切换Emoji选择状态
-        function toggleEmojiSelection(emoji) {
-            const emojiItem = document.querySelector(`[data-emoji="${emoji}"]`);
+        // 切换自定义图片选择状态
+        function toggleEmojiSelection(imgPath) {
+            const emojiItem = document.querySelector(`[data-emoji="${imgPath}"]`);
             
             if (emojiItem.classList.contains('selected')) {
                 emojiItem.classList.remove('selected');
-                const index = selectedItems.findIndex(item => item.type === 'emoji' && item.content === emoji);
+                const index = selectedItems.findIndex(item => item.type === 'emoji' && item.content === imgPath);
                 if (index !== -1) {
                     selectedItems.splice(index, 1);
                 }
@@ -687,7 +699,7 @@
                     emojiItem.classList.add('selected');
                     selectedItems.push({
                         type: 'emoji',
-                        content: emoji,
+                        content: imgPath, // 存储图片路径
                         charCount: emojiCharCount
                     });
                     updatePreview();
@@ -701,12 +713,12 @@
             }
         }
 
-        // 更新预览区域
+        // 更新预览区域（适配自定义图片）
         function updatePreview() {
             previewContainer.innerHTML = '';
             
             if (selectedItems.length === 0) {
-                previewContainer.innerHTML = '<p class="text-gray-400 text-center">请输入文字并选择表情符号</p>';
+                previewContainer.innerHTML = '<p class="text-gray-400 text-center">请输入文字并选择自定义图标</p>';
                 updateCombinedPreview();
                 return;
             }
@@ -725,8 +737,9 @@
                         </button>
                     `;
                 } else if (item.type === 'emoji') {
+                    // 渲染自定义图片到预览区域
                     previewItem.innerHTML = `
-                        <span>${item.content}</span>
+                        <img src="${item.content}" alt="选中图标" class="w-6 h-6 object-contain">
                         <button class="ml-2 text-gray-400 hover:text-red-500" onclick="removePreviewItem(${index})">
                             <i class="fa fa-times-circle"></i>
                         </button>
@@ -739,7 +752,7 @@
             updateCombinedPreview();
         }
         
-        // 更新合并预览
+        // 更新合并预览（适配自定义图片）
         function updateCombinedPreview() {
             if (selectedItems.length === 0) {
                 combinedPreview.innerHTML = '<p class="text-gray-400">合并后的内容将显示在这里</p>';
@@ -747,15 +760,27 @@
                 return;
             }
             
-            let combinedText = '';
+            // 清空合并预览区域
+            combinedPreview.innerHTML = '';
             let totalChars = 0;
             
             selectedItems.forEach(item => {
-                combinedText += item.content;
                 totalChars += item.charCount;
+                if (item.type === 'emoji') {
+                    // 添加自定义图片
+                    const img = document.createElement('img');
+                    img.src = item.content;
+                    img.className = 'w-8 h-8 inline-block mx-1';
+                    combinedPreview.appendChild(img);
+                } else {
+                    // 添加文字
+                    const textSpan = document.createElement('span');
+                    textSpan.textContent = item.content;
+                    textSpan.className = 'mx-1';
+                    combinedPreview.appendChild(textSpan);
+                }
             });
             
-            combinedPreview.textContent = combinedText;
             combinedChars.textContent = totalChars;
             
             if (totalChars > 15) {
@@ -768,14 +793,22 @@
             }
         }
         
-        // 复制合并文本
+        // 复制合并内容（自定义图片无法复制，仅复制文字）
         function copyCombinedText() {
             if (selectedItems.length === 0) return;
             
+            // 只复制文字内容，图片跳过
             let combinedText = '';
             selectedItems.forEach(item => {
-                combinedText += item.content;
+                if (item.type === 'text') {
+                    combinedText += item.content;
+                }
             });
+            
+            if (combinedText === '') {
+                alert('暂无可复制的文字内容');
+                return;
+            }
             
             navigator.clipboard.writeText(combinedText).then(() => {
                 const originalText = copyCombinedBtn.innerHTML;
@@ -805,8 +838,8 @@
                     textCounter2.textContent = '0/15';
                 }
             } else if (selectedItems[index].type === 'emoji') {
-                const emoji = selectedItems[index].content;
-                const emojiItem = document.querySelector(`[data-emoji="${emoji}"]`);
+                const imgPath = selectedItems[index].content;
+                const emojiItem = document.querySelector(`[data-emoji="${imgPath}"]`);
                 if (emojiItem) {
                     emojiItem.classList.remove('selected');
                 }
@@ -984,7 +1017,7 @@
                 name: customerName.value.trim(),
                 text1: textInput1.value,
                 text2: textInput2.value,
-                emojis: selectedItems.filter(item => item.type === 'emoji').map(item => item.content),
+                emojis: selectedItems.filter(item => item.type === 'emoji').map(item => item.content), // 存储图片路径
                 totalChars: calculateTotalChars(),
                 timestamp: new Date().toISOString()
             };
@@ -1019,12 +1052,31 @@
             });
         }
         
-        // 导出PDF
+        // 导出PDF（适配自定义图片）
         function exportToPDF() {
             const now = new Date();
-            const combinedText = selectedItems.map(item => item.content).join('');
-            pdfCustomContent.textContent = combinedText;
+            
+            // 清空PDF容器
+            pdfCustomContent.innerHTML = '';
+            
+            // 填充自定义图片和文字
+            selectedItems.forEach(item => {
+                if (item.type === 'emoji') {
+                    // 渲染自定义图片
+                    const img = document.createElement('img');
+                    img.src = item.content;
+                    img.className = 'w-10 h-10 inline-block mr-2';
+                    pdfCustomContent.appendChild(img);
+                } else {
+                    // 保留文字渲染
+                    const textSpan = document.createElement('span');
+                    textSpan.textContent = item.content;
+                    textSpan.className = 'mr-2 text-2xl';
+                    pdfCustomContent.appendChild(textSpan);
+                }
+            });
 
+            // 临时显示PDF容器
             pdfRenderContainer.style.display = 'block';
             pdfRenderContainer.style.position = 'absolute';
             pdfRenderContainer.style.left = '-9999px';
@@ -1100,7 +1152,7 @@
                 htmlContent += `
                     <div style="margin: 10px 0; padding: 10px; border-bottom: 1px solid #eee;">
                         <p><strong>订单 ${index + 1}：</strong>${item.name}</p>
-                        <p>定制内容：${item.text1 || ''} ${item.emojis?.join(' ') || ''} ${item.text2 || ''}</p>
+                        <p>定制内容：${item.text1 || ''} ${item.emojis?.length > 0 ? '[自定义图标]' : ''} ${item.text2 || ''}</p>
                         <p>总字符：${item.totalChars} | 提交时间：${new Date(item.timestamp).toLocaleString()}</p>
                     </div>
                 `;
@@ -1261,7 +1313,7 @@
                 let customizationContent = '';
                 if (customer.text1) customizationContent += customer.text1;
                 if (customer.emojis && customer.emojis.length > 0) {
-                    customizationContent += ' ' + customer.emojis.join(' ');
+                    customizationContent += ' [自定义图标]'; // 显示自定义图标标识
                 }
                 if (customer.text2) customizationContent += ' ' + customer.text2;
                 
@@ -1310,15 +1362,15 @@
             }
             
             if (customer.emojis && customer.emojis.length > 0) {
-                customer.emojis.forEach(emoji => {
-                    const emojiItem = document.querySelector(`[data-emoji="${emoji}"]`);
+                customer.emojis.forEach(imgPath => {
+                    const emojiItem = document.querySelector(`[data-emoji="${imgPath}"]`);
                     if (emojiItem) {
                         emojiItem.classList.add('selected');
                     }
                     
                     selectedItems.push({
                         type: 'emoji',
-                        content: emoji,
+                        content: imgPath,
                         charCount: 3
                     });
                 });
@@ -1326,6 +1378,7 @@
             
             if (customer.text2) {
                 const text2Count = calculateCharCount(customer.text2);
+                textInput2.value = customer.text2;
                 selectedItems.push({
                     type: 'text',
                     content: customer.text2,
