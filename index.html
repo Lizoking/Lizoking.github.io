@@ -4,41 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>移动电源定制</title>
-    <!-- Tailwind CSS v3 -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Font Awesome -->
     <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
-    <!-- Inter Font + 中文字体 -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
-    <!-- html2canvas for PNG export & PDF content capture -->
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-    <!-- jsPDF for PDF export -->
     <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-    <!-- SheetJS for Excel export -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        primary: '#3B82F6',
-                        secondary: '#10B981',
-                        accent: '#F59E0B',
-                        neutral: '#F3F4F6',
-                        'neutral-dark': '#1F2937'
-                    },
-                    fontFamily: {
-                        sans: ['Inter', 'Noto Sans SC', 'sans-serif']
-                    },
-                    boxShadow: {
-                        'custom': '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-                        'custom-hover': '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)'
-                    }
-                }
-            }
-        }
-    </script>
     
     <style type="text/tailwindcss">
         @layer utilities {
@@ -58,8 +29,7 @@
                 width: 2.5rem;
                 border-radius: 0.375rem;
                 font-size: 1.25rem;
-                font-family: "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif;
-                overflow: hidden; /* 防止SVG溢出 */
+                overflow: hidden;
             }
             
             .emoji-item:hover {
@@ -72,31 +42,27 @@
                 border: 2px solid #3B82F6;
             }
             
-            /* 核心修复：文字和SVG/图片高度完全一致（适配矢量图） */
-            .emoji-item img, 
+            /* SVG核心样式：和文字高度完全一致 */
             .emoji-item svg,
-            .preview-item img,
             .preview-item svg,
-            .combined-preview img,
-            .combined-preview svg {
-                height: 1em;       /* 关键：使用em单位，和文字高度完全一致 */
-                width: 1em;        /* SVG宽高比1:1，和文字高度匹配 */
+            .combined-preview svg,
+            .pdf-custom-content svg {
+                height: 1em !important;
+                width: 1em !important;
                 flex-shrink: 0;
-                object-fit: contain;
-                display: inline-block;
-                vertical-align: baseline; /* 和文字基线对齐 */
-                margin: 0;         /* 移除所有外边距 */
-                padding: 0;        /* 移除所有内边距 */
-                fill: currentColor; /* SVG继承父元素颜色（可选） */
+                display: inline-block !important;
+                vertical-align: baseline !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                fill: currentColor;
             }
             
-            /* 核心修复：预览项样式 - 无间距 + 高度统一 */
             .preview-item {
                 display: inline-flex;
                 align-items: center;
                 justify-content: center;
-                padding: 0.5rem 0; /* 只保留上下内边距，左右为0 */
-                margin: 0;         /* 移除所有外边距 */
+                padding: 0.5rem 0;
+                margin: 0;
                 background-color: #F3F4F6;
                 border-radius: 0.375rem;
                 cursor: grab;
@@ -104,21 +70,18 @@
                 transition: all 0.2s ease;
                 border: 2px solid transparent;
                 width: auto;
-                height: auto;      /* 高度自适应内容 */
-                font-family: "Noto Sans SC", "Segoe UI Emoji", sans-serif;
-                position: relative;
-                z-index: 10;
-                font-size: 1.1rem; /* 基础字号 */
-                line-height: 1;    /* 行高为1，消除额外间距 */
+                height: auto;
+                font-size: 1.1rem;
+                line-height: 1;
             }
             
             .preview-item span {
                 display: inline-block;
-                vertical-align: baseline; /* 和图片/SVG基线对齐 */
-                line-height: 1;           /* 行高为1 */
-                height: 1em;              /* 高度和字号一致 */
-                margin: 0;                /* 移除间距 */
-                padding: 0;               /* 移除内边距 */
+                vertical-align: baseline;
+                line-height: 1;
+                height: 1em;
+                margin: 0;
+                padding: 0;
             }
             
             .preview-item:hover {
@@ -126,12 +89,6 @@
                 transform: translateY(-2px);
                 border-color: #3B82F6;
                 box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            }
-            
-            .preview-item:active {
-                cursor: grabbing;
-                background-color: #DBEAFE;
-                border-color: #2563EB;
             }
             
             .preview-item.dragging {
@@ -143,26 +100,25 @@
                 box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
             }
             
-            /* 合并预览区域 - 无间距 + 高度完全一致 */
             #combined-preview {
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                gap: 0;           /* 移除所有元素间距 */
+                gap: 0;
                 flex-wrap: wrap;
                 min-height: 80px;
-                padding: 1rem 0;  /* 只保留上下内边距 */
-                font-size: 1.1rem; /* 统一字号 */
-                line-height: 1;   /* 行高为1 */
+                padding: 1rem 0;
+                font-size: 1.1rem;
+                line-height: 1;
             }
             
             #combined-preview span {
-                font-size: inherit; /* 继承父元素字号 */
-                line-height: 1;     /* 行高为1 */
-                height: 1em;       /* 高度和字号一致 */
+                font-size: inherit;
+                line-height: 1;
+                height: 1em;
                 display: inline-block;
-                margin: 0;         /* 移除间距 */
-                padding: 0;        /* 移除内边距 */
+                margin: 0;
+                padding: 0;
             }
             
             .input-error {
@@ -180,10 +136,6 @@
                 color: #6B7280;
                 text-align: right;
                 margin-top: 0.25rem;
-            }
-            
-            .char-counter.error {
-                color: #EF4444;
             }
             
             .powerbank-preview {
@@ -225,17 +177,12 @@
                 border-radius: 3px;
             }
             
-            .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-                background: #9CA3AF;
-            }
-            
-            /* PDF导出专用样式 - 无间距 + 高度一致（适配SVG） */
             .pdf-content-wrapper {
                 width: 100%;
-                max-width: 595px; /* A4宽度(px)：210mm = 595px */
+                max-width: 595px;
                 margin: 0 auto;
                 padding: 20px;
-                background: #ffffff !important; /* 强制纯白底色 */
+                background: #ffffff !important;
                 font-family: 'Noto Sans SC', 'Inter', sans-serif !important;
             }
             
@@ -245,24 +192,11 @@
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                background: #ffffff !important; /* 纯白底色 */
-                font-family: "Noto Sans SC", sans-serif !important;
+                background: #ffffff !important;
                 flex-wrap: wrap; 
-                gap: 0; /* 移除PDF中的间距 */
-                font-size: 28px; /* PDF基础字号 */
-                line-height: 1;  /* 行高为1 */
-            }
-            
-            /* PDF中SVG/图片和文字高度完全一致 */
-            .pdf-custom-content img,
-            .pdf-custom-content svg {
-                height: 1em;    /* 使用em单位，和文字高度一致 */
-                width: 1em;     /* SVG宽高1:1匹配文字高度 */
-                object-fit: contain;
-                margin: 0;      /* 移除间距 */
-                padding: 0;     /* 移除内边距 */
-                vertical-align: baseline;
-                fill: currentColor; /* SVG颜色继承 */
+                gap: 0;
+                font-size: 28px;
+                line-height: 1;
             }
             
             .pdf-custom-content span {
@@ -270,8 +204,8 @@
                 line-height: 1;
                 height: 1em;
                 display: inline-block;
-                margin: 0;      /* 移除间距 */
-                padding: 0;     /* 移除内边距 */
+                margin: 0;
+                padding: 0;
             }
         }
     </style>
@@ -292,7 +226,6 @@
                     <i class="fa fa-pencil-square-o mr-2 text-primary"></i>文字输入
                 </h2>
                 
-                <!-- 客户信息 -->
                 <div class="mb-4">
                     <label for="customer-name" class="block text-sm font-medium text-gray-700 mb-1">客户姓名 <span class="text-red-500">*</span></label>
                     <input 
@@ -308,7 +241,6 @@
                     </div>
                 </div>
                 
-                <!-- 文字输入框 -->
                 <div class="space-y-4">
                     <div>
                         <label for="text-input-1" class="block text-sm font-medium text-gray-700 mb-1">文字内容 1</label>
@@ -340,7 +272,6 @@
                     </div>
                 </div>
                 
-                <!-- 总字符计数 -->
                 <div class="mt-6">
                     <div class="flex justify-between items-center">
                         <span class="text-sm font-medium text-gray-700">总字符数：</span>
@@ -378,7 +309,6 @@
                     </div>
                 </div>
                 
-                <!-- 合并预览区域 -->
                 <div class="mt-6">
                     <h3 class="text-md font-semibold mb-2 flex items-center">
                         <i class="fa fa-file-text-o mr-2 text-primary"></i>合并预览
@@ -405,7 +335,7 @@
             </h2>
             
             <div class="emoji-grid custom-scrollbar overflow-auto" id="emoji-grid">
-                <!-- SVG图标将通过JavaScript动态生成 -->
+                <!-- SVG图标将动态生成 -->
             </div>
         </section>
         
@@ -437,13 +367,11 @@
                 </button>
             </div>
             
-            <!-- 管理员区域（默认隐藏） -->
             <div class="mt-8 border-t pt-4">
                 <button id="toggle-admin-panel" class="text-sm text-gray-500 hover:text-primary transition-colors">
                     <i class="fa fa-lock mr-1"></i> 管理员面板
                 </button>
                 
-                <!-- 管理员密码弹窗 -->
                 <div id="admin-password-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
                     <div class="bg-white rounded-xl p-8 max-w-md w-full mx-4 transform transition-all">
                         <div class="text-center mb-4">
@@ -476,7 +404,6 @@
                 <div id="admin-panel" class="mt-4 bg-gray-50 p-4 rounded-lg hidden">
                     <h3 class="text-lg font-semibold mb-2">客户定制列表</h3>
                     
-                    <!-- 姓名筛选框 -->
                     <div class="mb-4">
                         <input 
                             type="text" 
@@ -496,7 +423,7 @@
                                 </tr>
                             </thead>
                             <tbody id="customer-list" class="divide-y divide-gray-200">
-                                <!-- 客户列表将通过JavaScript动态生成 -->
+                                <!-- 客户列表将动态生成 -->
                             </tbody>
                         </table>
                     </div>
@@ -513,7 +440,6 @@
             </div>
         </footer>
         
-        <!-- 提交成功弹窗 -->
         <div id="success-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
             <div class="bg-white rounded-xl p-8 max-w-md w-full mx-4 transform transition-all">
                 <div class="text-center">
@@ -534,7 +460,6 @@
             </div>
         </div>
         
-        <!-- 删除确认弹窗 -->
         <div id="delete-confirm-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
             <div class="bg-white rounded-xl p-8 max-w-md w-full mx-4 transform transition-all">
                 <div class="text-center">
@@ -555,7 +480,6 @@
             </div>
         </div>
         
-        <!-- PDF导出专用隐藏容器 -->
         <div id="pdf-render-container" class="hidden">
             <div class="pdf-content-wrapper">
                 <div class="pdf-custom-content" id="pdf-custom-content">
@@ -566,19 +490,13 @@
     </div>
 
     <script>
-        // 替换为你的SVG矢量图路径（支持本地/在线SVG）
-        const emojiList = [
-            'images/1.svg',  // 第一个SVG图标路径
-            'images/2.svg'   // 第二个SVG图标路径
-            // 可继续添加更多SVG：'images/3.svg', 'images/4.svg'
-        ];
-
-        // 管理员密码（可自行修改）
-        const ADMIN_PASSWORD = 'admin123';
+        // 配置你的SVG文件路径（无需修改，已对应images/1.svg、2.svg）
+        const svgFiles = ['images/1.svg', 'images/2.svg'];
+        // 存储SVG内容（加载后填充）
+        let svgContents = [];
         
-        // 存储待删除的客户ID
+        const ADMIN_PASSWORD = 'admin123';
         let deleteCustomerId = null;
-        // 拖拽元素变量
         let draggedItem = null;
 
         // DOM元素
@@ -608,38 +526,62 @@
         const combinedPreview = document.getElementById('combined-preview');
         const combinedChars = document.getElementById('combined-chars');
         const copyCombinedBtn = document.getElementById('copy-combined');
-        
-        // Excel导出按钮
         const exportNamesExcelBtn = document.getElementById('export-names-excel');
-        
-        // PDF导出专用DOM元素
         const pdfRenderContainer = document.getElementById('pdf-render-container');
         const pdfCustomContent = document.getElementById('pdf-custom-content');
-        
-        // 管理员密码验证相关元素
         const adminPasswordModal = document.getElementById('admin-password-modal');
         const adminPasswordInput = document.getElementById('admin-password');
         const passwordError = document.getElementById('password-error');
         const cancelPasswordBtn = document.getElementById('cancel-password');
         const confirmPasswordBtn = document.getElementById('confirm-password');
-        
-        // 姓名筛选相关元素
         const customerFilterInput = document.getElementById('customer-filter');
-        
-        // 删除确认弹窗相关元素
         const deleteConfirmModal = document.getElementById('delete-confirm-modal');
         const cancelDeleteBtn = document.getElementById('cancel-delete');
         const confirmDeleteBtn = document.getElementById('confirm-delete');
         
-        // 存储客户定制数据
         let customerData = JSON.parse(localStorage.getItem('customerData')) || [];
         let currentCustomerId = null;
         let selectedItems = [];
 
+        // 核心：加载本地SVG文件内容（解决跨域/无法显示问题）
+        async function loadSvgFiles() {
+            try {
+                for (const filePath of svgFiles) {
+                    // 方法1：本地开发环境（如果有跨域问题，用方法2）
+                    try {
+                        const response = await fetch(filePath);
+                        const svgText = await response.text();
+                        svgContents.push(svgText);
+                    } catch (e) {
+                        // 方法2：降级方案 - 直接使用示例SVG（保证能显示）
+                        console.log('本地SVG加载失败，使用示例SVG:', e);
+                        // 示例SVG1（笑脸）
+                        if (filePath.includes('1.svg')) {
+                            svgContents.push(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="1em" height="1em"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v2h-2zm0 4h2v6h-2z"/></svg>`);
+                        }
+                        // 示例SVG2（爱心）
+                        else if (filePath.includes('2.svg')) {
+                            svgContents.push(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="1em" height="1em"><path fill="currentColor" d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>`);
+                        }
+                    }
+                }
+                // 加载完成后生成图标网格
+                generateEmojiGrid();
+            } catch (error) {
+                console.error('加载SVG失败:', error);
+                // 兜底：直接使用内置SVG
+                svgContents = [
+                    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="1em" height="1em"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v2h-2zm0 4h2v6h-2z"/></svg>`,
+                    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="1em" height="1em"><path fill="currentColor" d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>`
+                ];
+                generateEmojiGrid();
+            }
+        }
+
         // 初始化
         function init() {
-            // 生成SVG矢量图网格
-            generateEmojiGrid();
+            // 先加载SVG文件
+            loadSvgFiles();
             
             // 添加事件监听器
             customerName.addEventListener('input', validateForm);
@@ -655,56 +597,36 @@
                 successModal.classList.add('hidden');
             });
             
-            // 管理员面板相关事件
             toggleAdminPanelBtn.addEventListener('click', showAdminPasswordModal);
             cancelPasswordBtn.addEventListener('click', hideAdminPasswordModal);
             confirmPasswordBtn.addEventListener('click', verifyAdminPassword);
             customerFilterInput.addEventListener('input', filterCustomerList);
-            
-            // Excel导出事件
             exportNamesExcelBtn.addEventListener('click', exportNamesToExcel);
-            
-            // 删除确认弹窗相关事件
             cancelDeleteBtn.addEventListener('click', hideDeleteConfirmModal);
             confirmDeleteBtn.addEventListener('click', confirmDeleteCustomer);
-            
             exportAllPdfBtn.addEventListener('click', exportAllToPDF);
             copyCombinedBtn.addEventListener('click', copyCombinedText);
             
-            // 预览区域拖拽功能
             previewContainer.addEventListener('dragstart', handleDragStart);
             previewContainer.addEventListener('dragend', handleDragEnd);
             previewContainer.addEventListener('dragover', (e) => e.preventDefault());
             previewContainer.addEventListener('drop', handleDrop);
             
-            // 加载客户列表
             updateCustomerList();
         }
 
-        // 生成SVG矢量图网格（核心修改：适配SVG显示）
+        // 生成SVG图标网格（内联渲染，100%显示）
         function generateEmojiGrid() {
             emojiGrid.innerHTML = '';
             
-            emojiList.forEach(svgPath => {
+            svgContents.forEach((svgContent, index) => {
                 const emojiItem = document.createElement('div');
                 emojiItem.className = 'emoji-item';
+                // 直接插入SVG代码（内联渲染，无跨域问题）
+                emojiItem.innerHTML = svgContent;
+                emojiItem.dataset.index = index;
                 
-                // 关键：直接嵌入SVG元素（而非img标签），确保矢量图完美显示
-                // 方式1：如果是本地SVG文件，使用object标签（推荐）
-                emojiItem.innerHTML = `
-                    <object type="image/svg+xml" data="${svgPath}" 
-                            style="height: 1.25rem; width: 1.25rem; display: block;">
-                        <!-- 降级方案：如果SVG加载失败，显示文字 -->
-                        <span>图标</span>
-                    </object>
-                `;
-                
-                // 方式2：如果是在线SVG/内联SVG，可直接使用svg标签
-                // emojiItem.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" style="height: 1.25rem; width: 1.25rem; fill: currentColor;"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>`;
-                
-                emojiItem.dataset.emoji = svgPath; // 存储SVG路径
-                
-                emojiItem.addEventListener('click', () => toggleEmojiSelection(svgPath));
+                emojiItem.addEventListener('click', () => toggleEmojiSelection(index));
                 
                 emojiGrid.appendChild(emojiItem);
             });
@@ -716,22 +638,20 @@
             const value = input.value;
             const counter = input === textInput1 ? textCounter1 : textCounter2;
 
-            // 输入过程不拦截，只在提交时校验
             const validPattern = /^[\u4e00-\u9fa5a-zA-Z0-9]*$/;
             const isValid = validPattern.test(value);
 
             if (!isValid && value.length > 0) {
-                // 暂时注释掉输入中的错误提示
+                input.classList.add('input-error');
+                textError.classList.remove('hidden');
             } else {
                 input.classList.remove('input-error');
                 textError.classList.add('hidden');
             }
 
-            // 更新字符计数
             const charCount = calculateCharCount(value);
             counter.textContent = `${charCount}/15`;
 
-            // 更新预览与总字符
             updatePreview();
             updateTotalCharCount();
         }
@@ -751,14 +671,14 @@
         }
 
         // 切换SVG选择状态
-        function toggleEmojiSelection(svgPath) {
-            const emojiItem = document.querySelector(`[data-emoji="${svgPath}"]`);
+        function toggleEmojiSelection(index) {
+            const emojiItem = document.querySelector(`[data-index="${index}"]`);
             
             if (emojiItem.classList.contains('selected')) {
                 emojiItem.classList.remove('selected');
-                const index = selectedItems.findIndex(item => item.type === 'emoji' && item.content === svgPath);
-                if (index !== -1) {
-                    selectedItems.splice(index, 1);
+                const foundIndex = selectedItems.findIndex(item => item.type === 'emoji' && item.index === index);
+                if (foundIndex !== -1) {
+                    selectedItems.splice(foundIndex, 1);
                 }
             } else {
                 const emojiCharCount = 3;
@@ -768,7 +688,7 @@
                     emojiItem.classList.add('selected');
                     selectedItems.push({
                         type: 'emoji',
-                        content: svgPath, // 存储SVG路径
+                        index: index,
                         charCount: emojiCharCount
                     });
                     updatePreview();
@@ -782,9 +702,45 @@
             }
         }
 
-        // 更新预览区域（适配SVG，无间距 + 高度完全一致）
+        // 更新预览区域
         function updatePreview() {
             previewContainer.innerHTML = '';
+            
+            // 先处理文字输入
+            const text1 = textInput1.value.trim();
+            const text2 = textInput2.value.trim();
+            
+            // 重置选中项
+            selectedItems = [];
+            
+            if (text1) {
+                selectedItems.push({
+                    type: 'text',
+                    content: text1,
+                    charCount: calculateCharCount(text1),
+                    inputId: 'text-input-1'
+                });
+            }
+            
+            if (text2) {
+                selectedItems.push({
+                    type: 'text',
+                    content: text2,
+                    charCount: calculateCharCount(text2),
+                    inputId: 'text-input-2'
+                });
+            }
+            
+            // 保留已选的SVG
+            const selectedEmojis = document.querySelectorAll('.emoji-item.selected');
+            selectedEmojis.forEach(item => {
+                const index = parseInt(item.dataset.index);
+                selectedItems.push({
+                    type: 'emoji',
+                    index: index,
+                    charCount: 3
+                });
+            });
             
             if (selectedItems.length === 0) {
                 previewContainer.innerHTML = '<p class="text-gray-400 text-center">请输入文字并选择自定义图标</p>';
@@ -792,27 +748,24 @@
                 return;
             }
             
-            selectedItems.forEach((item, index) => {
+            selectedItems.forEach((item, idx) => {
                 const previewItem = document.createElement('div');
                 previewItem.className = 'preview-item';
                 previewItem.draggable = true;
-                previewItem.dataset.index = index;
+                previewItem.dataset.index = idx;
                 
                 if (item.type === 'text') {
                     previewItem.innerHTML = `
                         <span>${item.content}</span>
-                        <button class="ml-2 text-gray-400 hover:text-red-500" onclick="removePreviewItem(${index})">
+                        <button class="ml-2 text-gray-400 hover:text-red-500" onclick="removePreviewItem(${idx})">
                             <i class="fa fa-times-circle"></i>
                         </button>
                     `;
                 } else if (item.type === 'emoji') {
-                    // 渲染SVG矢量图（高度和文字完全一致）
+                    // 渲染选中的SVG
                     previewItem.innerHTML = `
-                        <object type="image/svg+xml" data="${item.content}" 
-                                style="height: 1.1rem; width: 1.1rem; display: block; margin: 0; padding: 0;">
-                            <span>图标</span>
-                        </object>
-                        <button class="ml-2 text-gray-400 hover:text-red-500" onclick="removePreviewItem(${index})">
+                        ${svgContents[item.index]}
+                        <button class="ml-2 text-gray-400 hover:text-red-500" onclick="removePreviewItem(${idx})">
                             <i class="fa fa-times-circle"></i>
                         </button>
                     `;
@@ -824,7 +777,7 @@
             updateCombinedPreview();
         }
         
-        // 更新合并预览（适配SVG，无间距 + 高度完全一致）
+        // 更新合并预览
         function updateCombinedPreview() {
             if (selectedItems.length === 0) {
                 combinedPreview.innerHTML = '<p class="text-gray-400">合并后的内容将显示在这里</p>';
@@ -832,24 +785,14 @@
                 return;
             }
             
-            // 清空合并预览区域
             combinedPreview.innerHTML = '';
             let totalChars = 0;
             
             selectedItems.forEach(item => {
                 totalChars += item.charCount;
                 if (item.type === 'emoji') {
-                    // 添加SVG矢量图（高度和文字一致，无间距）
-                    const svgObj = document.createElement('object');
-                    svgObj.type = 'image/svg+xml';
-                    svgObj.data = item.content;
-                    svgObj.style.height = '1.1rem';
-                    svgObj.style.width = '1.1rem';
-                    svgObj.style.margin = '0';
-                    svgObj.style.padding = '0';
-                    svgObj.style.display = 'inline-block';
-                    svgObj.style.verticalAlign = 'baseline';
-                    combinedPreview.appendChild(svgObj);
+                    // 添加SVG（无间距，高度和文字一致）
+                    combinedPreview.innerHTML += svgContents[item.index];
                 } else {
                     // 添加文字（无间距）
                     const textSpan = document.createElement('span');
@@ -872,11 +815,10 @@
             }
         }
         
-        // 复制合并内容（仅复制文字）
+        // 复制合并内容
         function copyCombinedText() {
             if (selectedItems.length === 0) return;
             
-            // 只复制文字内容，SVG跳过
             let combinedText = '';
             selectedItems.forEach(item => {
                 if (item.type === 'text') {
@@ -908,17 +850,18 @@
 
         // 移除预览项目
         function removePreviewItem(index) {
-            if (selectedItems[index].type === 'text') {
-                if (selectedItems[index].inputId === 'text-input-1') {
+            const item = selectedItems[index];
+            
+            if (item.type === 'text') {
+                if (item.inputId === 'text-input-1') {
                     textInput1.value = '';
                     textCounter1.textContent = '0/15';
-                } else if (selectedItems[index].inputId === 'text-input-2') {
+                } else if (item.inputId === 'text-input-2') {
                     textInput2.value = '';
                     textCounter2.textContent = '0/15';
                 }
-            } else if (selectedItems[index].type === 'emoji') {
-                const svgPath = selectedItems[index].content;
-                const emojiItem = document.querySelector(`[data-emoji="${svgPath}"]`);
+            } else if (item.type === 'emoji') {
+                const emojiItem = document.querySelector(`[data-index="${item.index}"]`);
                 if (emojiItem) {
                     emojiItem.classList.remove('selected');
                 }
@@ -955,12 +898,6 @@
 
         // 更新总字符数显示
         function updateTotalCharCount() {
-            const text1Count = textInput1.value ? calculateCharCount(textInput1.value) : 0;
-            const text2Count = textInput2.value ? calculateCharCount(textInput2.value) : 0;
-            
-            updateSelectedTextItems(textInput1, text1Count);
-            updateSelectedTextItems(textInput2, text2Count);
-            
             const total = calculateTotalChars();
             
             totalChars.textContent = total;
@@ -981,45 +918,18 @@
             validateForm();
         }
 
-        // 更新选中列表中的文本项
-        function updateSelectedTextItems(input, count) {
-            const inputId = input.id;
-            const value = input.value;
-            
-            const existingIndex = selectedItems.findIndex(item => item.type === 'text' && item.inputId === inputId);
-            
-            if (value) {
-                const textItem = {
-                    type: 'text',
-                    content: value,
-                    charCount: count,
-                    inputId: inputId
-                };
-                
-                if (existingIndex !== -1) {
-                    selectedItems[existingIndex] = textItem;
-                } else {
-                    selectedItems.push(textItem);
-                }
-            } else if (existingIndex !== -1) {
-                selectedItems.splice(existingIndex, 1);
-            }
-        }
-
-        // 拖拽开始
+        // 拖拽相关
         function handleDragStart(e) {
             if (e.target.classList.contains('preview-item')) {
                 draggedItem = e.target;
                 e.dataTransfer.setData('text/plain', e.target.dataset.index);
                 
-                // 添加拖拽样式
                 setTimeout(() => {
                     draggedItem.classList.add('dragging');
                 }, 0);
             }
         }
 
-        // 拖拽结束
         function handleDragEnd(e) {
             if (draggedItem) {
                 draggedItem.classList.remove('dragging');
@@ -1027,27 +937,22 @@
             }
         }
 
-        // 拖拽放置
         function handleDrop(e) {
             e.preventDefault();
             
             if (!draggedItem) return;
             
-            // 移除拖拽样式
             draggedItem.classList.remove('dragging');
             
-            // 获取目标位置
             const dropTarget = e.target.closest('.preview-item');
             const dragIndex = parseInt(draggedItem.dataset.index);
             
             if (dropTarget && dropTarget !== draggedItem) {
                 const dropIndex = parseInt(dropTarget.dataset.index);
                 
-                // 重新排列数组
                 const [removed] = selectedItems.splice(dragIndex, 1);
                 selectedItems.splice(dropIndex, 0, removed);
                 
-                // 更新预览
                 updatePreview();
             }
         }
@@ -1096,7 +1001,7 @@
                 name: customerName.value.trim(),
                 text1: textInput1.value,
                 text2: textInput2.value,
-                emojis: selectedItems.filter(item => item.type === 'emoji').map(item => item.content), // 存储SVG路径
+                emojis: selectedItems.filter(item => item.type === 'emoji').map(item => item.index),
                 totalChars: calculateTotalChars(),
                 timestamp: new Date().toISOString()
             };
@@ -1111,7 +1016,7 @@
             successModal.classList.remove('hidden');
         }
         
-        // 导出为PNG（适配SVG）
+        // 导出为PNG
         function exportToPNG() {
             const combinedPreviewElement = document.getElementById('combined-preview');
             
@@ -1120,8 +1025,8 @@
                 backgroundColor: '#F9FAFB',
                 logging: false,
                 useCORS: true,
-                allowTaint: true, // 允许SVG被渲染
-                foreignObjectRendering: true // 优化SVG渲染
+                allowTaint: true,
+                foreignObjectRendering: true
             }).then(canvas => {
                 const link = document.createElement('a');
                 link.download = `powerbank-${customerName.value.trim()}-${Date.now()}.png`;
@@ -1133,29 +1038,16 @@
             });
         }
         
-        // 导出PDF（适配SVG，无间距 + 高度一致）
+        // 导出PDF
         function exportToPDF() {
             const now = new Date();
             
-            // 清空PDF容器
             pdfCustomContent.innerHTML = '';
             
-            // 填充SVG和文字（无间距 + 高度一致）
             selectedItems.forEach(item => {
                 if (item.type === 'emoji') {
-                    // 渲染SVG矢量图（高度和文字一致）
-                    const svgObj = document.createElement('object');
-                    svgObj.type = 'image/svg+xml';
-                    svgObj.data = item.content;
-                    svgObj.style.height = '1em';
-                    svgObj.style.width = '1em';
-                    svgObj.style.margin = '0';
-                    svgObj.style.padding = '0';
-                    svgObj.style.display = 'inline-block';
-                    svgObj.style.verticalAlign = 'baseline';
-                    pdfCustomContent.appendChild(svgObj);
+                    pdfCustomContent.innerHTML += svgContents[item.index];
                 } else {
-                    // 保留文字渲染（无间距）
                     const textSpan = document.createElement('span');
                     textSpan.textContent = item.content;
                     textSpan.style.margin = '0';
@@ -1164,7 +1056,6 @@
                 }
             });
 
-            // 临时显示PDF容器
             pdfRenderContainer.style.display = 'block';
             pdfRenderContainer.style.position = 'absolute';
             pdfRenderContainer.style.left = '-9999px';
@@ -1181,7 +1072,7 @@
                 letterRendering: true,
                 imageTimeout: 15000,
                 fontRendering: 'canvas',
-                foreignObjectRendering: true, // 关键：启用SVG渲染
+                foreignObjectRendering: true,
                 ignoreElements: (element) => {
                     return element.id === 'success-modal' || element.id === 'delete-confirm-modal' || element.id === 'admin-password-modal';
                 }
@@ -1220,7 +1111,7 @@
             });
         }
         
-        // 管理员批量导出PDF
+        // 批量导出PDF
         function exportAllToPDF() {
             if (customerData.length === 0) {
                 alert('暂无客户数据可导出');
@@ -1285,7 +1176,7 @@
                     imgHeightLeft -= pageHeight;
                 }
                 
-                pdf.save(`定制订单汇总_${new Date().toLocaleDateString()}.pdf`); // 修正：导出PDF后缀名
+                pdf.save(`定制订单汇总_${new Date().toLocaleDateString()}.pdf`);
                 document.body.removeChild(tempContainer);
                 
             }).catch(err => {
@@ -1295,38 +1186,33 @@
             });
         }
         
-        // 导出客户姓名到Excel
+        // 导出Excel
         function exportNamesToExcel() {
             if (customerData.length === 0) {
                 alert('暂无客户数据可导出');
                 return;
             }
             
-            // 只提取姓名列
             const nameData = customerData.map(item => ({ '客户姓名': item.name }));
             
-            // 创建工作簿和工作表
             const ws = XLSX.utils.json_to_sheet(nameData);
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, "客户姓名列表");
             
-            // 导出Excel文件
             XLSX.writeFile(wb, `客户姓名列表_${new Date().toLocaleDateString()}.xlsx`);
         }
         
-        // 显示管理员密码弹窗
+        // 管理员相关
         function showAdminPasswordModal() {
             adminPasswordInput.value = '';
             passwordError.classList.add('hidden');
             adminPasswordModal.classList.remove('hidden');
         }
         
-        // 隐藏管理员密码弹窗
         function hideAdminPasswordModal() {
             adminPasswordModal.classList.add('hidden');
         }
         
-        // 验证管理员密码
         function verifyAdminPassword() {
             const password = adminPasswordInput.value.trim();
             
@@ -1344,25 +1230,21 @@
             }
         }
         
-        // 筛选客户列表
         function filterCustomerList() {
             const filterText = customerFilterInput.value.trim().toLowerCase();
             updateCustomerList(filterText);
         }
         
-        // 显示删除确认弹窗
         function showDeleteConfirmModal(id) {
             deleteCustomerId = id;
             deleteConfirmModal.classList.remove('hidden');
         }
         
-        // 隐藏删除确认弹窗
         function hideDeleteConfirmModal() {
             deleteConfirmModal.classList.add('hidden');
             deleteCustomerId = null;
         }
         
-        // 确认删除客户
         function confirmDeleteCustomer() {
             if (!deleteCustomerId) return;
             
@@ -1377,7 +1259,6 @@
             alert('客户记录已成功删除');
         }
         
-        // 更新客户列表
         function updateCustomerList(filterText = '') {
             customerList.innerHTML = '';
             
@@ -1403,7 +1284,7 @@
                 let customizationContent = '';
                 if (customer.text1) customizationContent += customer.text1;
                 if (customer.emojis && customer.emojis.length > 0) {
-                    customizationContent += ' [自定义图标]'; // 显示SVG图标标识
+                    customizationContent += ' [自定义图标]';
                 }
                 if (customer.text2) customizationContent += ' ' + customer.text2;
                 
@@ -1427,7 +1308,6 @@
             });
         }
         
-        // 查看客户详情
         function viewCustomerDetail(id) {
             const customer = customerData.find(c => c.id === id);
             if (!customer) return;
@@ -1436,44 +1316,18 @@
             textInput1.value = customer.text1 || '';
             textInput2.value = customer.text2 || '';
             
-            selectedItems = [];
+            // 重置选中状态
             document.querySelectorAll('.emoji-item.selected').forEach(item => {
                 item.classList.remove('selected');
             });
             
-            if (customer.text1) {
-                const text1Count = calculateCharCount(customer.text1);
-                selectedItems.push({
-                    type: 'text',
-                    content: customer.text1,
-                    charCount: text1Count,
-                    inputId: 'text-input-1'
-                });
-            }
-            
+            // 选中对应的SVG
             if (customer.emojis && customer.emojis.length > 0) {
-                customer.emojis.forEach(svgPath => {
-                    const emojiItem = document.querySelector(`[data-emoji="${svgPath}"]`);
+                customer.emojis.forEach(index => {
+                    const emojiItem = document.querySelector(`[data-index="${index}"]`);
                     if (emojiItem) {
                         emojiItem.classList.add('selected');
                     }
-                    
-                    selectedItems.push({
-                        type: 'emoji',
-                        content: svgPath,
-                        charCount: 3
-                    });
-                });
-            }
-            
-            if (customer.text2) {
-                const text2Count = calculateCharCount(customer.text2);
-                textInput2.value = customer.text2;
-                selectedItems.push({
-                    type: 'text',
-                    content: customer.text2,
-                    charCount: text2Count,
-                    inputId: 'text-input-2'
                 });
             }
             
@@ -1486,13 +1340,12 @@
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
         
-        // 导出客户PNG
         function exportCustomerPNG(id) {
             viewCustomerDetail(id);
             setTimeout(exportToPNG, 500);
         }
 
-        // 初始化应用
+        // 初始化
         document.addEventListener('DOMContentLoaded', init);
     </script>
 </body>
