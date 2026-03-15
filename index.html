@@ -201,12 +201,22 @@
                 text-align: center;
                 padding: 20px;
                 box-sizing: border-box;
+                line-height: 1.5;
             }
             
-            /* PDF中图片样式 - 和文字大小匹配 */
+            /* 关键修复：PDF中图片和文字/Emoji视觉大小完全一致 */
             .pdf-simple-content img {
-                height: 36px; /* 和字体大小一致 */
-                width: auto;
+                height: 1em; /* 使用em单位，和当前字体大小完全匹配 */
+                width: 1em;
+                min-width: 1em;
+                min-height: 1em;
+                object-fit: contain;
+                vertical-align: middle;
+                margin: 0 2px; /* 保持和Emoji相同的间距 */
+            }
+            
+            /* 确保PDF中的Emoji也使用相同的行高和对齐 */
+            .pdf-simple-content span {
                 vertical-align: middle;
             }
         }
@@ -319,8 +329,8 @@
                         <i class="fa fa-file-text-o mr-2 text-primary"></i>合并预览
                     </h3>
                     <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                        <div id="combined-preview" class="text-center py-2 min-h-[60px] flex items-center justify-center">
-                            <p class="text-gray-400">合并后的内容将显示在这里</p>
+                        <div id="combined-preview" class="text-center py-4 min-h-[80px] flex items-center justify-center text-2xl">
+                            <p class="text-gray-400 text-base">合并后的内容将显示在这里</p>
                         </div>
                         <div class="mt-2 flex justify-between items-center">
                             <span class="text-xs text-gray-500">总字符数: <span id="combined-chars">0</span>/15</span>
@@ -789,28 +799,28 @@
             updateCombinedPreview();
         }
         
-        // 更新合并预览（支持图片显示）
+        // 更新合并预览（支持图片显示，统一字号）
         function updateCombinedPreview() {
             // 如果没有选中任何内容，显示提示文本
             if (selectedItems.length === 0) {
-                combinedPreview.innerHTML = '<p class="text-gray-400">合并后的内容将显示在这里</p>';
+                combinedPreview.innerHTML = '<p class="text-gray-400 text-base">合并后的内容将显示在这里</p>';
                 combinedChars.textContent = '0';
                 return;
             }
             
-            // 构建合并内容（支持图片）
+            // 构建合并内容（支持图片，统一字号）
             let combinedHtml = '';
             let totalChars = 0;
             
             selectedItems.forEach(item => {
                 totalChars += item.charCount;
                 if (item.type === 'text') {
-                    combinedHtml += item.content;
+                    combinedHtml += `<span style="font-size: inherit; vertical-align: middle;">${item.content}</span>`;
                 } else if (item.type === 'emoji') {
-                    combinedHtml += item.content;
+                    combinedHtml += `<span style="font-size: inherit; vertical-align: middle;">${item.content}</span>`;
                 } else if (item.type === 'custom') {
-                    // 图片在合并预览中也和Emoji大小一致
-                    combinedHtml += `<img src="${item.content}" style="width:1.25rem;height:1.25rem;object-fit:contain;vertical-align:middle;">`;
+                    // 关键：使用font-size: inherit继承父元素字号，确保和文字/Emoji大小一致
+                    combinedHtml += `<img src="${item.content}" style="font-size: inherit; width: 1em; height: 1em; min-width: 1em; min-height: 1em; object-fit: contain; vertical-align: middle; margin: 0 2px;">`;
                 }
             });
             
@@ -1141,21 +1151,25 @@
             successModal.classList.remove('hidden');
         }
         
-        // 导出为PNG
+        // 导出为PNG（优化图片渲染）
         function exportToPNG() {
             const combinedPreviewElement = document.getElementById('combined-preview');
             
+            // 关键优化：增加scale，确保图片渲染清晰，添加useCORS和allowTaint确保图片正常导出
             html2canvas(combinedPreviewElement, {
-                scale: 2,
+                scale: 3, // 提高缩放比例，让导出更清晰
                 backgroundColor: '#F9FAFB',
                 logging: false,
-                useCORS: true, // 支持跨域图片（本地图片没问题）
-                allowTaint: true // 允许图片污染（确保自定义图片能导出）
+                useCORS: true, 
+                allowTaint: true,
+                letterRendering: true, // 优化文字渲染
+                imageTimeout: 15000, // 延长图片加载超时时间
+                fontRendering: 'canvas' // 强制使用canvas渲染字体
             }).then(canvas => {
                 // 创建下载链接
                 const link = document.createElement('a');
                 link.download = `powerbank-${customerName.value.trim()}-${Date.now()}.png`;
-                link.href = canvas.toDataURL('image/png');
+                link.href = canvas.toDataURL('image/png', 1.0); // 1.0质量
                 link.click();
             }).catch(err => {
                 console.error('导出PNG失败:', err);
@@ -1163,7 +1177,7 @@
             });
         }
         
-        // 核心修改：只导出合并预览的内容到PDF（支持自定义图片）
+        // 核心修改：优化PDF导出，确保图片和文字大小一致
         function exportToPDF() {
             // 获取合并预览的完整HTML（包含图片）
             const combinedHtml = combinedPreview.innerHTML;
@@ -1184,15 +1198,39 @@
             pdfSimpleContainer.style.top = '0';
 
             const canvasOptions = {
-                scale: 2, // 2倍缩放保证清晰度
+                scale: 3, // 提高缩放比例，确保清晰度
                 useCORS: true, // 支持自定义图片
                 allowTaint: true, // 允许图片
                 backgroundColor: '#ffffff',
                 logging: false,
                 letterRendering: true,
                 imageTimeout: 15000,
-                // 强制使用Canvas渲染所有内容
-                fontRendering: 'canvas'
+                fontRendering: 'canvas',
+                // 关键：等待所有图片加载完成再渲染
+                onclone: (clonedDoc) => {
+                    // 等待所有图片加载
+                    const images = clonedDoc.querySelectorAll('img');
+                    if (images.length > 0) {
+                        return new Promise(resolve => {
+                            let loadedCount = 0;
+                            images.forEach(img => {
+                                img.onload = () => {
+                                    loadedCount++;
+                                    if (loadedCount === images.length) resolve();
+                                };
+                                img.onerror = () => {
+                                    loadedCount++;
+                                    if (loadedCount === images.length) resolve();
+                                };
+                                // 强制重新加载图片
+                                if (img.complete) {
+                                    loadedCount++;
+                                    if (loadedCount === images.length) resolve();
+                                }
+                            });
+                        });
+                    }
+                }
             };
             
             // 渲染为Canvas（包含自定义图片）
@@ -1235,21 +1273,23 @@
             return new Promise((resolve, reject) => {
                 // 构建客户的合并预览内容（包含图片）
                 let combinedHtml = '';
-                if (customer.text1) combinedHtml += customer.text1;
+                if (customer.text1) combinedHtml += `<span style="font-size: inherit; vertical-align: middle;">${customer.text1}</span>`;
                 
                 // 添加Emoji
                 if (customer.emojis && customer.emojis.length > 0) {
-                    combinedHtml += customer.emojis.join('');
+                    customer.emojis.forEach(emoji => {
+                        combinedHtml += `<span style="font-size: inherit; vertical-align: middle;">${emoji}</span>`;
+                    });
                 }
                 
                 // 添加自定义图片
                 if (customer.customIcons && customer.customIcons.length > 0) {
                     customer.customIcons.forEach(iconSrc => {
-                        combinedHtml += `<img src="${iconSrc}" style="width:1.25rem;height:1.25rem;object-fit:contain;vertical-align:middle;">`;
+                        combinedHtml += `<img src="${iconSrc}" style="font-size: inherit; width: 1em; height: 1em; min-width: 1em; min-height: 1em; object-fit: contain; vertical-align: middle; margin: 0 2px;">`;
                     });
                 }
                 
-                if (customer.text2) combinedHtml += customer.text2;
+                if (customer.text2) combinedHtml += `<span style="font-size: inherit; vertical-align: middle;">${customer.text2}</span>`;
                 combinedHtml = combinedHtml.trim();
                 
                 // 如果没有内容，返回空
@@ -1268,7 +1308,7 @@
                 pdfSimpleContainer.style.top = '0';
 
                 const canvasOptions = {
-                    scale: 2,
+                    scale: 3,
                     useCORS: true,
                     allowTaint: true,
                     backgroundColor: '#ffffff',
@@ -1276,6 +1316,28 @@
                     letterRendering: true,
                     imageTimeout: 15000,
                     fontRendering: 'canvas',
+                    onclone: (clonedDoc) => {
+                        const images = clonedDoc.querySelectorAll('img');
+                        if (images.length > 0) {
+                            return new Promise(resolve => {
+                                let loadedCount = 0;
+                                images.forEach(img => {
+                                    img.onload = () => {
+                                        loadedCount++;
+                                        if (loadedCount === images.length) resolve();
+                                    };
+                                    img.onerror = () => {
+                                        loadedCount++;
+                                        if (loadedCount === images.length) resolve();
+                                    };
+                                    if (img.complete) {
+                                        loadedCount++;
+                                        if (loadedCount === images.length) resolve();
+                                    }
+                                });
+                            });
+                        }
+                    }
                 };
                 
                 html2canvas(pdfSimpleContainer, canvasOptions).then(canvas => {
