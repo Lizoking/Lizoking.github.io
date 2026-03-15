@@ -50,17 +50,31 @@
                 gap: 0.5rem;
             }
             
+            /* Emoji和自定义图片统一样式 - 尺寸完全一致 */
             .emoji-item {
                 cursor: pointer;
                 transition: all 0.2s ease;
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                height: 2.5rem;
-                width: 2.5rem;
+                height: 2.5rem; /* 40px 固定高度 */
+                width: 2.5rem;  /* 40px 固定宽度 */
                 border-radius: 0.375rem;
-                font-size: 1.25rem;
+                font-size: 1.25rem; /* Emoji字体大小 */
                 font-family: "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif;
+                /* 图片和Emoji统一居中 */
+                overflow: hidden;
+                position: relative;
+            }
+            
+            /* 自定义图片在emoji-item内的样式 - 完全适配容器 */
+            .emoji-item img {
+                width: 100%;
+                height: 100%;
+                object-fit: contain; /* 保持图片比例 */
+                position: absolute;
+                top: 0;
+                left: 0;
             }
             
             .emoji-item:hover {
@@ -88,6 +102,13 @@
                 min-width: 2rem;
                 min-height: 2rem;
                 font-family: "Noto Sans SC", "Segoe UI Emoji", sans-serif;
+            }
+            
+            /* 预览区图片样式 - 和Emoji大小一致 */
+            .preview-item img {
+                width: 1.25rem; /* 和Emoji字体大小一致 20px */
+                height: 1.25rem;
+                object-fit: contain;
             }
             
             .preview-item:hover {
@@ -180,6 +201,13 @@
                 text-align: center;
                 padding: 20px;
                 box-sizing: border-box;
+            }
+            
+            /* PDF中图片样式 - 和文字大小匹配 */
+            .pdf-simple-content img {
+                height: 36px; /* 和字体大小一致 */
+                width: auto;
+                vertical-align: middle;
             }
         }
     </style>
@@ -305,14 +333,14 @@
             </div>
         </main>
         
-        <!-- Emoji选择器区域 -->
+        <!-- Emoji+自定义图片选择器区域 -->
         <section class="mt-8 bg-white rounded-xl shadow-custom p-6">
             <h2 class="text-xl font-semibold mb-4 flex items-center">
-                <i class="fa fa-smile-o mr-2 text-primary"></i>表情符号选择（选填）
+                <i class="fa fa-smile-o mr-2 text-primary"></i>表情/图片选择（选填）
             </h2>
             
             <div class="emoji-grid custom-scrollbar overflow-auto" id="emoji-grid">
-                <!-- Emoji将通过JavaScript动态生成 -->
+                <!-- Emoji和自定义图片将通过JavaScript动态生成 -->
             </div>
         </section>
         
@@ -469,7 +497,7 @@
     </div>
 
     <script>
-        // 100个常用Emoji表情符号
+        // 1. 保留原有Emoji列表
         const emojiList = [
             '😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '😊', '😇',
             '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚',
@@ -481,6 +509,13 @@
             '😦', '😧', '😮', '😲', '🥱', '😴', '🤤', '😪', '😵', '🤐',
             '🥴', '🤢', '🤮', '🤧', '😷', '🤒', '🤕', '🤑', '🤠', '😈',
             '👿', '👹', '👺', '🤡', '💩', '👻', '💀', '☠️', '👽', '👾'
+        ];
+
+        // 2. 自定义图片列表（和Emoji统一管理）
+        const customIconList = [
+            { src: 'images/1.png', id: 'icon1', type: 'custom' },
+            { src: 'images/2.png', id: 'icon2', type: 'custom' },
+            { src: 'images/3.png', id: 'icon3', type: 'custom' }
         ];
 
         // 管理员密码（可自行修改）
@@ -545,8 +580,8 @@
 
         // 初始化
         function init() {
-            // 生成Emoji网格
-            generateEmojiGrid();
+            // 生成Emoji+自定义图片面板（统一样式）
+            generateEmojiAndIconGrid();
             
             // 添加事件监听器
             customerName.addEventListener('input', validateForm);
@@ -584,20 +619,80 @@
             updateCustomerList();
         }
 
-        // 生成Emoji网格
-        function generateEmojiGrid() {
+        // 生成Emoji+自定义图片面板（统一样式）
+        function generateEmojiAndIconGrid() {
             emojiGrid.innerHTML = '';
             
+            // 先添加自定义图片（和Emoji样式完全一致）
+            customIconList.forEach(icon => {
+                const iconItem = document.createElement('div');
+                iconItem.className = 'emoji-item'; // 和Emoji用同一个样式类
+                iconItem.dataset.type = 'custom';
+                iconItem.dataset.content = icon.src;
+                
+                // 添加图片元素（适配emoji-item容器）
+                const img = document.createElement('img');
+                img.src = icon.src;
+                img.alt = '自定义图标';
+                iconItem.appendChild(img);
+                
+                // 统一的点击事件
+                iconItem.addEventListener('click', () => toggleEmojiOrIconSelection('custom', icon.src));
+                
+                emojiGrid.appendChild(iconItem);
+            });
+            
+            // 再添加原有Emoji（保持原样）
             emojiList.forEach(emoji => {
                 const emojiItem = document.createElement('div');
                 emojiItem.className = 'emoji-item';
+                emojiItem.dataset.type = 'emoji';
+                emojiItem.dataset.content = emoji;
                 emojiItem.textContent = emoji;
-                emojiItem.dataset.emoji = emoji;
                 
-                emojiItem.addEventListener('click', () => toggleEmojiSelection(emoji));
+                emojiItem.addEventListener('click', () => toggleEmojiOrIconSelection('emoji', emoji));
                 
                 emojiGrid.appendChild(emojiItem);
             });
+        }
+
+        // 统一的Emoji/自定义图片选择逻辑
+        function toggleEmojiOrIconSelection(type, content) {
+            // 找到对应的元素
+            const selector = `[data-type="${type}"][data-content="${content}"]`;
+            const item = document.querySelector(selector);
+            
+            if (item.classList.contains('selected')) {
+                // 取消选择
+                item.classList.remove('selected');
+                
+                // 从选中列表中移除
+                const index = selectedItems.findIndex(
+                    item => item.type === type && item.content === content
+                );
+                if (index !== -1) {
+                    selectedItems.splice(index, 1);
+                }
+            } else {
+                // 统一字符计数规则（和原Emoji一致，都算3个字符）
+                const charCount = 3; 
+                const currentTotal = calculateTotalChars();
+                
+                if (currentTotal + charCount <= 15) {
+                    item.classList.add('selected');
+                    selectedItems.push({
+                        type: type,
+                        content: content,
+                        charCount: charCount
+                    });
+                } else {
+                    totalCharsError.classList.remove('hidden');
+                    setTimeout(() => totalCharsError.classList.add('hidden'), 2000);
+                }
+            }
+            
+            updatePreview();
+            updateTotalCharCount();
         }
 
         // 处理文本输入（已修复中文输入异常）
@@ -642,56 +737,14 @@
             return count;
         }
 
-        // 切换Emoji选择状态
-        function toggleEmojiSelection(emoji) {
-            const emojiItem = document.querySelector(`[data-emoji="${emoji}"]`);
-            
-            if (emojiItem.classList.contains('selected')) {
-                // 取消选择
-                emojiItem.classList.remove('selected');
-                
-                // 从选中列表中移除
-                const index = selectedItems.findIndex(item => item.type === 'emoji' && item.content === emoji);
-                if (index !== -1) {
-                    selectedItems.splice(index, 1);
-                }
-            } else {
-                // 检查总字符数是否会超过限制
-                const emojiCharCount = 3; // Emoji算3个字符
-                const currentTotalChars = calculateTotalChars();
-                
-                if (currentTotalChars + emojiCharCount <= 15) {
-                    // 选中Emoji
-                    emojiItem.classList.add('selected');
-                    
-                    // 添加到选中列表
-                    selectedItems.push({
-                        type: 'emoji',
-                        content: emoji,
-                        charCount: emojiCharCount
-                    });
-                    
-                    // 更新预览
-                    updatePreview();
-                    updateTotalCharCount();
-                } else {
-                    // 显示总字符数错误
-                    totalCharsError.classList.remove('hidden');
-                    setTimeout(() => {
-                        totalCharsError.classList.add('hidden');
-                    }, 3000);
-                }
-            }
-        }
-
-        // 更新预览区域
+        // 更新预览区域（统一处理Emoji和自定义图片）
         function updatePreview() {
             // 清空预览区域
             previewContainer.innerHTML = '';
             
             // 如果没有选中任何内容，显示提示文本
             if (selectedItems.length === 0) {
-                previewContainer.innerHTML = '<p class="text-gray-400 text-center">请输入文字并选择表情符号</p>';
+                previewContainer.innerHTML = '<p class="text-gray-400 text-center">请输入文字并选择表情符号/图片</p>';
                 updateCombinedPreview();
                 return;
             }
@@ -704,6 +757,7 @@
                 previewItem.dataset.index = index;
                 
                 if (item.type === 'text') {
+                    // 文字项（保持原样）
                     previewItem.innerHTML = `
                         <span>${item.content}</span>
                         <button class="ml-2 text-gray-400 hover:text-red-500" onclick="removePreviewItem(${index})">
@@ -711,8 +765,17 @@
                         </button>
                     `;
                 } else if (item.type === 'emoji') {
+                    // Emoji项（保持原样）
                     previewItem.innerHTML = `
                         <span>${item.content}</span>
+                        <button class="ml-2 text-gray-400 hover:text-red-500" onclick="removePreviewItem(${index})">
+                            <i class="fa fa-times-circle"></i>
+                        </button>
+                    `;
+                } else if (item.type === 'custom') {
+                    // 自定义图片项（和Emoji大小一致）
+                    previewItem.innerHTML = `
+                        <img src="${item.content}" alt="自定义图标">
                         <button class="ml-2 text-gray-400 hover:text-red-500" onclick="removePreviewItem(${index})">
                             <i class="fa fa-times-circle"></i>
                         </button>
@@ -726,7 +789,7 @@
             updateCombinedPreview();
         }
         
-        // 更新合并预览
+        // 更新合并预览（支持图片显示）
         function updateCombinedPreview() {
             // 如果没有选中任何内容，显示提示文本
             if (selectedItems.length === 0) {
@@ -735,17 +798,24 @@
                 return;
             }
             
-            // 合并所有选中的项目内容
-            let combinedText = '';
+            // 构建合并内容（支持图片）
+            let combinedHtml = '';
             let totalChars = 0;
             
             selectedItems.forEach(item => {
-                combinedText += item.content;
                 totalChars += item.charCount;
+                if (item.type === 'text') {
+                    combinedHtml += item.content;
+                } else if (item.type === 'emoji') {
+                    combinedHtml += item.content;
+                } else if (item.type === 'custom') {
+                    // 图片在合并预览中也和Emoji大小一致
+                    combinedHtml += `<img src="${item.content}" style="width:1.25rem;height:1.25rem;object-fit:contain;vertical-align:middle;">`;
+                }
             });
             
             // 更新合并预览
-            combinedPreview.textContent = combinedText;
+            combinedPreview.innerHTML = combinedHtml;
             combinedChars.textContent = totalChars;
             
             // 根据字符数更新颜色
@@ -759,18 +829,26 @@
             }
         }
         
-        // 复制合并文本
+        // 复制合并文本（图片无法复制，只复制文字和Emoji）
         function copyCombinedText() {
             if (selectedItems.length === 0) return;
             
-            // 合并所有选中的项目内容
-            let combinedText = '';
+            // 只复制文字和Emoji内容
+            let copyText = '';
             selectedItems.forEach(item => {
-                combinedText += item.content;
+                if (item.type === 'text' || item.type === 'emoji') {
+                    copyText += item.content;
+                }
+                // 自定义图片跳过（无法复制）
             });
             
+            if (!copyText) {
+                alert('当前选择的内容仅包含图片，无法复制');
+                return;
+            }
+            
             // 复制到剪贴板
-            navigator.clipboard.writeText(combinedText).then(() => {
+            navigator.clipboard.writeText(copyText).then(() => {
                 // 显示复制成功提示
                 const originalText = copyCombinedBtn.innerHTML;
                 copyCombinedBtn.innerHTML = '<i class="fa fa-check mr-1"></i> 已复制';
@@ -790,22 +868,24 @@
 
         // 移除预览项目
         function removePreviewItem(index) {
+            const item = selectedItems[index];
+            
             // 如果是文本项，清除对应的输入框
-            if (selectedItems[index].type === 'text') {
-                if (selectedItems[index].inputId === 'text-input-1') {
+            if (item.type === 'text') {
+                if (item.inputId === 'text-input-1') {
                     textInput1.value = '';
                     textCounter1.textContent = '0/15';
-                } else if (selectedItems[index].inputId === 'text-input-2') {
+                } else if (item.inputId === 'text-input-2') {
                     textInput2.value = '';
                     textCounter2.textContent = '0/15';
                 }
             } 
-            // 如果是Emoji项，移除选中状态
-            else if (selectedItems[index].type === 'emoji') {
-                const emoji = selectedItems[index].content;
-                const emojiItem = document.querySelector(`[data-emoji="${emoji}"]`);
-                if (emojiItem) {
-                    emojiItem.classList.remove('selected');
+            // 如果是Emoji/自定义图片项，移除选中状态
+            else if (item.type === 'emoji' || item.type === 'custom') {
+                const selector = `[data-type="${item.type}"][data-content="${item.content}"]`;
+                const listItem = document.querySelector(selector);
+                if (listItem) {
+                    listItem.classList.remove('selected');
                 }
             }
             
@@ -825,7 +905,7 @@
             textCounter1.textContent = '0/15';
             textCounter2.textContent = '0/15';
             
-            // 移除所有Emoji的选中状态
+            // 移除所有Emoji/图片的选中状态
             document.querySelectorAll('.emoji-item.selected').forEach(item => {
                 item.classList.remove('selected');
             });
@@ -1028,14 +1108,21 @@
                 return;
             }
             
+            // 分离文字、Emoji、自定义图片
+            const text1 = textInput1.value;
+            const text2 = textInput2.value;
+            const emojis = selectedItems.filter(item => item.type === 'emoji').map(item => item.content);
+            const customIcons = selectedItems.filter(item => item.type === 'custom').map(item => item.content);
+            
             // 创建客户数据
             const customerId = Date.now();
             const customizationData = {
                 id: customerId,
                 name: customerName.value.trim(),
-                text1: textInput1.value,
-                text2: textInput2.value,
-                emojis: selectedItems.filter(item => item.type === 'emoji').map(item => item.content),
+                text1: text1,
+                text2: text2,
+                emojis: emojis,
+                customIcons: customIcons, // 保存自定义图片路径
                 totalChars: calculateTotalChars(),
                 timestamp: new Date().toISOString()
             };
@@ -1062,7 +1149,8 @@
                 scale: 2,
                 backgroundColor: '#F9FAFB',
                 logging: false,
-                useCORS: true
+                useCORS: true, // 支持跨域图片（本地图片没问题）
+                allowTaint: true // 允许图片污染（确保自定义图片能导出）
             }).then(canvas => {
                 // 创建下载链接
                 const link = document.createElement('a');
@@ -1075,21 +1163,19 @@
             });
         }
         
-        // 核心修改：只导出合并预览的内容到PDF
+        // 核心修改：只导出合并预览的内容到PDF（支持自定义图片）
         function exportToPDF() {
-            // 获取合并预览的文本内容
-            const combinedText = combinedPreview.textContent.trim() === '合并后的内容将显示在这里' 
-                ? '' 
-                : combinedPreview.textContent.trim();
-
+            // 获取合并预览的完整HTML（包含图片）
+            const combinedHtml = combinedPreview.innerHTML;
+            
             // 如果没有内容，提示用户
-            if (!combinedText) {
+            if (combinedHtml.includes('合并后的内容将显示在这里') || !combinedHtml.trim()) {
                 alert('没有可导出的内容，请先输入定制内容');
                 return;
             }
 
             // 将合并预览内容放入纯内容PDF容器
-            pdfSimpleContent.textContent = combinedText;
+            pdfSimpleContent.innerHTML = combinedHtml;
 
             // 临时显示PDF容器（解决hidden容器渲染失败）
             pdfSimpleContainer.style.display = 'block';
@@ -1099,17 +1185,17 @@
 
             const canvasOptions = {
                 scale: 2, // 2倍缩放保证清晰度
-                useCORS: true,
-                allowTaint: true,
+                useCORS: true, // 支持自定义图片
+                allowTaint: true, // 允许图片
                 backgroundColor: '#ffffff',
                 logging: false,
                 letterRendering: true,
                 imageTimeout: 15000,
-                // 强制使用Canvas渲染所有文字/Emoji
+                // 强制使用Canvas渲染所有内容
                 fontRendering: 'canvas'
             };
             
-            // 渲染为Canvas（只渲染合并预览内容）
+            // 渲染为Canvas（包含自定义图片）
             html2canvas(pdfSimpleContainer, canvasOptions).then(canvas => {
                 // 初始化jsPDF
                 const { jsPDF } = window.jspdf;
@@ -1144,26 +1230,36 @@
             });
         }
         
-        // 生成单个客户PDF并返回Blob（只导出合并预览内容）
+        // 生成单个客户PDF并返回Blob（支持自定义图片）
         function generateCustomerPDF(customer) {
             return new Promise((resolve, reject) => {
-                // 构建客户的合并预览内容
-                let combinedText = '';
-                if (customer.text1) combinedText += customer.text1;
+                // 构建客户的合并预览内容（包含图片）
+                let combinedHtml = '';
+                if (customer.text1) combinedHtml += customer.text1;
+                
+                // 添加Emoji
                 if (customer.emojis && customer.emojis.length > 0) {
-                    combinedText += customer.emojis.join('');
+                    combinedHtml += customer.emojis.join('');
                 }
-                if (customer.text2) combinedText += customer.text2;
-                combinedText = combinedText.trim();
+                
+                // 添加自定义图片
+                if (customer.customIcons && customer.customIcons.length > 0) {
+                    customer.customIcons.forEach(iconSrc => {
+                        combinedHtml += `<img src="${iconSrc}" style="width:1.25rem;height:1.25rem;object-fit:contain;vertical-align:middle;">`;
+                    });
+                }
+                
+                if (customer.text2) combinedHtml += customer.text2;
+                combinedHtml = combinedHtml.trim();
                 
                 // 如果没有内容，返回空
-                if (!combinedText) {
+                if (!combinedHtml) {
                     reject(new Error(`客户 ${customer.name} 没有定制内容`));
                     return;
                 }
 
                 // 将内容放入纯内容PDF容器
-                pdfSimpleContent.textContent = combinedText;
+                pdfSimpleContent.innerHTML = combinedHtml;
 
                 // 临时显示PDF容器
                 pdfSimpleContainer.style.display = 'block';
@@ -1336,7 +1432,7 @@
             alert('客户记录已成功删除');
         }
         
-        // 更新客户列表
+        // 更新客户列表（支持自定义图片显示）
         function updateCustomerList(filterText = '') {
             customerList.innerHTML = '';
             
@@ -1360,11 +1456,15 @@
             filteredData.forEach(customer => {
                 const row = document.createElement('tr');
                 
-                // 格式化定制内容
+                // 格式化定制内容（包含图片标记）
                 let customizationContent = '';
                 if (customer.text1) customizationContent += customer.text1;
                 if (customer.emojis && customer.emojis.length > 0) {
                     customizationContent += ' ' + customer.emojis.join(' ');
+                }
+                // 自定义图片显示为[图片]标记
+                if (customer.customIcons && customer.customIcons.length > 0) {
+                    customizationContent += ' [图片×' + customer.customIcons.length + ']';
                 }
                 if (customer.text2) customizationContent += ' ' + customer.text2;
                 
@@ -1388,7 +1488,7 @@
             });
         }
         
-        // 查看客户详情
+        // 查看客户详情（支持自定义图片）
         function viewCustomerDetail(id) {
             const customer = customerData.find(c => c.id === id);
             if (!customer) return;
@@ -1419,7 +1519,8 @@
             if (customer.emojis && customer.emojis.length > 0) {
                 customer.emojis.forEach(emoji => {
                     // 选中Emoji
-                    const emojiItem = document.querySelector(`[data-emoji="${emoji}"]`);
+                    const selector = `[data-type="emoji"][data-content="${emoji}"]`;
+                    const emojiItem = document.querySelector(selector);
                     if (emojiItem) {
                         emojiItem.classList.add('selected');
                     }
@@ -1428,6 +1529,25 @@
                     selectedItems.push({
                         type: 'emoji',
                         content: emoji,
+                        charCount: 3
+                    });
+                });
+            }
+            
+            // 添加自定义图片项
+            if (customer.customIcons && customer.customIcons.length > 0) {
+                customer.customIcons.forEach(iconSrc => {
+                    // 选中图片
+                    const selector = `[data-type="custom"][data-content="${iconSrc}"]`;
+                    const iconItem = document.querySelector(selector);
+                    if (iconItem) {
+                        iconItem.classList.add('selected');
+                    }
+                    
+                    // 添加到选中列表
+                    selectedItems.push({
+                        type: 'custom',
+                        content: iconSrc,
                         charCount: 3
                     });
                 });
