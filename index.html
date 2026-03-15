@@ -44,6 +44,11 @@
     
     <style type="text/tailwindcss">
         @layer utilities {
+            /* 统一基准字体大小 */
+            :root {
+                --base-font-size: 20px;
+            }
+            
             .emoji-grid {
                 display: grid;
                 grid-template-columns: repeat(10, 1fr);
@@ -60,7 +65,7 @@
                 height: 2.5rem; /* 40px 固定高度 */
                 width: 2.5rem;  /* 40px 固定宽度 */
                 border-radius: 0.375rem;
-                font-size: 1.25rem; /* Emoji字体大小 */
+                font-size: 1.5rem; /* 增大Emoji字体大小 */
                 font-family: "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif;
                 /* 图片和Emoji统一居中 */
                 overflow: hidden;
@@ -102,13 +107,18 @@
                 min-width: 2rem;
                 min-height: 2rem;
                 font-family: "Noto Sans SC", "Segoe UI Emoji", sans-serif;
+                font-size: var(--base-font-size);
             }
             
-            /* 预览区图片样式 - 和Emoji大小一致 */
+            /* 预览区图片样式 - 使用em单位，和Emoji大小完全一致 */
             .preview-item img {
-                width: 1.25rem; /* 和Emoji字体大小一致 20px */
-                height: 1.25rem;
+                height: 1em;
+                width: 1em;
+                min-width: 1em;
+                min-height: 1em;
                 object-fit: contain;
+                vertical-align: middle;
+                display: inline-block;
             }
             
             .preview-item:hover {
@@ -197,7 +207,7 @@
                 align-items: center;
                 justify-content: center;
                 font-family: "Noto Sans SC", "Segoe UI Emoji", "Apple Color Emoji", sans-serif;
-                font-size: 36px; /* 放大显示内容 */
+                font-size: 48px; /* 放大显示内容 */
                 text-align: center;
                 padding: 20px;
                 box-sizing: border-box;
@@ -206,18 +216,48 @@
             
             /* 关键修复：PDF中图片和文字/Emoji视觉大小完全一致 */
             .pdf-simple-content img {
-                height: 1em; /* 使用em单位，和当前字体大小完全匹配 */
+                height: 1em;
                 width: 1em;
                 min-width: 1em;
                 min-height: 1em;
                 object-fit: contain;
                 vertical-align: middle;
-                margin: 0 2px; /* 保持和Emoji相同的间距 */
+                margin: 0 2px;
+                display: inline-block;
             }
             
             /* 确保PDF中的Emoji也使用相同的行高和对齐 */
             .pdf-simple-content span {
                 vertical-align: middle;
+                display: inline-block;
+                line-height: 1;
+            }
+            
+            /* 合并预览区域样式 */
+            #combined-preview {
+                font-size: 24px;
+                line-height: 1.5;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                flex-wrap: wrap;
+                gap: 4px;
+            }
+            
+            #combined-preview img {
+                height: 1em;
+                width: 1em;
+                min-width: 1em;
+                min-height: 1em;
+                object-fit: contain;
+                vertical-align: middle;
+                display: inline-block;
+            }
+            
+            #combined-preview span {
+                vertical-align: middle;
+                display: inline-block;
+                line-height: 1;
             }
         }
     </style>
@@ -783,9 +823,9 @@
                         </button>
                     `;
                 } else if (item.type === 'custom') {
-                    // 自定义图片项（和Emoji大小一致）
+                    // 自定义图片项 - 使用em单位确保和文字大小一致
                     previewItem.innerHTML = `
-                        <img src="${item.content}" alt="自定义图标">
+                        <img src="${item.content}" alt="自定义图标" style="height: 1em; width: 1em; min-width: 1em; min-height: 1em; object-fit: contain; vertical-align: middle;">
                         <button class="ml-2 text-gray-400 hover:text-red-500" onclick="removePreviewItem(${index})">
                             <i class="fa fa-times-circle"></i>
                         </button>
@@ -815,12 +855,12 @@
             selectedItems.forEach(item => {
                 totalChars += item.charCount;
                 if (item.type === 'text') {
-                    combinedHtml += `<span style="font-size: inherit; vertical-align: middle;">${item.content}</span>`;
+                    combinedHtml += `<span style="font-size: inherit; vertical-align: middle; display: inline-block; line-height: 1;">${item.content}</span>`;
                 } else if (item.type === 'emoji') {
-                    combinedHtml += `<span style="font-size: inherit; vertical-align: middle;">${item.content}</span>`;
+                    combinedHtml += `<span style="font-size: inherit; vertical-align: middle; display: inline-block; line-height: 1;">${item.content}</span>`;
                 } else if (item.type === 'custom') {
-                    // 关键：使用font-size: inherit继承父元素字号，确保和文字/Emoji大小一致
-                    combinedHtml += `<img src="${item.content}" style="font-size: inherit; width: 1em; height: 1em; min-width: 1em; min-height: 1em; object-fit: contain; vertical-align: middle; margin: 0 2px;">`;
+                    // 关键：使用em单位，确保和文字/Emoji大小完全一致
+                    combinedHtml += `<img src="${item.content}" style="font-size: inherit; height: 1em; width: 1em; min-width: 1em; min-height: 1em; object-fit: contain; vertical-align: middle; display: inline-block; margin: 0 2px;" alt="custom">`;
                 }
             });
             
@@ -1273,23 +1313,23 @@
             return new Promise((resolve, reject) => {
                 // 构建客户的合并预览内容（包含图片）
                 let combinedHtml = '';
-                if (customer.text1) combinedHtml += `<span style="font-size: inherit; vertical-align: middle;">${customer.text1}</span>`;
+                if (customer.text1) combinedHtml += `<span style="font-size: inherit; vertical-align: middle; display: inline-block; line-height: 1;">${customer.text1}</span>`;
                 
                 // 添加Emoji
                 if (customer.emojis && customer.emojis.length > 0) {
                     customer.emojis.forEach(emoji => {
-                        combinedHtml += `<span style="font-size: inherit; vertical-align: middle;">${emoji}</span>`;
+                        combinedHtml += `<span style="font-size: inherit; vertical-align: middle; display: inline-block; line-height: 1;">${emoji}</span>`;
                     });
                 }
                 
                 // 添加自定义图片
                 if (customer.customIcons && customer.customIcons.length > 0) {
                     customer.customIcons.forEach(iconSrc => {
-                        combinedHtml += `<img src="${iconSrc}" style="font-size: inherit; width: 1em; height: 1em; min-width: 1em; min-height: 1em; object-fit: contain; vertical-align: middle; margin: 0 2px;">`;
+                        combinedHtml += `<img src="${iconSrc}" style="font-size: inherit; height: 1em; width: 1em; min-width: 1em; min-height: 1em; object-fit: contain; vertical-align: middle; display: inline-block; margin: 0 2px;" alt="custom">`;
                     });
                 }
                 
-                if (customer.text2) combinedHtml += `<span style="font-size: inherit; vertical-align: middle;">${customer.text2}</span>`;
+                if (customer.text2) combinedHtml += `<span style="font-size: inherit; vertical-align: middle; display: inline-block; line-height: 1;">${customer.text2}</span>`;
                 combinedHtml = combinedHtml.trim();
                 
                 // 如果没有内容，返回空
