@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>移动电源定制</title>
+    <title>移动电源定制 - 对齐修复版</title>
     <!-- Tailwind CSS v3 -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Font Awesome -->
@@ -44,39 +44,33 @@
     
     <style type="text/tailwindcss">
         @layer utilities {
-            /* 统一基准字体大小 */
-            :root {
-                --base-font-size: 20px;
-            }
-            
             .emoji-grid {
                 display: grid;
                 grid-template-columns: repeat(10, 1fr);
                 gap: 0.5rem;
             }
             
-            /* Emoji和自定义图片统一样式 - 尺寸完全一致 */
+            /* ========== 核心：Emoji/自定义图片统一框架 ========== */
             .emoji-item {
                 cursor: pointer;
                 transition: all 0.2s ease;
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                height: 2.5rem; /* 40px 固定高度 */
+                height: 2.5rem; /* 40px 固定高度（和原生Emoji一致） */
                 width: 2.5rem;  /* 40px 固定宽度 */
                 border-radius: 0.375rem;
-                font-size: 1.5rem; /* 增大Emoji字体大小 */
+                font-size: 1.25rem; /* Emoji字体大小 */
                 font-family: "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif;
-                /* 图片和Emoji统一居中 */
                 overflow: hidden;
                 position: relative;
             }
             
-            /* 自定义图片在emoji-item内的样式 - 完全适配容器 */
+            /* 自定义图片完全复用Emoji框架 */
             .emoji-item img {
                 width: 100%;
                 height: 100%;
-                object-fit: contain; /* 保持图片比例 */
+                object-fit: contain;
                 position: absolute;
                 top: 0;
                 left: 0;
@@ -107,18 +101,33 @@
                 min-width: 2rem;
                 min-height: 2rem;
                 font-family: "Noto Sans SC", "Segoe UI Emoji", sans-serif;
-                font-size: var(--base-font-size);
             }
             
-            /* 预览区图片样式 - 使用em单位，和Emoji大小完全一致 */
-            .preview-item img {
-                height: 1em;
-                width: 1em;
-                min-width: 1em;
-                min-height: 1em;
-                object-fit: contain;
-                vertical-align: middle;
-                display: inline-block;
+            /* ========== 关键修复：预览区图片和Emoji绝对对齐 ========== */
+            .preview-item img,
+            #combined-preview img,
+            .export-content img {
+                /* 完全复用Emoji的字体大小和行高 */
+                width: 1.25rem !important;  /* 和Emoji字体大小1.25rem一致 */
+                height: 1.25rem !important;
+                object-fit: contain !important;
+                /* 核心：强制和文字/Emoji基线对齐 */
+                vertical-align: middle !important;
+                line-height: 1 !important;
+                display: inline-block !important;
+                margin: 0 1px !important;
+                /* 消除图片默认间隙 */
+                padding: 0 !important;
+                border: none !important;
+            }
+            
+            /* 原生Emoji也强制对齐（防止浏览器差异） */
+            .preview-item span,
+            #combined-preview span,
+            .export-content span {
+                vertical-align: middle !important;
+                line-height: 1 !important;
+                display: inline-block !important;
             }
             
             .preview-item:hover {
@@ -198,7 +207,7 @@
                 background: #9CA3AF;
             }
             
-            /* 纯内容PDF导出样式 - 只保留核心内容 */
+            /* ========== 导出专用：强制所有内容水平对齐 ========== */
             .pdf-simple-content {
                 width: 595px; /* A4宽度 */
                 height: 842px; /* A4高度 */
@@ -207,57 +216,25 @@
                 align-items: center;
                 justify-content: center;
                 font-family: "Noto Sans SC", "Segoe UI Emoji", "Apple Color Emoji", sans-serif;
-                font-size: 48px; /* 放大显示内容 */
+                font-size: 36px; /* 放大显示内容 */
                 text-align: center;
                 padding: 20px;
                 box-sizing: border-box;
-                line-height: 1.5;
+                line-height: 1 !important; /* 强制行高为1，消除对齐偏差 */
             }
             
-            /* 关键修复：PDF中图片和文字/Emoji视觉大小完全一致 */
-            .pdf-simple-content img {
-                height: 1em;
-                width: 1em;
-                min-width: 1em;
-                min-height: 1em;
-                object-fit: contain;
-                vertical-align: middle;
-                margin: 0 2px;
-                display: inline-block;
-            }
-            
-            /* 确保PDF中的Emoji也使用相同的行高和对齐 */
-            .pdf-simple-content span {
-                vertical-align: middle;
-                display: inline-block;
-                line-height: 1;
-            }
-            
-            /* 合并预览区域样式 */
+            /* 合并预览区样式（确保导出时尺寸一致） */
             #combined-preview {
-                font-size: 24px;
-                line-height: 1.5;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                flex-wrap: wrap;
-                gap: 4px;
+                font-size: 16px; /* 基础字体大小 */
+                line-height: 1 !important; /* 强制行高统一 */
             }
             
-            #combined-preview img {
-                height: 1em;
-                width: 1em;
-                min-width: 1em;
-                min-height: 1em;
-                object-fit: contain;
-                vertical-align: middle;
-                display: inline-block;
-            }
-            
-            #combined-preview span {
-                vertical-align: middle;
-                display: inline-block;
-                line-height: 1;
+            /* 导出专用样式重置 - 核心对齐规则 */
+            .export-content {
+                font-size: 36px !important;
+                line-height: 1 !important; /* 关键：行高1，消除所有垂直偏差 */
+                font-family: "Noto Sans SC", "Segoe UI Emoji", "Apple Color Emoji", sans-serif !important;
+                vertical-align: middle !important;
             }
         }
     </style>
@@ -369,8 +346,8 @@
                         <i class="fa fa-file-text-o mr-2 text-primary"></i>合并预览
                     </h3>
                     <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                        <div id="combined-preview" class="text-center py-4 min-h-[80px] flex items-center justify-center text-2xl">
-                            <p class="text-gray-400 text-base">合并后的内容将显示在这里</p>
+                        <div id="combined-preview" class="text-center py-2 min-h-[60px] flex items-center justify-center">
+                            <p class="text-gray-400">合并后的内容将显示在这里</p>
                         </div>
                         <div class="mt-2 flex justify-between items-center">
                             <span class="text-xs text-gray-500">总字符数: <span id="combined-chars">0</span>/15</span>
@@ -540,7 +517,7 @@
         
         <!-- 纯内容PDF导出容器（只渲染合并预览内容） -->
         <div id="pdf-simple-container" class="hidden">
-            <div class="pdf-simple-content" id="pdf-simple-content">
+            <div class="pdf-simple-content export-content" id="pdf-simple-content">
                 <!-- 只显示合并预览的内容 -->
             </div>
         </div>
@@ -627,6 +604,22 @@
         let customerData = JSON.parse(localStorage.getItem('customerData')) || [];
         let currentCustomerId = null;
         let selectedItems = [];
+
+        // ========== 新增：等待图片加载完成 ==========
+        function waitForImagesLoaded(container) {
+            const images = container.querySelectorAll('img');
+            if (images.length === 0) return Promise.resolve();
+            
+            return Promise.all(
+                Array.from(images).map(img => {
+                    return new Promise((resolve) => {
+                        if (img.complete) resolve();
+                        img.onload = resolve;
+                        img.onerror = resolve; // 加载失败也继续，避免卡住
+                    });
+                })
+            );
+        }
 
         // 初始化
         function init() {
@@ -823,9 +816,9 @@
                         </button>
                     `;
                 } else if (item.type === 'custom') {
-                    // 自定义图片项 - 使用em单位确保和文字大小一致
+                    // 自定义图片项（和Emoji大小一致）
                     previewItem.innerHTML = `
-                        <img src="${item.content}" alt="自定义图标" style="height: 1em; width: 1em; min-width: 1em; min-height: 1em; object-fit: contain; vertical-align: middle;">
+                        <img src="${item.content}" alt="自定义图标">
                         <button class="ml-2 text-gray-400 hover:text-red-500" onclick="removePreviewItem(${index})">
                             <i class="fa fa-times-circle"></i>
                         </button>
@@ -839,28 +832,28 @@
             updateCombinedPreview();
         }
         
-        // 更新合并预览（支持图片显示，统一字号）
+        // 更新合并预览（支持图片显示）
         function updateCombinedPreview() {
             // 如果没有选中任何内容，显示提示文本
             if (selectedItems.length === 0) {
-                combinedPreview.innerHTML = '<p class="text-gray-400 text-base">合并后的内容将显示在这里</p>';
+                combinedPreview.innerHTML = '<p class="text-gray-400">合并后的内容将显示在这里</p>';
                 combinedChars.textContent = '0';
                 return;
             }
             
-            // 构建合并内容（支持图片，统一字号）
+            // 构建合并内容（支持图片）
             let combinedHtml = '';
             let totalChars = 0;
             
             selectedItems.forEach(item => {
                 totalChars += item.charCount;
                 if (item.type === 'text') {
-                    combinedHtml += `<span style="font-size: inherit; vertical-align: middle; display: inline-block; line-height: 1;">${item.content}</span>`;
+                    combinedHtml += item.content;
                 } else if (item.type === 'emoji') {
-                    combinedHtml += `<span style="font-size: inherit; vertical-align: middle; display: inline-block; line-height: 1;">${item.content}</span>`;
+                    combinedHtml += item.content;
                 } else if (item.type === 'custom') {
-                    // 关键：使用em单位，确保和文字/Emoji大小完全一致
-                    combinedHtml += `<img src="${item.content}" style="font-size: inherit; height: 1em; width: 1em; min-width: 1em; min-height: 1em; object-fit: contain; vertical-align: middle; display: inline-block; margin: 0 2px;" alt="custom">`;
+                    // 图片在合并预览中也和Emoji大小一致
+                    combinedHtml += `<img src="${item.content}" alt="自定义图标">`;
                 }
             });
             
@@ -1191,34 +1184,74 @@
             successModal.classList.remove('hidden');
         }
         
-        // 导出为PNG（优化图片渲染）
-        function exportToPNG() {
+        // ========== 修复：导出PNG时保证图片和Emoji尺寸+对齐一致 ==========
+        async function exportToPNG() {
             const combinedPreviewElement = document.getElementById('combined-preview');
             
-            // 关键优化：增加scale，确保图片渲染清晰，添加useCORS和allowTaint确保图片正常导出
-            html2canvas(combinedPreviewElement, {
-                scale: 3, // 提高缩放比例，让导出更清晰
+            // 创建临时容器用于导出（确保样式统一）
+            const tempContainer = document.createElement('div');
+            tempContainer.style.cssText = `
+                position: absolute; left: -9999px; top: 0;
+                width: 100%; height: auto;
+                background: #F9FAFB; padding: 20px;
+                font-size: 36px; line-height: 1 !important; text-align: center;
+                font-family: "Noto Sans SC", "Segoe UI Emoji", "Apple Color Emoji", sans-serif;
+            `;
+            
+            // 复制合并预览内容到临时容器
+            tempContainer.innerHTML = combinedPreviewElement.innerHTML;
+            
+            // 强制所有元素水平对齐
+            tempContainer.querySelectorAll('img, span').forEach(el => {
+                el.style.verticalAlign = 'middle !important';
+                el.style.lineHeight = '1 !important';
+                el.style.display = 'inline-block !important';
+            });
+            
+            // 统一设置临时容器内图片尺寸（和Emoji完全一致）
+            tempContainer.querySelectorAll('img').forEach(img => {
+                img.style.width = '36px !important';
+                img.style.height = '36px !important';
+                img.style.objectFit = 'contain !important';
+                img.style.verticalAlign = 'middle !important';
+                img.style.margin = '0 2px !important';
+            });
+            
+            // 添加到body（必须可见才能渲染）
+            document.body.appendChild(tempContainer);
+            
+            // 等待图片加载完成
+            await waitForImagesLoaded(tempContainer);
+            
+            html2canvas(tempContainer, {
+                scale: 2,
                 backgroundColor: '#F9FAFB',
                 logging: false,
-                useCORS: true, 
-                allowTaint: true,
-                letterRendering: true, // 优化文字渲染
-                imageTimeout: 15000, // 延长图片加载超时时间
-                fontRendering: 'canvas' // 强制使用canvas渲染字体
+                useCORS: true, // 支持跨域图片（本地图片没问题）
+                allowTaint: true, // 允许图片污染（确保自定义图片能导出）
+                letterRendering: true,
+                fontRendering: 'canvas'
             }).then(canvas => {
                 // 创建下载链接
                 const link = document.createElement('a');
                 link.download = `powerbank-${customerName.value.trim()}-${Date.now()}.png`;
-                link.href = canvas.toDataURL('image/png', 1.0); // 1.0质量
+                link.href = canvas.toDataURL('image/png');
                 link.click();
+                
+                // 移除临时容器
+                document.body.removeChild(tempContainer);
             }).catch(err => {
                 console.error('导出PNG失败:', err);
                 alert('导出PNG失败，请重试');
+                // 确保移除临时容器
+                if (document.body.contains(tempContainer)) {
+                    document.body.removeChild(tempContainer);
+                }
             });
         }
         
-        // 核心修改：优化PDF导出，确保图片和文字大小一致
-        function exportToPDF() {
+        // ========== 核心修复：导出PDF时保证图片和Emoji尺寸+对齐一致 ==========
+        async function exportToPDF() {
             // 获取合并预览的完整HTML（包含图片）
             const combinedHtml = combinedPreview.innerHTML;
             
@@ -1231,46 +1264,32 @@
             // 将合并预览内容放入纯内容PDF容器
             pdfSimpleContent.innerHTML = combinedHtml;
 
+            // 强制PDF容器内所有元素水平对齐
+            pdfSimpleContent.querySelectorAll('img, span').forEach(el => {
+                el.style.verticalAlign = 'middle !important';
+                el.style.lineHeight = '1 !important';
+                el.style.display = 'inline-block !important';
+            });
+
             // 临时显示PDF容器（解决hidden容器渲染失败）
             pdfSimpleContainer.style.display = 'block';
             pdfSimpleContainer.style.position = 'absolute';
             pdfSimpleContainer.style.left = '-9999px';
             pdfSimpleContainer.style.top = '0';
 
+            // 等待图片加载完成
+            await waitForImagesLoaded(pdfSimpleContent);
+
             const canvasOptions = {
-                scale: 3, // 提高缩放比例，确保清晰度
+                scale: 2, // 2倍缩放保证清晰度
                 useCORS: true, // 支持自定义图片
                 allowTaint: true, // 允许图片
                 backgroundColor: '#ffffff',
                 logging: false,
                 letterRendering: true,
                 imageTimeout: 15000,
-                fontRendering: 'canvas',
-                // 关键：等待所有图片加载完成再渲染
-                onclone: (clonedDoc) => {
-                    // 等待所有图片加载
-                    const images = clonedDoc.querySelectorAll('img');
-                    if (images.length > 0) {
-                        return new Promise(resolve => {
-                            let loadedCount = 0;
-                            images.forEach(img => {
-                                img.onload = () => {
-                                    loadedCount++;
-                                    if (loadedCount === images.length) resolve();
-                                };
-                                img.onerror = () => {
-                                    loadedCount++;
-                                    if (loadedCount === images.length) resolve();
-                                };
-                                // 强制重新加载图片
-                                if (img.complete) {
-                                    loadedCount++;
-                                    if (loadedCount === images.length) resolve();
-                                }
-                            });
-                        });
-                    }
-                }
+                // 强制使用Canvas渲染所有内容，保证一致性
+                fontRendering: 'canvas'
             };
             
             // 渲染为Canvas（包含自定义图片）
@@ -1309,27 +1328,25 @@
         }
         
         // 生成单个客户PDF并返回Blob（支持自定义图片）
-        function generateCustomerPDF(customer) {
-            return new Promise((resolve, reject) => {
+        async function generateCustomerPDF(customer) {
+            return new Promise(async (resolve, reject) => {
                 // 构建客户的合并预览内容（包含图片）
                 let combinedHtml = '';
-                if (customer.text1) combinedHtml += `<span style="font-size: inherit; vertical-align: middle; display: inline-block; line-height: 1;">${customer.text1}</span>`;
+                if (customer.text1) combinedHtml += customer.text1;
                 
                 // 添加Emoji
                 if (customer.emojis && customer.emojis.length > 0) {
-                    customer.emojis.forEach(emoji => {
-                        combinedHtml += `<span style="font-size: inherit; vertical-align: middle; display: inline-block; line-height: 1;">${emoji}</span>`;
-                    });
+                    combinedHtml += customer.emojis.join('');
                 }
                 
                 // 添加自定义图片
                 if (customer.customIcons && customer.customIcons.length > 0) {
                     customer.customIcons.forEach(iconSrc => {
-                        combinedHtml += `<img src="${iconSrc}" style="font-size: inherit; height: 1em; width: 1em; min-width: 1em; min-height: 1em; object-fit: contain; vertical-align: middle; display: inline-block; margin: 0 2px;" alt="custom">`;
+                        combinedHtml += `<img src="${iconSrc}" alt="自定义图标">`;
                     });
                 }
                 
-                if (customer.text2) combinedHtml += `<span style="font-size: inherit; vertical-align: middle; display: inline-block; line-height: 1;">${customer.text2}</span>`;
+                if (customer.text2) combinedHtml += customer.text2;
                 combinedHtml = combinedHtml.trim();
                 
                 // 如果没有内容，返回空
@@ -1341,14 +1358,24 @@
                 // 将内容放入纯内容PDF容器
                 pdfSimpleContent.innerHTML = combinedHtml;
 
+                // 强制对齐
+                pdfSimpleContent.querySelectorAll('img, span').forEach(el => {
+                    el.style.verticalAlign = 'middle !important';
+                    el.style.lineHeight = '1 !important';
+                    el.style.display = 'inline-block !important';
+                });
+
                 // 临时显示PDF容器
                 pdfSimpleContainer.style.display = 'block';
                 pdfSimpleContainer.style.position = 'absolute';
                 pdfSimpleContainer.style.left = '-9999px';
                 pdfSimpleContainer.style.top = '0';
 
+                // 等待图片加载
+                await waitForImagesLoaded(pdfSimpleContent);
+
                 const canvasOptions = {
-                    scale: 3,
+                    scale: 2,
                     useCORS: true,
                     allowTaint: true,
                     backgroundColor: '#ffffff',
@@ -1356,28 +1383,6 @@
                     letterRendering: true,
                     imageTimeout: 15000,
                     fontRendering: 'canvas',
-                    onclone: (clonedDoc) => {
-                        const images = clonedDoc.querySelectorAll('img');
-                        if (images.length > 0) {
-                            return new Promise(resolve => {
-                                let loadedCount = 0;
-                                images.forEach(img => {
-                                    img.onload = () => {
-                                        loadedCount++;
-                                        if (loadedCount === images.length) resolve();
-                                    };
-                                    img.onerror = () => {
-                                        loadedCount++;
-                                        if (loadedCount === images.length) resolve();
-                                    };
-                                    if (img.complete) {
-                                        loadedCount++;
-                                        if (loadedCount === images.length) resolve();
-                                    }
-                                });
-                            });
-                        }
-                    }
                 };
                 
                 html2canvas(pdfSimpleContainer, canvasOptions).then(canvas => {
@@ -1647,45 +1652,3 @@
                     }
                     
                     // 添加到选中列表
-                    selectedItems.push({
-                        type: 'custom',
-                        content: iconSrc,
-                        charCount: 3
-                    });
-                });
-            }
-            
-            // 添加文本项2
-            if (customer.text2) {
-                const text2Count = calculateCharCount(customer.text2);
-                selectedItems.push({
-                    type: 'text',
-                    content: customer.text2,
-                    charCount: text2Count,
-                    inputId: 'text-input-2'
-                });
-            }
-            
-            // 更新预览和字符计数
-            updatePreview();
-            updateTotalCharCount();
-            
-            // 更新字符计数器
-            textCounter1.textContent = `${calculateCharCount(customer.text1 || '')}/15`;
-            textCounter2.textContent = `${calculateCharCount(customer.text2 || '')}/15`;
-            
-            // 滚动到顶部
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-        
-        // 导出客户PNG
-        function exportCustomerPNG(id) {
-            viewCustomerDetail(id);
-            setTimeout(exportToPNG, 500);
-        }
-
-        // 初始化应用
-        document.addEventListener('DOMContentLoaded', init);
-    </script>
-</body>
-</html>
