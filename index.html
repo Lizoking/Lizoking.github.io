@@ -43,43 +43,15 @@
     </script>
     
     <style>
-        /* ===== IcoMoon 字体定义 ===== */
-        @font-face {
-            font-family: 'custom-icons';
-            src: url('fonts/icomoon.eot?123456');
-            src: url('fonts/icomoon.eot?123456#iefix') format('embedded-opentype'),
-                 url('fonts/icomoon.ttf?123456') format('truetype'),
-                 url('fonts/icomoon.woff?123456') format('woff'),
-                 url('fonts/icomoon.svg?123456#icomoon') format('svg');
-            font-weight: normal;
-            font-style: normal;
-            font-display: block;
-        }
-
-        /* 图标基础样式 - 所有图标类统一使用这个字体 */
-        [class^="icon-"], [class*=" icon-"] {
-            font-family: 'custom-icons' !important;
-            speak: never;
-            font-style: normal;
-            font-weight: normal;
-            font-variant: normal;
-            text-transform: none;
-            line-height: 1;
+        /* ===== SVG Sprite 图标样式 ===== */
+        .icon {
+            width: 1.2em;
+            height: 1.2em;
             vertical-align: middle;
+            fill: currentColor;
             display: inline-block;
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
-        }
-
-        /* 三个图标的 Unicode 映射 - 请根据你的 IcoMoon 实际生成的代码修改 */
-        .icon-1:before {
-            content: "\e900";
-        }
-        .icon-2:before {
-            content: "\e901";
-        }
-        .icon-3:before {
-            content: "\e902";
+            line-height: 1;
+            flex-shrink: 0;
         }
 
         /* ===== 全局样式 ===== */
@@ -100,7 +72,7 @@
             gap: 0.5rem;
         }
         
-        /* Emoji和ICON统一样式 - 选择器部分 */
+        /* Emoji和SVG图标统一样式 */
         .emoji-item {
             cursor: pointer;
             transition: all 0.2s ease;
@@ -111,14 +83,15 @@
             width: 2.5rem;
             border-radius: 0.375rem;
             font-size: 1.8rem;
-            font-family: "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", "custom-icons", sans-serif;
+            font-family: "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif;
             overflow: hidden;
             position: relative;
         }
         
-        .emoji-item i {
-            font-size: 1.8rem;
-            color: inherit;
+        .emoji-item svg {
+            width: 1.8rem;
+            height: 1.8rem;
+            fill: currentColor;
         }
         
         .emoji-item:hover {
@@ -151,10 +124,10 @@
             gap: 4px;
         }
         
-        /* ICON在预览项中的样式 */
-        .preview-item i {
-            font-size: inherit;
-            color: inherit;
+        .preview-item svg {
+            width: 1.2em;
+            height: 1.2em;
+            fill: currentColor;
             display: inline-block;
             vertical-align: middle;
             line-height: 1;
@@ -258,10 +231,10 @@
             border-radius: 0.5rem;
         }
         
-        /* ICON在合并预览中的样式 */
-        #combined-preview i {
-            font-size: inherit;
-            color: inherit;
+        #combined-preview svg {
+            width: 1.2em;
+            height: 1.2em;
+            fill: currentColor;
             display: inline-block;
             vertical-align: middle;
             line-height: 1;
@@ -281,7 +254,7 @@
             display: flex !important;
             align-items: center !important;
             justify-content: center;
-            font-family: "Noto Sans SC", "Segoe UI Emoji", "custom-icons", sans-serif;
+            font-family: "Noto Sans SC", "Segoe UI Emoji", sans-serif;
             font-size: 48px;
             line-height: 1.2;
             padding: 20px;
@@ -290,9 +263,10 @@
             flex-wrap: wrap;
         }
         
-        .pdf-simple-content i {
-            font-size: inherit;
-            color: inherit;
+        .pdf-simple-content svg {
+            width: 1.2em;
+            height: 1.2em;
+            fill: currentColor;
             display: inline-block;
             vertical-align: middle;
             line-height: 1;
@@ -306,6 +280,11 @@
     </style>
 </head>
 <body class="bg-gray-50 min-h-screen font-sans">
+    <!-- 引入 SVG Sprite（隐藏起来） -->
+    <div style="display: none;">
+        <img src="symbol-defs.svg" onload="this.outerHTML = this.outerHTML">
+    </div>
+
     <div class="container mx-auto px-4 py-8 max-w-5xl">
         <!-- 标题区域 -->
         <header class="text-center mb-8">
@@ -426,14 +405,14 @@
             </div>
         </main>
         
-        <!-- Emoji+ICON选择器区域 -->
+        <!-- Emoji+SVG图标选择器区域 -->
         <section class="mt-8 bg-white rounded-xl shadow-custom p-6">
             <h2 class="text-xl font-semibold mb-4 flex items-center">
                 <i class="fa fa-smile-o mr-2 text-primary"></i>表情/图标选择（选填）
             </h2>
             
             <div class="emoji-grid custom-scrollbar overflow-auto" id="emoji-grid">
-                <!-- Emoji和ICON将通过JavaScript动态生成 -->
+                <!-- Emoji和SVG图标将通过JavaScript动态生成 -->
             </div>
         </section>
         
@@ -603,11 +582,11 @@
             '👿', '👹', '👺', '🤡', '💩', '👻', '💀', '☠️', '👽', '👾'
         ];
 
-        // 2. 自定义ICON列表 - 用ICON字体代替原来的图片
+        // 2. 自定义SVG图标列表（从symbol-defs.svg读取）
         const customIconList = [
-            { id: 'icon1', type: 'custom', iconClass: 'icon-1' },
-            { id: 'icon2', type: 'custom', iconClass: 'icon-2' },
-            { id: 'icon3', type: 'custom', iconClass: 'icon-3' }
+            { id: 'icon1', type: 'custom', iconId: 'icon-1' },
+            { id: 'icon2', type: 'custom', iconId: 'icon-2' },
+            { id: 'icon3', type: 'custom', iconId: 'icon-3' }
         ];
 
         // 管理员密码
@@ -705,23 +684,29 @@
             updateCustomerList();
         }
 
-        // 生成Emoji+ICON面板
+        // 生成Emoji+SVG图标面板
         function generateEmojiAndIconGrid() {
             emojiGrid.innerHTML = '';
             
-            // 先添加自定义ICON（用<i>标签显示字体图标）
+            // 先添加自定义SVG图标
             customIconList.forEach(icon => {
                 const iconItem = document.createElement('div');
                 iconItem.className = 'emoji-item';
                 iconItem.dataset.type = 'custom';
-                iconItem.dataset.iconClass = icon.iconClass;
+                iconItem.dataset.iconId = icon.iconId;
                 
-                // 添加ICON元素（字体图标）
-                const iconElement = document.createElement('i');
-                iconElement.className = icon.iconClass;
-                iconItem.appendChild(iconElement);
+                // 添加SVG图标
+                const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                svg.setAttribute('width', '1.8rem');
+                svg.setAttribute('height', '1.8rem');
+                svg.setAttribute('fill', 'currentColor');
                 
-                iconItem.addEventListener('click', () => toggleEmojiOrIconSelection('custom', icon.iconClass));
+                const use = document.createElementNS('http://www.w3.org/2000/svg', 'use');
+                use.setAttributeNS('http://www.w3.org/1999/xlink', 'href', `symbol-defs.svg#${icon.iconId}`);
+                svg.appendChild(use);
+                iconItem.appendChild(svg);
+                
+                iconItem.addEventListener('click', () => toggleEmojiOrIconSelection('custom', icon.iconId));
                 
                 emojiGrid.appendChild(iconItem);
             });
@@ -740,11 +725,11 @@
             });
         }
 
-        // 统一的Emoji/ICON选择逻辑
+        // 统一的Emoji/SVG图标选择逻辑
         function toggleEmojiOrIconSelection(type, content) {
             let selector;
             if (type === 'custom') {
-                selector = `[data-type="custom"][data-icon-class="${content}"]`;
+                selector = `[data-type="custom"][data-icon-id="${content}"]`;
             } else {
                 selector = `[data-type="emoji"][data-content="${content}"]`;
             }
@@ -753,7 +738,7 @@
             if (item.classList.contains('selected')) {
                 item.classList.remove('selected');
                 const index = selectedItems.findIndex(
-                    item => item.type === type && (item.content === content || item.iconClass === content)
+                    item => item.type === type && (item.content === content || item.iconId === content)
                 );
                 if (index !== -1) {
                     selectedItems.splice(index, 1);
@@ -767,7 +752,7 @@
                     if (type === 'custom') {
                         selectedItems.push({
                             type: type,
-                            iconClass: content,
+                            iconId: content,
                             charCount: charCount
                         });
                     } else {
@@ -856,7 +841,7 @@
                     `;
                 } else if (item.type === 'custom') {
                     previewItem.innerHTML = `
-                        <i class="${item.iconClass}"></i>
+                        <svg class="icon"><use href="symbol-defs.svg#${item.iconId}"></use></svg>
                         <button class="ml-2 text-gray-400 hover:text-red-500" onclick="removePreviewItem(${index})">
                             <i class="fa fa-times-circle"></i>
                         </button>
@@ -887,7 +872,7 @@
                 } else if (item.type === 'emoji') {
                     combinedHtml += `<span>${item.content}</span>`;
                 } else if (item.type === 'custom') {
-                    combinedHtml += `<i class="${item.iconClass}"></i>`;
+                    combinedHtml += `<svg class="icon"><use href="symbol-defs.svg#${item.iconId}"></use></svg>`;
                 }
             });
             
@@ -913,7 +898,7 @@
                 if (item.type === 'text' || item.type === 'emoji') {
                     copyText += item.content;
                 }
-                // ICON跳过（无法复制）
+                // SVG图标跳过（无法复制）
             });
             
             if (!copyText) {
@@ -957,7 +942,7 @@
                     listItem.classList.remove('selected');
                 }
             } else if (item.type === 'custom') {
-                const selector = `[data-type="custom"][data-icon-class="${item.iconClass}"]`;
+                const selector = `[data-type="custom"][data-icon-id="${item.iconId}"]`;
                 const listItem = document.querySelector(selector);
                 if (listItem) {
                     listItem.classList.remove('selected');
@@ -1158,7 +1143,7 @@
             const text1 = textInput1.value;
             const text2 = textInput2.value;
             const emojis = selectedItems.filter(item => item.type === 'emoji').map(item => item.content);
-            const customIcons = selectedItems.filter(item => item.type === 'custom').map(item => item.iconClass);
+            const customIcons = selectedItems.filter(item => item.type === 'custom').map(item => item.iconId);
             
             const customerId = Date.now();
             const customizationData = {
@@ -1167,7 +1152,7 @@
                 text1: text1,
                 text2: text2,
                 emojis: emojis,
-                customIcons: customIcons, // 保存图标类名
+                customIcons: customIcons,
                 totalChars: calculateTotalChars(),
                 timestamp: new Date().toISOString()
             };
@@ -1272,8 +1257,8 @@
                 }
                 
                 if (customer.customIcons && customer.customIcons.length > 0) {
-                    customer.customIcons.forEach(iconClass => {
-                        combinedHtml += `<i class="${iconClass}"></i>`;
+                    customer.customIcons.forEach(iconId => {
+                        combinedHtml += `<svg class="icon"><use href="symbol-defs.svg#${iconId}"></use></svg>`;
                     });
                 }
                 
@@ -1533,8 +1518,8 @@
             }
             
             if (customer.customIcons && customer.customIcons.length > 0) {
-                customer.customIcons.forEach(iconClass => {
-                    const selector = `[data-type="custom"][data-icon-class="${iconClass}"]`;
+                customer.customIcons.forEach(iconId => {
+                    const selector = `[data-type="custom"][data-icon-id="${iconId}"]`;
                     const iconItem = document.querySelector(selector);
                     if (iconItem) {
                         iconItem.classList.add('selected');
@@ -1542,7 +1527,7 @@
                     
                     selectedItems.push({
                         type: 'custom',
-                        iconClass: iconClass,
+                        iconId: iconId,
                         charCount: 3
                     });
                 });
