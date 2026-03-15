@@ -14,9 +14,9 @@
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <!-- jsPDF for PDF export -->
     <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-    <!-- JSZip 用于压缩ZIP -->
+    <!-- 新增：JSZip 用于压缩ZIP -->
     <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
-    <!-- FileSaver 用于下载ZIP文件 -->
+    <!-- 新增：FileSaver 用于下载ZIP文件 -->
     <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
     
     <script>
@@ -56,7 +56,6 @@
                 --base-font-size: 24px;
                 --base-line-height: 1.2;
                 --emoji-scale: 1.2; /* Emoji视觉比例因子 */
-                --image-vertical-adjust: 0px; /* 图片垂直微调，默认0px */
             }
             
             .emoji-grid {
@@ -75,17 +74,19 @@
                 height: 2.5rem; /* 40px 固定高度 */
                 width: 2.5rem;  /* 40px 固定宽度 */
                 border-radius: 0.375rem;
-                font-size: 1.8rem; /* 增大Emoji字体大小 */
+                font-size: 1.8rem; /* 增大Emoji字体大小，让Emoji更明显 */
                 font-family: "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif;
+                /* 图片和Emoji统一居中 */
                 overflow: hidden;
                 position: relative;
             }
             
-            /* 自定义图片在emoji-item内的样式 */
-            .emoji-item img {
+            /* 自定义图片在emoji-item内的样式 - 完全适配容器 */
+            .emoji-item img,
+            .emoji-item svg {
                 width: 100%;
                 height: 100%;
-                object-fit: contain;
+                object-fit: contain; /* 保持图片比例 */
                 position: absolute;
                 top: 0;
                 left: 0;
@@ -101,10 +102,9 @@
                 border: 2px solid #3B82F6;
             }
             
-            /* 预览区 - 使用flex强制对齐 */
             .preview-item {
-                display: flex !important;
-                align-items: center !important;
+                display: inline-flex;
+                align-items: center;
                 justify-content: center;
                 padding: 0.5rem 0.75rem;
                 margin: 0.25rem;
@@ -118,25 +118,19 @@
                 min-height: 2rem;
                 font-family: "Noto Sans SC", "Segoe UI Emoji", sans-serif;
                 font-size: var(--base-font-size);
-                line-height: 1;
+                line-height: var(--base-line-height);
             }
             
-            /* 预览区图片样式 */
-            .preview-item img {
+            /* 预览区图片样式 - 使用em单位，和Emoji大小完全一致 */
+            .preview-item img,
+            .preview-item svg {
                 height: calc(1em * var(--emoji-scale));
                 width: auto;
+                min-height: calc(1em * var(--emoji-scale));
                 max-height: calc(1em * var(--emoji-scale));
                 object-fit: contain;
-                display: block;
-                margin: 0 2px;
-                transform: translateY(var(--image-vertical-adjust));
-            }
-            
-            /* 预览区文字样式 */
-            .preview-item span {
-                display: inline-block;
-                line-height: 1;
                 vertical-align: middle;
+                display: inline-block;
             }
             
             .preview-item:hover {
@@ -216,62 +210,68 @@
                 background: #9CA3AF;
             }
             
-            /* 合并预览区域 - 使用flex强制对齐 */
-            #combined-preview {
-                font-size: var(--base-font-size);
-                line-height: 1;
-                display: flex !important;
-                align-items: center !important;
-                justify-content: center;
-                flex-wrap: wrap;
-                gap: 4px;
-            }
-            
-            #combined-preview img {
-                height: calc(1em * var(--emoji-scale));
-                width: auto;
-                max-height: calc(1em * var(--emoji-scale));
-                object-fit: contain;
-                display: block;
-                transform: translateY(var(--image-vertical-adjust));
-            }
-            
-            #combined-preview span {
-                display: inline-block;
-                line-height: 1;
-                vertical-align: middle;
-            }
-            
-            /* 纯内容PDF导出样式 - 使用flex强制对齐 */
+            /* 纯内容PDF导出样式 - 只保留核心内容 */
             .pdf-simple-content {
-                width: 595px;
-                height: 842px;
+                width: 595px; /* A4宽度 */
+                height: 842px; /* A4高度 */
                 background: white;
-                display: flex !important;
-                align-items: center !important;
+                display: flex;
+                align-items: center;
                 justify-content: center;
                 font-family: "Noto Sans SC", "Segoe UI Emoji", "Apple Color Emoji", sans-serif;
-                font-size: 48px;
-                line-height: 1;
+                font-size: 48px; /* 放大显示内容 */
+                line-height: var(--base-line-height);
                 text-align: center;
                 padding: 20px;
                 box-sizing: border-box;
             }
             
-            .pdf-simple-content img {
+            /* 关键修复：PDF中图片和文字/Emoji视觉大小完全一致 */
+            .pdf-simple-content img,
+            .pdf-simple-content svg {
                 height: calc(1em * var(--emoji-scale));
                 width: auto;
+                min-height: calc(1em * var(--emoji-scale));
                 max-height: calc(1em * var(--emoji-scale));
                 object-fit: contain;
-                display: block;
+                vertical-align: middle;
                 margin: 0 2px;
-                transform: translateY(var(--image-vertical-adjust));
+                display: inline-block;
             }
             
+            /* 确保PDF中的Emoji也使用相同的行高和对齐 */
             .pdf-simple-content span {
+                vertical-align: middle;
                 display: inline-block;
                 line-height: 1;
+            }
+            
+            /* 合并预览区域样式 */
+            #combined-preview {
+                font-size: var(--base-font-size);
+                line-height: var(--base-line-height);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                flex-wrap: wrap;
+                gap: 4px;
+            }
+            
+            #combined-preview img,
+            #combined-preview svg {
+                height: calc(1em * var(--emoji-scale));
+                width: auto;
+                min-height: calc(1em * var(--emoji-scale));
+                max-height: calc(1em * var(--emoji-scale));
+                object-fit: contain;
                 vertical-align: middle;
+                display: inline-block;
+            }
+            
+            #combined-preview span {
+                vertical-align: middle;
+                display: inline-block;
+                line-height: 1;
             }
         }
     </style>
@@ -427,6 +427,7 @@
                     <i class="fa fa-download mr-2"></i>导出PNG
                 </button>
                 
+                <!-- 新增：生成PDF按钮 -->
                 <button 
                     id="export-pdf" 
                     class="px-8 py-3 bg-accent hover:bg-yellow-600 text-white rounded-lg font-medium shadow-custom hover:shadow-custom-hover transition-all disabled:opacity-50 disabled:cursor-not-allowed"
@@ -551,7 +552,7 @@
             </div>
         </div>
         
-        <!-- 纯内容PDF导出容器 -->
+        <!-- 纯内容PDF导出容器（只渲染合并预览内容） -->
         <div id="pdf-simple-container" class="hidden">
             <div class="pdf-simple-content" id="pdf-simple-content">
                 <!-- 只显示合并预览的内容 -->
@@ -560,7 +561,7 @@
     </div>
 
     <script>
-        // 1. Emoji列表
+        // 1. 保留原有Emoji列表
         const emojiList = [
             '😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '😊', '😇',
             '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚',
@@ -574,14 +575,14 @@
             '👿', '👹', '👺', '🤡', '💩', '👻', '💀', '☠️', '👽', '👾'
         ];
 
-        // 2. 自定义图片列表 - PNG格式，文件名1.png、2.png、3.png
+        // 2. 自定义图片列表 - 改为SVG格式，文件名1.svg、2.svg、3.svg
         const customIconList = [
-            { src: 'images/1.png', id: 'icon1', type: 'custom' },
-            { src: 'images/2.png', id: 'icon2', type: 'custom' },
-            { src: 'images/3.png', id: 'icon3', type: 'custom' }
+            { src: 'images/1.svg', id: 'icon1', type: 'custom' },
+            { src: 'images/2.svg', id: 'icon2', type: 'custom' },
+            { src: 'images/3.svg', id: 'icon3', type: 'custom' }
         ];
 
-        // 管理员密码
+        // 管理员密码（可自行修改）
         const ADMIN_PASSWORD = 'admin123';
         
         // 存储待删除的客户ID
@@ -617,7 +618,7 @@
         const combinedChars = document.getElementById('combined-chars');
         const copyCombinedBtn = document.getElementById('copy-combined');
         
-        // PDF导出专用DOM元素
+        // 纯内容PDF导出专用DOM元素
         const pdfSimpleContainer = document.getElementById('pdf-simple-container');
         const pdfSimpleContent = document.getElementById('pdf-simple-content');
         
@@ -643,8 +644,10 @@
 
         // 初始化
         function init() {
+            // 生成Emoji+自定义图片面板（统一样式）
             generateEmojiAndIconGrid();
             
+            // 添加事件监听器
             customerName.addEventListener('input', validateForm);
             textInput1.addEventListener('input', handleTextInput);
             textInput2.addEventListener('input', handleTextInput);
@@ -658,44 +661,52 @@
                 successModal.classList.add('hidden');
             });
             
+            // 管理员面板相关事件
             toggleAdminPanelBtn.addEventListener('click', showAdminPasswordModal);
             cancelPasswordBtn.addEventListener('click', hideAdminPasswordModal);
             confirmPasswordBtn.addEventListener('click', verifyAdminPassword);
             customerFilterInput.addEventListener('input', filterCustomerList);
             
+            // 删除确认弹窗相关事件
             cancelDeleteBtn.addEventListener('click', hideDeleteConfirmModal);
             confirmDeleteBtn.addEventListener('click', confirmDeleteCustomer);
             
             exportAllPdfBtn.addEventListener('click', exportAllToPDFAsZip);
             copyCombinedBtn.addEventListener('click', copyCombinedText);
             
+            // 预览区域拖拽功能
             previewContainer.addEventListener('dragstart', handleDragStart);
             previewContainer.addEventListener('dragover', handleDragOver);
             previewContainer.addEventListener('drop', handleDrop);
             
+            // 加载客户列表
             updateCustomerList();
         }
 
-        // 生成Emoji+自定义图片面板
+        // 生成Emoji+自定义图片面板（统一样式）
         function generateEmojiAndIconGrid() {
             emojiGrid.innerHTML = '';
             
+            // 先添加自定义图片（和Emoji样式完全一致）
             customIconList.forEach(icon => {
                 const iconItem = document.createElement('div');
                 iconItem.className = 'emoji-item';
                 iconItem.dataset.type = 'custom';
                 iconItem.dataset.content = icon.src;
                 
+                // 添加图片元素
                 const img = document.createElement('img');
                 img.src = icon.src;
                 img.alt = '自定义图标';
                 iconItem.appendChild(img);
                 
+                // 统一的点击事件
                 iconItem.addEventListener('click', () => toggleEmojiOrIconSelection('custom', icon.src));
                 
                 emojiGrid.appendChild(iconItem);
             });
             
+            // 再添加原有Emoji
             emojiList.forEach(emoji => {
                 const emojiItem = document.createElement('div');
                 emojiItem.className = 'emoji-item';
@@ -753,7 +764,7 @@
             const isValid = validPattern.test(value);
 
             if (!isValid && value.length > 0) {
-                // 暂时不显示错误
+                // 暂时注释掉输入中的错误提示
             } else {
                 input.classList.remove('input-error');
                 textError.classList.add('hidden');
@@ -766,7 +777,7 @@
             updateTotalCharCount();
         }
 
-        // 计算字符数
+        // 计算字符数（中文算2个字符，英文和数字算1个字符）
         function calculateCharCount(text) {
             let count = 0;
             for (let i = 0; i < text.length; i++) {
@@ -812,7 +823,7 @@
                     `;
                 } else if (item.type === 'custom') {
                     previewItem.innerHTML = `
-                        <img src="${item.content}" alt="自定义图标">
+                        <img src="${item.content}" alt="自定义图标" style="height: 1.2em; width: auto; min-height: 1.2em; max-height: 1.2em; object-fit: contain; vertical-align: middle;">
                         <button class="ml-2 text-gray-400 hover:text-red-500" onclick="removePreviewItem(${index})">
                             <i class="fa fa-times-circle"></i>
                         </button>
@@ -839,11 +850,11 @@
             selectedItems.forEach(item => {
                 totalChars += item.charCount;
                 if (item.type === 'text') {
-                    combinedHtml += `<span>${item.content}</span>`;
+                    combinedHtml += `<span style="font-size: inherit; vertical-align: middle; display: inline-block; line-height: 1;">${item.content}</span>`;
                 } else if (item.type === 'emoji') {
-                    combinedHtml += `<span>${item.content}</span>`;
+                    combinedHtml += `<span style="font-size: inherit; vertical-align: middle; display: inline-block; line-height: 1;">${item.content}</span>`;
                 } else if (item.type === 'custom') {
-                    combinedHtml += `<img src="${item.content}" alt="custom">`;
+                    combinedHtml += `<img src="${item.content}" style="height: 1.2em; width: auto; min-height: 1.2em; max-height: 1.2em; object-fit: contain; vertical-align: middle; display: inline-block; margin: 0 2px;" alt="custom">`;
                 }
             });
             
@@ -1129,35 +1140,8 @@
             successModal.classList.remove('hidden');
         }
         
-        // 导出前强制对齐
-        function fixAlignmentBeforeExport() {
-            const images = document.querySelectorAll('#combined-preview img, #pdf-simple-content img');
-            const spans = document.querySelectorAll('#combined-preview span, #pdf-simple-content span');
-            
-            images.forEach(img => {
-                img.style.verticalAlign = 'middle';
-                img.style.display = 'inline-block';
-                img.style.lineHeight = '1';
-            });
-            
-            spans.forEach(span => {
-                span.style.verticalAlign = 'middle';
-                span.style.display = 'inline-block';
-                span.style.lineHeight = '1';
-            });
-            
-            const containers = document.querySelectorAll('#combined-preview, #pdf-simple-content');
-            containers.forEach(container => {
-                container.style.display = 'flex';
-                container.style.alignItems = 'center';
-                container.style.justifyContent = 'center';
-            });
-        }
-        
         // 导出为PNG
         function exportToPNG() {
-            fixAlignmentBeforeExport();
-            
             const combinedPreviewElement = document.getElementById('combined-preview');
             
             html2canvas(combinedPreviewElement, {
@@ -1182,8 +1166,6 @@
         
         // 导出PDF
         function exportToPDF() {
-            fixAlignmentBeforeExport();
-            
             const combinedHtml = combinedPreview.innerHTML;
             
             if (combinedHtml.includes('合并后的内容将显示在这里') || !combinedHtml.trim()) {
@@ -1263,21 +1245,21 @@
         function generateCustomerPDF(customer) {
             return new Promise((resolve, reject) => {
                 let combinedHtml = '';
-                if (customer.text1) combinedHtml += `<span>${customer.text1}</span>`;
+                if (customer.text1) combinedHtml += `<span style="font-size: inherit; vertical-align: middle; display: inline-block; line-height: 1;">${customer.text1}</span>`;
                 
                 if (customer.emojis && customer.emojis.length > 0) {
                     customer.emojis.forEach(emoji => {
-                        combinedHtml += `<span>${emoji}</span>`;
+                        combinedHtml += `<span style="font-size: inherit; vertical-align: middle; display: inline-block; line-height: 1;">${emoji}</span>`;
                     });
                 }
                 
                 if (customer.customIcons && customer.customIcons.length > 0) {
                     customer.customIcons.forEach(iconSrc => {
-                        combinedHtml += `<img src="${iconSrc}" alt="custom">`;
+                        combinedHtml += `<img src="${iconSrc}" style="height: 1.2em; width: auto; min-height: 1.2em; max-height: 1.2em; object-fit: contain; vertical-align: middle; display: inline-block; margin: 0 2px;" alt="custom">`;
                     });
                 }
                 
-                if (customer.text2) combinedHtml += `<span>${customer.text2}</span>`;
+                if (customer.text2) combinedHtml += `<span style="font-size: inherit; vertical-align: middle; display: inline-block; line-height: 1;">${customer.text2}</span>`;
                 combinedHtml = combinedHtml.trim();
                 
                 if (!combinedHtml) {
@@ -1490,7 +1472,7 @@
                     customizationContent += ' ' + customer.emojis.join(' ');
                 }
                 if (customer.customIcons && customer.customIcons.length > 0) {
-                    customizationContent += ' [图片×' + customer.customIcons.length + ']';
+                    customizationContent += ' [SVG×' + customer.customIcons.length + ']';
                 }
                 if (customer.text2) customizationContent += ' ' + customer.text2;
                 
