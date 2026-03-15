@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>移动电源定制</title>
+    <title>移动电源个性化定制</title>
     <!-- Tailwind CSS v3 -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Font Awesome -->
@@ -62,7 +62,6 @@
                 border-radius: 0.375rem;
                 font-size: 1.25rem; /* Emoji字体大小 */
                 font-family: "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif;
-                /* 图片和Emoji统一居中 */
                 overflow: hidden;
                 position: relative;
             }
@@ -71,7 +70,7 @@
             .emoji-item img {
                 width: 100%;
                 height: 100%;
-                object-fit: contain; /* 保持图片比例 */
+                object-fit: contain;
                 position: absolute;
                 top: 0;
                 left: 0;
@@ -201,10 +200,10 @@
                 text-align: center;
                 padding: 20px;
                 box-sizing: border-box;
-                line-height: 1.5;
+                line-height: 1; /* 关键：消除行高导致的偏移 */
             }
             
-            /* 关键修复：PDF中图片和文字/Emoji视觉大小完全一致 */
+            /* PDF中图片和文字/Emoji视觉大小完全一致 */
             .pdf-simple-content img {
                 height: 1em; /* 使用em单位，和当前字体大小完全匹配 */
                 width: 1em;
@@ -212,16 +211,41 @@
                 min-height: 1em;
                 object-fit: contain;
                 vertical-align: middle;
-                margin: 0 2px; /* 保持和Emoji相同的间距 */
+                display: inline-block;
+                margin: 0;
             }
             
             /* 确保PDF中的Emoji也使用相同的行高和对齐 */
             .pdf-simple-content span {
                 vertical-align: middle;
+                display: inline-block;
             }
-        }
-    </style>
-</head>
+
+            /* 关键修复：合并预览区域对齐样式 */
+            #combined-preview {
+                text-align: center;
+                padding: 4px;
+                min-height: 80px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 24px; /* 统一字号 */
+                line-height: 1; /* 消除行高干扰 */
+            }
+            #combined-preview span,
+            #combined-preview img {
+                vertical-align: middle; /* 强制垂直居中 */
+                display: inline-block;
+                line-height: 1;
+            }
+            #combined-preview img {
+                width: 1em;
+                height: 1em;
+                object-fit: contain;
+                margin: 0; /* 去掉多余间距 */
+            }
+        </style>
+    </head>
 <body class="bg-gray-50 min-h-screen font-sans">
     <div class="container mx-auto px-4 py-8 max-w-5xl">
         <!-- 标题区域 -->
@@ -373,7 +397,7 @@
                     <i class="fa fa-download mr-2"></i>导出PNG
                 </button>
                 
-                <!-- 新增：生成PDF按钮 -->
+                <!-- 生成PDF按钮 -->
                 <button 
                     id="export-pdf" 
                     class="px-8 py-3 bg-accent hover:bg-yellow-600 text-white rounded-lg font-medium shadow-custom hover:shadow-custom-hover transition-all disabled:opacity-50 disabled:cursor-not-allowed"
@@ -552,7 +576,7 @@
         const emojiGrid = document.getElementById('emoji-grid');
         const submitBtn = document.getElementById('submit-customization');
         const exportPngBtn = document.getElementById('export-png');
-        const exportPdfBtn = document.getElementById('export-pdf'); // 新增PDF按钮
+        const exportPdfBtn = document.getElementById('export-pdf');
         const successModal = document.getElementById('success-modal');
         const closeModalBtn = document.getElementById('close-modal');
         const exportSinglePngBtn = document.getElementById('export-single-png');
@@ -590,42 +614,36 @@
 
         // 初始化
         function init() {
-            // 生成Emoji+自定义图片面板（统一样式）
             generateEmojiAndIconGrid();
             
-            // 添加事件监听器
             customerName.addEventListener('input', validateForm);
             textInput1.addEventListener('input', handleTextInput);
             textInput2.addEventListener('input', handleTextInput);
             clearPreviewBtn.addEventListener('click', clearPreview);
             submitBtn.addEventListener('click', submitCustomization);
             exportPngBtn.addEventListener('click', exportToPNG);
-            exportPdfBtn.addEventListener('click', exportToPDF); // 绑定PDF导出事件
+            exportPdfBtn.addEventListener('click', exportToPDF);
             closeModalBtn.addEventListener('click', () => successModal.classList.add('hidden'));
             exportSinglePngBtn.addEventListener('click', () => {
                 exportToPNG();
                 successModal.classList.add('hidden');
             });
             
-            // 管理员面板相关事件
             toggleAdminPanelBtn.addEventListener('click', showAdminPasswordModal);
             cancelPasswordBtn.addEventListener('click', hideAdminPasswordModal);
             confirmPasswordBtn.addEventListener('click', verifyAdminPassword);
             customerFilterInput.addEventListener('input', filterCustomerList);
             
-            // 删除确认弹窗相关事件
             cancelDeleteBtn.addEventListener('click', hideDeleteConfirmModal);
             confirmDeleteBtn.addEventListener('click', confirmDeleteCustomer);
             
-            exportAllPdfBtn.addEventListener('click', exportAllToPDFAsZip); // 替换为新的ZIP导出函数
+            exportAllPdfBtn.addEventListener('click', exportAllToPDFAsZip);
             copyCombinedBtn.addEventListener('click', copyCombinedText);
             
-            // 预览区域拖拽功能
             previewContainer.addEventListener('dragstart', handleDragStart);
             previewContainer.addEventListener('dragover', handleDragOver);
             previewContainer.addEventListener('drop', handleDrop);
             
-            // 加载客户列表
             updateCustomerList();
         }
 
@@ -633,26 +651,22 @@
         function generateEmojiAndIconGrid() {
             emojiGrid.innerHTML = '';
             
-            // 先添加自定义图片（和Emoji样式完全一致）
             customIconList.forEach(icon => {
                 const iconItem = document.createElement('div');
-                iconItem.className = 'emoji-item'; // 和Emoji用同一个样式类
+                iconItem.className = 'emoji-item';
                 iconItem.dataset.type = 'custom';
                 iconItem.dataset.content = icon.src;
                 
-                // 添加图片元素（适配emoji-item容器）
                 const img = document.createElement('img');
                 img.src = icon.src;
                 img.alt = '自定义图标';
                 iconItem.appendChild(img);
                 
-                // 统一的点击事件
                 iconItem.addEventListener('click', () => toggleEmojiOrIconSelection('custom', icon.src));
                 
                 emojiGrid.appendChild(iconItem);
             });
             
-            // 再添加原有Emoji（保持原样）
             emojiList.forEach(emoji => {
                 const emojiItem = document.createElement('div');
                 emojiItem.className = 'emoji-item';
@@ -668,15 +682,11 @@
 
         // 统一的Emoji/自定义图片选择逻辑
         function toggleEmojiOrIconSelection(type, content) {
-            // 找到对应的元素
             const selector = `[data-type="${type}"][data-content="${content}"]`;
             const item = document.querySelector(selector);
             
             if (item.classList.contains('selected')) {
-                // 取消选择
                 item.classList.remove('selected');
-                
-                // 从选中列表中移除
                 const index = selectedItems.findIndex(
                     item => item.type === type && item.content === content
                 );
@@ -684,7 +694,6 @@
                     selectedItems.splice(index, 1);
                 }
             } else {
-                // 统一字符计数规则（和原Emoji一致，都算3个字符）
                 const charCount = 3; 
                 const currentTotal = calculateTotalChars();
                 
@@ -705,29 +714,25 @@
             updateTotalCharCount();
         }
 
-        // 处理文本输入（已修复中文输入异常）
+        // 处理文本输入
         function handleTextInput(e) {
             const input = e.target;
             const value = input.value;
             const counter = input === textInput1 ? textCounter1 : textCounter2;
 
-            // 输入过程不拦截，只在提交时校验，避免中文输入法被打断
             const validPattern = /^[\u4e00-\u9fa5a-zA-Z0-9]*$/;
             const isValid = validPattern.test(value);
 
-            // 输入过程不显示错误提示，避免影响中文输入体验
             if (!isValid && value.length > 0) {
-                // 暂时注释掉输入中的错误提示
+                // 输入过程不显示错误提示
             } else {
                 input.classList.remove('input-error');
                 textError.classList.add('hidden');
             }
 
-            // 更新字符计数
             const charCount = calculateCharCount(value);
             counter.textContent = `${charCount}/15`;
 
-            // 更新预览与总字符
             updatePreview();
             updateTotalCharCount();
         }
@@ -737,7 +742,6 @@
             let count = 0;
             for (let i = 0; i < text.length; i++) {
                 const char = text.charAt(i);
-                // 中文字符
                 if (/[\u4e00-\u9fa5]/.test(char)) {
                     count += 2;
                 } else {
@@ -747,19 +751,16 @@
             return count;
         }
 
-        // 更新预览区域（统一处理Emoji和自定义图片）
+        // 更新预览区域
         function updatePreview() {
-            // 清空预览区域
             previewContainer.innerHTML = '';
             
-            // 如果没有选中任何内容，显示提示文本
             if (selectedItems.length === 0) {
                 previewContainer.innerHTML = '<p class="text-gray-400 text-center">请输入文字并选择表情符号/图片</p>';
                 updateCombinedPreview();
                 return;
             }
             
-            // 添加选中的项目到预览区域
             selectedItems.forEach((item, index) => {
                 const previewItem = document.createElement('div');
                 previewItem.className = 'preview-item';
@@ -767,7 +768,6 @@
                 previewItem.dataset.index = index;
                 
                 if (item.type === 'text') {
-                    // 文字项（保持原样）
                     previewItem.innerHTML = `
                         <span>${item.content}</span>
                         <button class="ml-2 text-gray-400 hover:text-red-500" onclick="removePreviewItem(${index})">
@@ -775,7 +775,6 @@
                         </button>
                     `;
                 } else if (item.type === 'emoji') {
-                    // Emoji项（保持原样）
                     previewItem.innerHTML = `
                         <span>${item.content}</span>
                         <button class="ml-2 text-gray-400 hover:text-red-500" onclick="removePreviewItem(${index})">
@@ -783,7 +782,6 @@
                         </button>
                     `;
                 } else if (item.type === 'custom') {
-                    // 自定义图片项（和Emoji大小一致）
                     previewItem.innerHTML = `
                         <img src="${item.content}" alt="自定义图标">
                         <button class="ml-2 text-gray-400 hover:text-red-500" onclick="removePreviewItem(${index})">
@@ -795,40 +793,34 @@
                 previewContainer.appendChild(previewItem);
             });
             
-            // 更新合并预览
             updateCombinedPreview();
         }
         
-        // 更新合并预览（支持图片显示，统一字号）
+        // 更新合并预览（关键：对齐逻辑）
         function updateCombinedPreview() {
-            // 如果没有选中任何内容，显示提示文本
             if (selectedItems.length === 0) {
                 combinedPreview.innerHTML = '<p class="text-gray-400 text-base">合并后的内容将显示在这里</p>';
                 combinedChars.textContent = '0';
                 return;
             }
             
-            // 构建合并内容（支持图片，统一字号）
             let combinedHtml = '';
             let totalChars = 0;
             
             selectedItems.forEach(item => {
                 totalChars += item.charCount;
                 if (item.type === 'text') {
-                    combinedHtml += `<span style="font-size: inherit; vertical-align: middle;">${item.content}</span>`;
+                    combinedHtml += `<span style="font-size: inherit; vertical-align: middle; display: inline-block; line-height: 1;">${item.content}</span>`;
                 } else if (item.type === 'emoji') {
-                    combinedHtml += `<span style="font-size: inherit; vertical-align: middle;">${item.content}</span>`;
+                    combinedHtml += `<span style="font-size: inherit; vertical-align: middle; display: inline-block; line-height: 1;">${item.content}</span>`;
                 } else if (item.type === 'custom') {
-                    // 关键：使用font-size: inherit继承父元素字号，确保和文字/Emoji大小一致
-                    combinedHtml += `<img src="${item.content}" style="font-size: inherit; width: 1em; height: 1em; min-width: 1em; min-height: 1em; object-fit: contain; vertical-align: middle; margin: 0 2px;">`;
+                    combinedHtml += `<img src="${item.content}" style="font-size: inherit; width: 1em; height: 1em; min-width: 1em; min-height: 1em; object-fit: contain; vertical-align: middle; display: inline-block; margin: 0; line-height: 1;">`;
                 }
             });
             
-            // 更新合并预览
             combinedPreview.innerHTML = combinedHtml;
             combinedChars.textContent = totalChars;
             
-            // 根据字符数更新颜色
             if (totalChars > 15) {
                 combinedChars.classList.add('text-red-500');
             } else if (totalChars >= 12) {
@@ -839,17 +831,15 @@
             }
         }
         
-        // 复制合并文本（图片无法复制，只复制文字和Emoji）
+        // 复制合并文本
         function copyCombinedText() {
             if (selectedItems.length === 0) return;
             
-            // 只复制文字和Emoji内容
             let copyText = '';
             selectedItems.forEach(item => {
                 if (item.type === 'text' || item.type === 'emoji') {
                     copyText += item.content;
                 }
-                // 自定义图片跳过（无法复制）
             });
             
             if (!copyText) {
@@ -857,9 +847,7 @@
                 return;
             }
             
-            // 复制到剪贴板
             navigator.clipboard.writeText(copyText).then(() => {
-                // 显示复制成功提示
                 const originalText = copyCombinedBtn.innerHTML;
                 copyCombinedBtn.innerHTML = '<i class="fa fa-check mr-1"></i> 已复制';
                 copyCombinedBtn.classList.remove('bg-gray-200', 'hover:bg-gray-300');
@@ -880,7 +868,6 @@
         function removePreviewItem(index) {
             const item = selectedItems[index];
             
-            // 如果是文本项，清除对应的输入框
             if (item.type === 'text') {
                 if (item.inputId === 'text-input-1') {
                     textInput1.value = '';
@@ -889,9 +876,7 @@
                     textInput2.value = '';
                     textCounter2.textContent = '0/15';
                 }
-            } 
-            // 如果是Emoji/自定义图片项，移除选中状态
-            else if (item.type === 'emoji' || item.type === 'custom') {
+            } else if (item.type === 'emoji' || item.type === 'custom') {
                 const selector = `[data-type="${item.type}"][data-content="${item.content}"]`;
                 const listItem = document.querySelector(selector);
                 if (listItem) {
@@ -899,35 +884,25 @@
                 }
             }
             
-            // 从选中列表中移除
             selectedItems.splice(index, 1);
-            
-            // 更新预览和总字符数
             updatePreview();
             updateTotalCharCount();
         }
 
         // 清空预览
         function clearPreview() {
-            // 清空文本输入框
             textInput1.value = '';
             textInput2.value = '';
             textCounter1.textContent = '0/15';
             textCounter2.textContent = '0/15';
             
-            // 移除所有Emoji/图片的选中状态
             document.querySelectorAll('.emoji-item.selected').forEach(item => {
                 item.classList.remove('selected');
             });
             
-            // 清空选中列表
             selectedItems = [];
-            
-            // 更新预览和总字符数
             updatePreview();
             updateTotalCharCount();
-            
-            // 隐藏错误信息
             textError.classList.add('hidden');
             totalCharsError.classList.add('hidden');
         }
@@ -939,22 +914,16 @@
 
         // 更新总字符数显示
         function updateTotalCharCount() {
-            // 获取当前文本输入的字符数
             const text1Count = textInput1.value ? calculateCharCount(textInput1.value) : 0;
             const text2Count = textInput2.value ? calculateCharCount(textInput2.value) : 0;
             
-            // 更新选中列表中的文本项
             updateSelectedTextItems(textInput1, text1Count);
             updateSelectedTextItems(textInput2, text2Count);
             
-            // 计算总字符数
             const total = calculateTotalChars();
-            
-            // 更新显示
             totalChars.textContent = total;
             charProgress.style.width = `${(total / 15) * 100}%`;
             
-            // 根据总字符数更新进度条颜色
             if (total >= 15) {
                 charProgress.classList.remove('bg-primary');
                 charProgress.classList.add('bg-green-500');
@@ -967,7 +936,6 @@
                 charProgress.classList.add('bg-primary');
             }
             
-            // 验证表单并启用/禁用按钮
             validateForm();
         }
 
@@ -976,10 +944,8 @@
             const inputId = input.id;
             const value = input.value;
             
-            // 查找是否已存在该输入框的文本项
             const existingIndex = selectedItems.findIndex(item => item.type === 'text' && item.inputId === inputId);
             
-            // 无论字符数多少，都更新或添加文本项，但在validateForm中控制按钮状态
             if (value) {
                 const textItem = {
                     type: 'text',
@@ -989,14 +955,11 @@
                 };
                 
                 if (existingIndex !== -1) {
-                    // 更新已存在的文本项
                     selectedItems[existingIndex] = textItem;
                 } else {
-                    // 添加新的文本项
                     selectedItems.push(textItem);
                 }
             } else if (existingIndex !== -1) {
-                // 如果文本为空，移除已存在的文本项
                 selectedItems.splice(existingIndex, 1);
             }
         }
@@ -1039,10 +1002,7 @@
                 draggable.classList.remove('opacity-50');
             }
             
-            // 更新选中列表顺序
             updateSelectedItemsOrder();
-            
-            // 更新预览
             updatePreview();
         }
 
@@ -1075,25 +1035,22 @@
             selectedItems = newSelectedItems;
         }
 
-        // 验证表单（修复中文输入校验逻辑）
+        // 验证表单
         function validateForm() {
             const nameValid = customerName.value.trim() !== '';
             const totalCharsValid = calculateTotalChars() > 0 && calculateTotalChars() <= 15;
 
-            // 提交前最终校验文字是否合法（中文/英文/数字）
             const validPattern = /^[\u4e00-\u9fa5a-zA-Z0-9]*$/;
             const text1Valid = validPattern.test(textInput1.value || '');
             const text2Valid = validPattern.test(textInput2.value || '');
             const finalTextValid = text1Valid && text2Valid;
 
-            // 显示/隐藏文本错误提示
             if (!finalTextValid && (textInput1.value || textInput2.value)) {
                 textError.classList.remove('hidden');
             } else {
                 textError.classList.add('hidden');
             }
 
-            // 姓名验证
             if (!nameValid) {
                 customerName.classList.add('input-error');
                 nameError.classList.remove('hidden');
@@ -1102,29 +1059,25 @@
                 nameError.classList.add('hidden');
             }
 
-            // 按钮启用条件
             const formValid = nameValid && totalCharsValid && finalTextValid;
             submitBtn.disabled = !formValid;
             exportPngBtn.disabled = !formValid;
-            exportPdfBtn.disabled = !formValid; // 同步启用/禁用PDF按钮
+            exportPdfBtn.disabled = !formValid;
         }
         
         // 提交定制
         function submitCustomization() {
-            // 验证表单
             if (!customerName.value.trim()) {
                 customerName.classList.add('input-error');
                 nameError.classList.remove('hidden');
                 return;
             }
             
-            // 分离文字、Emoji、自定义图片
             const text1 = textInput1.value;
             const text2 = textInput2.value;
             const emojis = selectedItems.filter(item => item.type === 'emoji').map(item => item.content);
             const customIcons = selectedItems.filter(item => item.type === 'custom').map(item => item.content);
             
-            // 创建客户数据
             const customerId = Date.now();
             const customizationData = {
                 id: customerId,
@@ -1132,44 +1085,51 @@
                 text1: text1,
                 text2: text2,
                 emojis: emojis,
-                customIcons: customIcons, // 保存自定义图片路径
+                customIcons: customIcons,
                 totalChars: calculateTotalChars(),
                 timestamp: new Date().toISOString()
             };
             
-            // 保存到本地存储
             customerData.push(customizationData);
             localStorage.setItem('customerData', JSON.stringify(customerData));
-            
-            // 更新客户列表
             updateCustomerList();
-            
-            // 保存当前客户ID
             currentCustomerId = customerId;
-            
-            // 显示成功弹窗
             successModal.classList.remove('hidden');
         }
         
-        // 导出为PNG（优化图片渲染）
+        // 导出为PNG（关键：对齐修复）
         function exportToPNG() {
             const combinedPreviewElement = document.getElementById('combined-preview');
             
-            // 关键优化：增加scale，确保图片渲染清晰，添加useCORS和allowTaint确保图片正常导出
             html2canvas(combinedPreviewElement, {
-                scale: 3, // 提高缩放比例，让导出更清晰
+                scale: 3,
                 backgroundColor: '#F9FAFB',
                 logging: false,
                 useCORS: true, 
                 allowTaint: true,
-                letterRendering: true, // 优化文字渲染
-                imageTimeout: 15000, // 延长图片加载超时时间
-                fontRendering: 'canvas' // 强制使用canvas渲染字体
+                letterRendering: true,
+                imageTimeout: 15000,
+                fontRendering: 'canvas',
+                // 强制所有元素基线对齐
+                onclone: (clonedDoc) => {
+                    const imgs = clonedDoc.querySelectorAll('img');
+                    imgs.forEach(img => {
+                        img.style.verticalAlign = 'middle';
+                        img.style.display = 'inline-block';
+                        img.style.lineHeight = '1';
+                        img.style.margin = '0';
+                    });
+                    const spans = clonedDoc.querySelectorAll('span');
+                    spans.forEach(span => {
+                        span.style.verticalAlign = 'middle';
+                        span.style.display = 'inline-block';
+                        span.style.lineHeight = '1';
+                    });
+                }
             }).then(canvas => {
-                // 创建下载链接
                 const link = document.createElement('a');
                 link.download = `powerbank-${customerName.value.trim()}-${Date.now()}.png`;
-                link.href = canvas.toDataURL('image/png', 1.0); // 1.0质量
+                link.href = canvas.toDataURL('image/png', 1.0);
                 link.click();
             }).catch(err => {
                 console.error('导出PNG失败:', err);
@@ -1177,475 +1137,23 @@
             });
         }
         
-        // 核心修改：优化PDF导出，确保图片和文字大小一致
+        // 导出PDF（关键：对齐修复）
         function exportToPDF() {
-            // 获取合并预览的完整HTML（包含图片）
             const combinedHtml = combinedPreview.innerHTML;
             
-            // 如果没有内容，提示用户
             if (combinedHtml.includes('合并后的内容将显示在这里') || !combinedHtml.trim()) {
                 alert('没有可导出的内容，请先输入定制内容');
                 return;
             }
 
-            // 将合并预览内容放入纯内容PDF容器
             pdfSimpleContent.innerHTML = combinedHtml;
 
-            // 临时显示PDF容器（解决hidden容器渲染失败）
             pdfSimpleContainer.style.display = 'block';
             pdfSimpleContainer.style.position = 'absolute';
             pdfSimpleContainer.style.left = '-9999px';
             pdfSimpleContainer.style.top = '0';
 
             const canvasOptions = {
-                scale: 3, // 提高缩放比例，确保清晰度
-                useCORS: true, // 支持自定义图片
-                allowTaint: true, // 允许图片
-                backgroundColor: '#ffffff',
-                logging: false,
-                letterRendering: true,
-                imageTimeout: 15000,
-                fontRendering: 'canvas',
-                // 关键：等待所有图片加载完成再渲染
-                onclone: (clonedDoc) => {
-                    // 等待所有图片加载
-                    const images = clonedDoc.querySelectorAll('img');
-                    if (images.length > 0) {
-                        return new Promise(resolve => {
-                            let loadedCount = 0;
-                            images.forEach(img => {
-                                img.onload = () => {
-                                    loadedCount++;
-                                    if (loadedCount === images.length) resolve();
-                                };
-                                img.onerror = () => {
-                                    loadedCount++;
-                                    if (loadedCount === images.length) resolve();
-                                };
-                                // 强制重新加载图片
-                                if (img.complete) {
-                                    loadedCount++;
-                                    if (loadedCount === images.length) resolve();
-                                }
-                            });
-                        });
-                    }
-                }
-            };
-            
-            // 渲染为Canvas（包含自定义图片）
-            html2canvas(pdfSimpleContainer, canvasOptions).then(canvas => {
-                // 初始化jsPDF
-                const { jsPDF } = window.jspdf;
-                const pdf = new jsPDF({
-                    orientation: 'portrait',
-                    unit: 'mm',
-                    format: 'a4',
-                    compress: true
-                });
-                
-                // Canvas转Base64图片
-                const imgData = canvas.toDataURL('image/png', 1.0);
-                const imgWidth = 210; // A4宽度(mm)
-                const imgHeight = (canvas.height * imgWidth) / canvas.width;
-                
-                // 添加图片到PDF（居中显示）
-                const yOffset = (297 - imgHeight) / 2; // A4高度297mm，垂直居中
-                pdf.addImage(imgData, 'PNG', 0, yOffset, imgWidth, imgHeight);
-                
-                // 保存PDF
-                pdf.save(`定制内容_${customerName.value.trim()}_${Date.now()}.pdf`);
-                
-            }).catch(err => {
-                console.error('PDF导出失败:', err);
-                alert('PDF导出失败，请检查网络或重试！');
-            }).finally(() => {
-                // 导出完成后恢复隐藏状态
-                pdfSimpleContainer.style.display = 'none';
-                pdfSimpleContainer.style.position = '';
-                pdfSimpleContainer.style.left = '';
-                pdfSimpleContainer.style.top = '';
-            });
-        }
-        
-        // 生成单个客户PDF并返回Blob（支持自定义图片）
-        function generateCustomerPDF(customer) {
-            return new Promise((resolve, reject) => {
-                // 构建客户的合并预览内容（包含图片）
-                let combinedHtml = '';
-                if (customer.text1) combinedHtml += `<span style="font-size: inherit; vertical-align: middle;">${customer.text1}</span>`;
-                
-                // 添加Emoji
-                if (customer.emojis && customer.emojis.length > 0) {
-                    customer.emojis.forEach(emoji => {
-                        combinedHtml += `<span style="font-size: inherit; vertical-align: middle;">${emoji}</span>`;
-                    });
-                }
-                
-                // 添加自定义图片
-                if (customer.customIcons && customer.customIcons.length > 0) {
-                    customer.customIcons.forEach(iconSrc => {
-                        combinedHtml += `<img src="${iconSrc}" style="font-size: inherit; width: 1em; height: 1em; min-width: 1em; min-height: 1em; object-fit: contain; vertical-align: middle; margin: 0 2px;">`;
-                    });
-                }
-                
-                if (customer.text2) combinedHtml += `<span style="font-size: inherit; vertical-align: middle;">${customer.text2}</span>`;
-                combinedHtml = combinedHtml.trim();
-                
-                // 如果没有内容，返回空
-                if (!combinedHtml) {
-                    reject(new Error(`客户 ${customer.name} 没有定制内容`));
-                    return;
-                }
-
-                // 将内容放入纯内容PDF容器
-                pdfSimpleContent.innerHTML = combinedHtml;
-
-                // 临时显示PDF容器
-                pdfSimpleContainer.style.display = 'block';
-                pdfSimpleContainer.style.position = 'absolute';
-                pdfSimpleContainer.style.left = '-9999px';
-                pdfSimpleContainer.style.top = '0';
-
-                const canvasOptions = {
-                    scale: 3,
-                    useCORS: true,
-                    allowTaint: true,
-                    backgroundColor: '#ffffff',
-                    logging: false,
-                    letterRendering: true,
-                    imageTimeout: 15000,
-                    fontRendering: 'canvas',
-                    onclone: (clonedDoc) => {
-                        const images = clonedDoc.querySelectorAll('img');
-                        if (images.length > 0) {
-                            return new Promise(resolve => {
-                                let loadedCount = 0;
-                                images.forEach(img => {
-                                    img.onload = () => {
-                                        loadedCount++;
-                                        if (loadedCount === images.length) resolve();
-                                    };
-                                    img.onerror = () => {
-                                        loadedCount++;
-                                        if (loadedCount === images.length) resolve();
-                                    };
-                                    if (img.complete) {
-                                        loadedCount++;
-                                        if (loadedCount === images.length) resolve();
-                                    }
-                                });
-                            });
-                        }
-                    }
-                };
-                
-                html2canvas(pdfSimpleContainer, canvasOptions).then(canvas => {
-                    const { jsPDF } = window.jspdf;
-                    const pdf = new jsPDF({
-                        orientation: 'portrait',
-                        unit: 'mm',
-                        format: 'a4',
-                        compress: true
-                    });
-                    
-                    const imgData = canvas.toDataURL('image/png', 1.0);
-                    const imgWidth = 210;
-                    const imgHeight = (canvas.height * imgWidth) / canvas.width;
-                    
-                    // 垂直居中显示
-                    const yOffset = (297 - imgHeight) / 2;
-                    pdf.addImage(imgData, 'PNG', 0, yOffset, imgWidth, imgHeight);
-                    
-                    const pdfBlob = pdf.output('blob');
-                    
-                    resolve({
-                        name: `定制内容_${customer.name}_${customer.id}.pdf`,
-                        blob: pdfBlob
-                    });
-                    
-                }).catch(err => {
-                    reject(err);
-                }).finally(() => {
-                    // 恢复隐藏状态
-                    pdfSimpleContainer.style.display = 'none';
-                    pdfSimpleContainer.style.position = '';
-                    pdfSimpleContainer.style.left = '';
-                    pdfSimpleContainer.style.top = '';
-                });
-            });
-        }
-        
-        // 导出全部PDF为ZIP压缩包
-        async function exportAllToPDFAsZip() {
-            if (customerData.length === 0) {
-                alert('暂无客户数据可导出');
-                return;
-            }
-            
-            // 显示加载提示
-            const originalBtnText = exportAllPdfBtn.innerHTML;
-            exportAllPdfBtn.innerHTML = '<i class="fa fa-spinner fa-spin mr-1"></i> 正在导出...';
-            exportAllPdfBtn.disabled = true;
-            
-            try {
-                // 创建ZIP实例
-                const zip = new JSZip();
-                
-                // 批量生成PDF并添加到ZIP
-                const pdfPromises = customerData.map(customer => generateCustomerPDF(customer));
-                const pdfFiles = await Promise.all(pdfPromises);
-                
-                // 将每个PDF文件添加到ZIP
-                pdfFiles.forEach(file => {
-                    zip.file(file.name, file.blob);
-                });
-                
-                // 生成ZIP文件
-                const zipContent = await zip.generateAsync({
-                    type: 'blob',
-                    compression: 'DEFLATE', // 启用压缩
-                    compressionOptions: { level: 6 } // 压缩级别（1-9）
-                });
-                
-                // 下载ZIP文件
-                const now = new Date();
-                const zipFileName = `移动电源定制订单_${now.getFullYear()}${(now.getMonth()+1).toString().padStart(2, '0')}${now.getDate().toString().padStart(2, '0')}.zip`;
-                saveAs(zipContent, zipFileName);
-                
-                alert(`成功导出 ${customerData.length} 个PDF文件，已打包为ZIP压缩包`);
-                
-            } catch (err) {
-                console.error('ZIP导出失败:', err);
-                alert('导出失败，请重试！');
-            } finally {
-                // 恢复按钮状态
-                exportAllPdfBtn.innerHTML = originalBtnText;
-                exportAllPdfBtn.disabled = false;
-            }
-        }
-        
-        // 显示管理员密码弹窗
-        function showAdminPasswordModal() {
-            adminPasswordInput.value = '';
-            passwordError.classList.add('hidden');
-            adminPasswordModal.classList.remove('hidden');
-        }
-        
-        // 隐藏管理员密码弹窗
-        function hideAdminPasswordModal() {
-            adminPasswordModal.classList.add('hidden');
-        }
-        
-        // 验证管理员密码
-        function verifyAdminPassword() {
-            const password = adminPasswordInput.value.trim();
-            
-            if (password === ADMIN_PASSWORD) {
-                hideAdminPasswordModal();
-                adminPanel.classList.remove('hidden');
-            } else {
-                passwordError.classList.remove('hidden');
-                adminPasswordInput.classList.add('input-error');
-                
-                // 3秒后自动隐藏错误提示
-                setTimeout(() => {
-                    passwordError.classList.add('hidden');
-                    adminPasswordInput.classList.remove('input-error');
-                }, 3000);
-            }
-        }
-        
-        // 筛选客户列表
-        function filterCustomerList() {
-            const filterText = customerFilterInput.value.trim().toLowerCase();
-            updateCustomerList(filterText);
-        }
-        
-        // 显示删除确认弹窗
-        function showDeleteConfirmModal(id) {
-            deleteCustomerId = id;
-            deleteConfirmModal.classList.remove('hidden');
-        }
-        
-        // 隐藏删除确认弹窗
-        function hideDeleteConfirmModal() {
-            deleteConfirmModal.classList.add('hidden');
-            deleteCustomerId = null;
-        }
-        
-        // 确认删除客户
-        function confirmDeleteCustomer() {
-            if (!deleteCustomerId) return;
-            
-            // 从数组中删除
-            customerData = customerData.filter(customer => customer.id !== deleteCustomerId);
-            
-            // 更新本地存储
-            localStorage.setItem('customerData', JSON.stringify(customerData));
-            
-            // 更新客户列表
-            updateCustomerList(customerFilterInput.value.trim().toLowerCase());
-            
-            // 隐藏弹窗
-            hideDeleteConfirmModal();
-            
-            // 提示删除成功
-            alert('客户记录已成功删除');
-        }
-        
-        // 更新客户列表（支持自定义图片显示）
-        function updateCustomerList(filterText = '') {
-            customerList.innerHTML = '';
-            
-            // 筛选客户数据
-            let filteredData = customerData;
-            if (filterText) {
-                filteredData = customerData.filter(customer => 
-                    customer.name.toLowerCase().includes(filterText)
-                );
-            }
-            
-            if (filteredData.length === 0) {
-                customerList.innerHTML = `
-                    <tr>
-                        <td colspan="3" class="py-4 px-4 text-center text-gray-500">${filterText ? '未找到匹配的客户' : '暂无客户数据'}</td>
-                    </tr>
-                `;
-                return;
-            }
-            
-            filteredData.forEach(customer => {
-                const row = document.createElement('tr');
-                
-                // 格式化定制内容（包含图片标记）
-                let customizationContent = '';
-                if (customer.text1) customizationContent += customer.text1;
-                if (customer.emojis && customer.emojis.length > 0) {
-                    customizationContent += ' ' + customer.emojis.join(' ');
-                }
-                // 自定义图片显示为[图片]标记
-                if (customer.customIcons && customer.customIcons.length > 0) {
-                    customizationContent += ' [图片×' + customer.customIcons.length + ']';
-                }
-                if (customer.text2) customizationContent += ' ' + customer.text2;
-                
-                row.innerHTML = `
-                    <td class="py-2 px-4 whitespace-nowrap">${customer.name}</td>
-                    <td class="py-2 px-4">${customizationContent}</td>
-                    <td class="py-2 px-4 whitespace-nowrap">
-                        <button class="text-blue-500 hover:text-blue-700 mr-2" onclick="viewCustomerDetail(${customer.id})">
-                            <i class="fa fa-eye"></i>
-                        </button>
-                        <button class="text-green-500 hover:text-green-700 mr-2" onclick="exportCustomerPNG(${customer.id})">
-                            <i class="fa fa-download"></i>
-                        </button>
-                        <button class="text-red-500 hover:text-red-700" onclick="showDeleteConfirmModal(${customer.id})">
-                            <i class="fa fa-trash"></i>
-                        </button>
-                    </td>
-                `;
-                
-                customerList.appendChild(row);
-            });
-        }
-        
-        // 查看客户详情（支持自定义图片）
-        function viewCustomerDetail(id) {
-            const customer = customerData.find(c => c.id === id);
-            if (!customer) return;
-            
-            // 填充表单
-            customerName.value = customer.name;
-            textInput1.value = customer.text1 || '';
-            textInput2.value = customer.text2 || '';
-            
-            // 清空当前选中的项目
-            selectedItems = [];
-            document.querySelectorAll('.emoji-item.selected').forEach(item => {
-                item.classList.remove('selected');
-            });
-            
-            // 添加文本项
-            if (customer.text1) {
-                const text1Count = calculateCharCount(customer.text1);
-                selectedItems.push({
-                    type: 'text',
-                    content: customer.text1,
-                    charCount: text1Count,
-                    inputId: 'text-input-1'
-                });
-            }
-            
-            // 添加Emoji项
-            if (customer.emojis && customer.emojis.length > 0) {
-                customer.emojis.forEach(emoji => {
-                    // 选中Emoji
-                    const selector = `[data-type="emoji"][data-content="${emoji}"]`;
-                    const emojiItem = document.querySelector(selector);
-                    if (emojiItem) {
-                        emojiItem.classList.add('selected');
-                    }
-                    
-                    // 添加到选中列表
-                    selectedItems.push({
-                        type: 'emoji',
-                        content: emoji,
-                        charCount: 3
-                    });
-                });
-            }
-            
-            // 添加自定义图片项
-            if (customer.customIcons && customer.customIcons.length > 0) {
-                customer.customIcons.forEach(iconSrc => {
-                    // 选中图片
-                    const selector = `[data-type="custom"][data-content="${iconSrc}"]`;
-                    const iconItem = document.querySelector(selector);
-                    if (iconItem) {
-                        iconItem.classList.add('selected');
-                    }
-                    
-                    // 添加到选中列表
-                    selectedItems.push({
-                        type: 'custom',
-                        content: iconSrc,
-                        charCount: 3
-                    });
-                });
-            }
-            
-            // 添加文本项2
-            if (customer.text2) {
-                const text2Count = calculateCharCount(customer.text2);
-                selectedItems.push({
-                    type: 'text',
-                    content: customer.text2,
-                    charCount: text2Count,
-                    inputId: 'text-input-2'
-                });
-            }
-            
-            // 更新预览和字符计数
-            updatePreview();
-            updateTotalCharCount();
-            
-            // 更新字符计数器
-            textCounter1.textContent = `${calculateCharCount(customer.text1 || '')}/15`;
-            textCounter2.textContent = `${calculateCharCount(customer.text2 || '')}/15`;
-            
-            // 滚动到顶部
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-        
-        // 导出客户PNG
-        function exportCustomerPNG(id) {
-            viewCustomerDetail(id);
-            setTimeout(exportToPNG, 500);
-        }
-
-        // 初始化应用
-        document.addEventListener('DOMContentLoaded', init);
-    </script>
-</body>
-</html>
+                scale: 3,
+                useCORS: true,
+                allowTaint:
