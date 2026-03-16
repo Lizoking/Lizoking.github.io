@@ -419,14 +419,22 @@
         #combined-preview {
             font-size: var(--base-font-size);
             display: flex !important;
-            align-items: center !important;
+            align-items: flex-start !important;
             justify-content: center;
             flex-wrap: wrap;
             gap: 4px;
             min-height: 80px;
             padding: 10px;
             background-color: #F9FAFB;
+
+             /* 添加SVG背景图 */
+            background-image: url(background.svg); 
+            background-repeat: no-repeat;
+            background-position: center;
+            background-size: contain;
+    
             border-radius: 0.5rem;
+    
         }
         
         #combined-preview i {
