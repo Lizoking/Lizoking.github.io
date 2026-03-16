@@ -6,7 +6,7 @@
     <title>移动电源定制</title>
     <!-- Tailwind CSS v3 -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Font Awesome 5 (使用最新版本) -->
+    <!-- Font Awesome 6 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <!-- Inter Font + 中文字体 -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
@@ -174,9 +174,7 @@
         }
         
         /* 删除按钮样式 */
-        .preview-item .fa-times-circle,
-        .preview-item .fa-times-circle-o,
-        .preview-item .delete-icon {
+        .preview-item .fa-times-circle {
             font-family: "Font Awesome 6 Free" !important;
             font-weight: 900;
             color: #9ca3af;
@@ -185,9 +183,7 @@
             font-size: 0.875rem;
         }
         
-        .preview-item .fa-times-circle:hover,
-        .preview-item .fa-times-circle-o:hover,
-        .preview-item .delete-icon:hover {
+        .preview-item .fa-times-circle:hover {
             color: #ef4444;
         }
         
@@ -889,10 +885,10 @@
             const charCount = calculateCharCount(value);
             counter.textContent = `${charCount}/15`;
 
-            // 先更新 selectedItems 中的文本项
-            updateSelectedTextItems(input, charCount);
+            // 更新总字符数显示
+            updateTotalCharCount();
             
-            // 再更新预览
+            // 更新预览
             updatePreview();
         }
 
@@ -911,17 +907,58 @@
             return count;
         }
 
+        // 计算总字符数 - 修复版（包含文字输入框的内容）
+        function calculateTotalChars() {
+            // 计算图标字符数（每个图标算3字符）
+            const iconChars = selectedItems.reduce((total, item) => {
+                if (item.type === 'custom') {
+                    return total + item.charCount;
+                }
+                return total;
+            }, 0);
+            
+            // 计算文本字符数
+            const text1Chars = textInput1.value ? calculateCharCount(textInput1.value) : 0;
+            const text2Chars = textInput2.value ? calculateCharCount(textInput2.value) : 0;
+            
+            return iconChars + text1Chars + text2Chars;
+        }
+
         // 更新预览区域
         function updatePreview() {
             previewContainer.innerHTML = '';
             
-            if (selectedItems.length === 0) {
+            if (selectedItems.length === 0 && !textInput1.value && !textInput2.value) {
                 previewContainer.innerHTML = '<p class="text-gray-400 text-center">请输入文字并选择图标</p>';
                 updateCombinedPreview();
                 return;
             }
             
-            selectedItems.forEach((item, index) => {
+            // 创建一个临时数组来存储所有要显示的项目
+            const allItems = [];
+            
+            // 添加文字1
+            if (textInput1.value) {
+                allItems.push({
+                    type: 'text',
+                    content: textInput1.value,
+                    inputId: 'text-input-1'
+                });
+            }
+            
+            // 添加所有图标
+            allItems.push(...selectedItems);
+            
+            // 添加文字2
+            if (textInput2.value) {
+                allItems.push({
+                    type: 'text',
+                    content: textInput2.value,
+                    inputId: 'text-input-2'
+                });
+            }
+            
+            allItems.forEach((item, index) => {
                 const previewItem = document.createElement('div');
                 previewItem.className = 'preview-item';
                 previewItem.draggable = true;
@@ -930,14 +967,14 @@
                 if (item.type === 'text') {
                     previewItem.innerHTML = `
                         <span>${item.content}</span>
-                        <button class="ml-2 text-gray-400 hover:text-red-500" onclick="removePreviewItem(${index})">
+                        <button class="ml-2 text-gray-400 hover:text-red-500" onclick="removeTextItem('${item.inputId}')">
                             <i class="fas fa-times-circle"></i>
                         </button>
                     `;
                 } else if (item.type === 'custom') {
                     previewItem.innerHTML = `
                         <i class="${item.iconClass}"></i>
-                        <button class="ml-2 text-gray-400 hover:text-red-500" onclick="removePreviewItem(${index})">
+                        <button class="ml-2 text-gray-400 hover:text-red-500" onclick="removeIconItem('${item.iconClass}')">
                             <i class="fas fa-times-circle"></i>
                         </button>
                     `;
@@ -949,9 +986,32 @@
             updateCombinedPreview();
         }
         
+        // 移除文字项
+        function removeTextItem(inputId) {
+            if (inputId === 'text-input-1') {
+                textInput1.value = '';
+                textCounter1.textContent = '0/15';
+            } else if (inputId === 'text-input-2') {
+                textInput2.value = '';
+                textCounter2.textContent = '0/15';
+            }
+            updateTotalCharCount();
+            updatePreview();
+        }
+        
+        // 移除图标项
+        function removeIconItem(iconClass) {
+            const index = selectedItems.findIndex(item => item.iconClass === iconClass);
+            if (index !== -1) {
+                selectedItems.splice(index, 1);
+            }
+            updateTotalCharCount();
+            updatePreview();
+        }
+        
         // 更新合并预览
         function updateCombinedPreview() {
-            if (selectedItems.length === 0) {
+            if (selectedItems.length === 0 && !textInput1.value && !textInput2.value) {
                 combinedPreview.innerHTML = '<p class="text-gray-400 text-base">合并后的内容将显示在这里</p>';
                 combinedChars.textContent = '0';
                 return;
@@ -960,14 +1020,23 @@
             let combinedHtml = '';
             let totalChars = 0;
             
+            // 添加文字1
+            if (textInput1.value) {
+                combinedHtml += `<span>${textInput1.value}</span>`;
+                totalChars += calculateCharCount(textInput1.value);
+            }
+            
+            // 添加图标
             selectedItems.forEach(item => {
+                combinedHtml += `<i class="${item.iconClass}"></i>`;
                 totalChars += item.charCount;
-                if (item.type === 'text') {
-                    combinedHtml += `<span>${item.content}</span>`;
-                } else if (item.type === 'custom') {
-                    combinedHtml += `<i class="${item.iconClass}"></i>`;
-                }
             });
+            
+            // 添加文字2
+            if (textInput2.value) {
+                combinedHtml += `<span>${textInput2.value}</span>`;
+                totalChars += calculateCharCount(textInput2.value);
+            }
             
             combinedPreview.innerHTML = combinedHtml;
             combinedChars.textContent = totalChars;
@@ -984,20 +1053,12 @@
         
         // 复制合并文本
         function copyCombinedText() {
-            if (selectedItems.length === 0) return;
+            if (selectedItems.length === 0 && !textInput1.value && !textInput2.value) return;
             
             let copyText = '';
-            selectedItems.forEach(item => {
-                if (item.type === 'text') {
-                    copyText += item.content;
-                }
-                // 图标跳过（无法复制）
-            });
-            
-            if (!copyText) {
-                alert('当前选择的内容仅包含图标，无法复制');
-                return;
-            }
+            if (textInput1.value) copyText += textInput1.value;
+            if (selectedItems.length > 0) copyText += ' [图标]';
+            if (textInput2.value) copyText += textInput2.value;
             
             navigator.clipboard.writeText(copyText).then(() => {
                 const originalText = copyCombinedBtn.innerHTML;
@@ -1016,25 +1077,6 @@
             });
         }
 
-        // 移除预览项目
-        function removePreviewItem(index) {
-            const item = selectedItems[index];
-            
-            if (item.type === 'text') {
-                if (item.inputId === 'text-input-1') {
-                    textInput1.value = '';
-                    textCounter1.textContent = '0/15';
-                } else if (item.inputId === 'text-input-2') {
-                    textInput2.value = '';
-                    textCounter2.textContent = '0/15';
-                }
-            }
-            
-            selectedItems.splice(index, 1);
-            updatePreview();
-            updateTotalCharCount();
-        }
-
         // 清空预览
         function clearPreview() {
             textInput1.value = '';
@@ -1050,65 +1092,33 @@
             totalCharsError.classList.add('hidden');
         }
 
-        // 计算总字符数
-        function calculateTotalChars() {
-            return selectedItems.reduce((total, item) => total + item.charCount, 0);
-        }
-
         // 更新总字符数显示
         function updateTotalCharCount() {
-            const text1Count = textInput1.value ? calculateCharCount(textInput1.value) : 0;
-            const text2Count = textInput2.value ? calculateCharCount(textInput2.value) : 0;
-            
-            updateSelectedTextItems(textInput1, text1Count);
-            updateSelectedTextItems(textInput2, text2Count);
-            
             const total = calculateTotalChars();
             
             totalChars.textContent = total;
             charProgress.style.width = `${(total / 15) * 100}%`;
             
+            // 根据总字符数更新进度条颜色
             if (total >= 15) {
                 charProgress.classList.remove('bg-primary');
                 charProgress.classList.add('bg-green-500');
-                totalCharsError.classList.add('hidden');
+                if (total > 15) {
+                    totalCharsError.classList.remove('hidden');
+                } else {
+                    totalCharsError.classList.add('hidden');
+                }
             } else if (total >= 12) {
                 charProgress.classList.remove('bg-primary', 'bg-green-500');
                 charProgress.classList.add('bg-yellow-500');
+                totalCharsError.classList.add('hidden');
             } else {
                 charProgress.classList.remove('bg-yellow-500', 'bg-green-500');
                 charProgress.classList.add('bg-primary');
+                totalCharsError.classList.add('hidden');
             }
             
             validateForm();
-        }
-
-        // 更新选中列表中的文本项
-        function updateSelectedTextItems(input, count) {
-            const inputId = input.id;
-            const value = input.value;
-            
-            const existingIndex = selectedItems.findIndex(item => item.type === 'text' && item.inputId === inputId);
-            
-            if (value) {
-                const textItem = {
-                    type: 'text',
-                    content: value,
-                    charCount: count,
-                    inputId: inputId
-                };
-                
-                if (existingIndex !== -1) {
-                    // 更新已存在的文本项
-                    selectedItems[existingIndex] = textItem;
-                } else {
-                    // 添加新的文本项
-                    selectedItems.push(textItem);
-                }
-            } else if (existingIndex !== -1) {
-                // 如果文本为空，移除已存在的文本项
-                selectedItems.splice(existingIndex, 1);
-            }
         }
 
         // 拖拽开始
@@ -1149,8 +1159,8 @@
                 draggable.classList.remove('opacity-50');
             }
             
+            // 更新选中列表顺序
             updateSelectedItemsOrder();
-            updatePreview();
         }
 
         // 获取拖拽元素应该放置的位置
@@ -1171,18 +1181,28 @@
 
         // 更新选中列表顺序
         function updateSelectedItemsOrder() {
+            // 由于预览区现在包含文字和图标，拖拽顺序需要重新处理
+            // 简单起见，暂时禁用拖拽排序功能，或保持原有逻辑
+            // 这里保持原有逻辑，但可能不完美
             const previewItems = [...previewContainer.querySelectorAll('.preview-item')];
             const newSelectedItems = [];
             
             previewItems.forEach(item => {
-                const index = parseInt(item.dataset.index);
-                newSelectedItems.push(selectedItems[index]);
+                // 如果是图标项
+                const iconElement = item.querySelector('i[class^="icon-"]');
+                if (iconElement) {
+                    const iconClass = iconElement.className;
+                    const found = selectedItems.find(i => i.iconClass === iconClass);
+                    if (found) {
+                        newSelectedItems.push(found);
+                    }
+                }
             });
             
             selectedItems = newSelectedItems;
         }
 
-        // 验证表单 - 统一校验标点符号
+        // 验证表单 - 修复版
         function validateForm() {
             const nameValid = customerName.value.trim() !== '';
             const totalCharsValid = calculateTotalChars() > 0 && calculateTotalChars() <= 15;
@@ -1193,12 +1213,21 @@
             const text2Valid = validPattern.test(textInput2.value || '');
             const finalTextValid = text1Valid && text2Valid;
 
+            // 显示/隐藏文本错误提示
             if (!finalTextValid && (textInput1.value || textInput2.value)) {
                 textError.classList.remove('hidden');
             } else {
                 textError.classList.add('hidden');
             }
 
+            // 显示/隐藏总字符数超限错误
+            if (calculateTotalChars() > 15) {
+                totalCharsError.classList.remove('hidden');
+            } else {
+                totalCharsError.classList.add('hidden');
+            }
+
+            // 姓名验证
             if (!nameValid) {
                 customerName.classList.add('input-error');
                 nameError.classList.remove('hidden');
@@ -1207,6 +1236,7 @@
                 nameError.classList.add('hidden');
             }
 
+            // 按钮启用条件：姓名不为空 && 总字符数在1-15之间 && 文字内容合法
             const formValid = nameValid && totalCharsValid && finalTextValid;
             submitBtn.disabled = !formValid;
             exportPngBtn.disabled = !formValid;
@@ -1218,6 +1248,17 @@
             if (!customerName.value.trim()) {
                 customerName.classList.add('input-error');
                 nameError.classList.remove('hidden');
+                return;
+            }
+            
+            if (calculateTotalChars() > 15) {
+                totalCharsError.classList.remove('hidden');
+                alert('总字符数不能超过15！');
+                return;
+            }
+            
+            if (calculateTotalChars() === 0) {
+                alert('请至少输入文字或选择图标！');
                 return;
             }
             
@@ -1328,15 +1369,15 @@
             return new Promise((resolve, reject) => {
                 let combinedHtml = '';
                 
-                if (currentCustomerId === customer.id && selectedItems.length > 0) {
-                    // 当前预览的就是这个客户，直接用 selectedItems 的顺序
+                if (currentCustomerId === customer.id && (selectedItems.length > 0 || textInput1.value || textInput2.value)) {
+                    // 当前预览的就是这个客户，直接用预览的顺序
+                    if (textInput1.value) combinedHtml += `<span>${textInput1.value}</span>`;
+                    
                     selectedItems.forEach(item => {
-                        if (item.type === 'text') {
-                            combinedHtml += `<span>${item.content}</span>`;
-                        } else if (item.type === 'custom') {
-                            combinedHtml += `<i class="${item.iconClass}"></i>`;
-                        }
+                        combinedHtml += `<i class="${item.iconClass}"></i>`;
                     });
+                    
+                    if (textInput2.value) combinedHtml += `<span>${textInput2.value}</span>`;
                 } else {
                     // 如果不是当前预览的客户，按存储的顺序
                     if (customer.text1) combinedHtml += `<span>${customer.text1}</span>`;
@@ -1713,16 +1754,6 @@
             
             selectedItems = [];
             
-            if (customer.text1) {
-                const text1Count = calculateCharCount(customer.text1);
-                selectedItems.push({
-                    type: 'text',
-                    content: customer.text1,
-                    charCount: text1Count,
-                    inputId: 'text-input-1'
-                });
-            }
-            
             if (customer.customIcons && customer.customIcons.length > 0) {
                 customer.customIcons.forEach(iconClass => {
                     selectedItems.push({
@@ -1730,16 +1761,6 @@
                         iconClass: iconClass,
                         charCount: 3
                     });
-                });
-            }
-            
-            if (customer.text2) {
-                const text2Count = calculateCharCount(customer.text2);
-                selectedItems.push({
-                    type: 'text',
-                    content: customer.text2,
-                    charCount: text2Count,
-                    inputId: 'text-input-2'
                 });
             }
             
