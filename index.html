@@ -528,6 +528,24 @@
             background-color: #fca5a5;
             cursor: not-allowed;
         }
+        
+        /* 定制内容单元格样式 - 用于显示图标 */
+        .custom-content-cell {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            flex-wrap: wrap;
+        }
+        
+        .custom-content-cell i {
+            font-size: 20px;
+            color: #333;
+        }
+        
+        .custom-content-cell span {
+            font-size: 14px;
+            color: #333;
+        }
     </style>
 </head>
 <body class="bg-gray-50 min-h-screen font-sans">
@@ -749,7 +767,7 @@
                         >
                     </div>
                     
-                    <div class="max-h-60 overflow-y-auto custom-scrollbar">
+                    <div class="max-h-96 overflow-y-auto custom-scrollbar">
                         <table class="admin-table" id="customer-table">
                             <thead>
                                 <tr>
@@ -1378,7 +1396,7 @@
             });
         }
         
-        // 导出PDF - 恢复到稳定版本
+        // 导出PDF
         function exportToPDF() {
             const combinedHtml = combinedPreview.innerHTML;
             
@@ -1436,18 +1454,11 @@
         // 生成单个客户PDF并返回Blob - 确保顺序与预览一致
         function generateCustomerPDF(customer) {
             return new Promise((resolve, reject) => {
-                // 直接从 customerData 中获取该客户的完整定制内容
-                // 注意：customerData 中存储的 customIcons 是数组，但顺序可能被打乱
-                // 我们需要找到该客户提交时的原始顺序
+                // 尝试从预览区域获取顺序（如果当前预览的就是这个客户）
+                let combinedHtml = '';
                 
-                // 由于 customerData 存储的是图标类名数组，但顺序可能丢失
-                // 这里我们使用预览区域的顺序，但预览区域可能已经被修改
-                // 最稳妥的方式是在提交时保存顺序，但我们现在可以：
-                
-                // 1. 尝试从预览区域获取顺序（如果当前预览的就是这个客户）
                 if (currentCustomerId === customer.id && selectedItems.length > 0) {
                     // 当前预览的就是这个客户，直接用 selectedItems 的顺序
-                    let combinedHtml = '';
                     selectedItems.forEach(item => {
                         if (item.type === 'text') {
                             combinedHtml += `<span>${item.content}</span>`;
@@ -1455,18 +1466,8 @@
                             combinedHtml += `<i class="${item.iconClass}"></i>`;
                         }
                     });
-                    
-                    if (!combinedHtml.trim()) {
-                        reject(new Error(`客户 ${customer.name} 没有定制内容`));
-                        return;
-                    }
-
-                    pdfSimpleContent.innerHTML = combinedHtml;
                 } else {
-                    // 2. 如果不是当前预览的客户，只能按存储的顺序
-                    // 但存储的顺序可能和预览不一致，这是一个已知问题
-                    // 临时方案：按 text1, icons, text2 的顺序
-                    let combinedHtml = '';
+                    // 如果不是当前预览的客户，按存储的顺序
                     if (customer.text1) combinedHtml += `<span>${customer.text1}</span>`;
                     
                     if (customer.customIcons && customer.customIcons.length > 0) {
@@ -1476,14 +1477,14 @@
                     }
                     
                     if (customer.text2) combinedHtml += `<span>${customer.text2}</span>`;
-                    
-                    if (!combinedHtml.trim()) {
-                        reject(new Error(`客户 ${customer.name} 没有定制内容`));
-                        return;
-                    }
-
-                    pdfSimpleContent.innerHTML = combinedHtml;
                 }
+                
+                if (!combinedHtml.trim()) {
+                    reject(new Error(`客户 ${customer.name} 没有定制内容`));
+                    return;
+                }
+
+                pdfSimpleContent.innerHTML = combinedHtml;
 
                 pdfSimpleContainer.style.display = 'block';
                 pdfSimpleContainer.style.position = 'absolute';
@@ -1751,7 +1752,7 @@
             alert('客户记录已成功删除');
         }
         
-        // 更新客户列表
+        // 更新客户列表 - 修复定制内容列的顺序和图标显示
         function updateCustomerList(filterText = '') {
             customerList.innerHTML = '';
             
@@ -1779,13 +1780,27 @@
             filteredData.forEach((customer, index) => {
                 const row = document.createElement('tr');
                 
-                // 格式化定制内容
-                let customizationContent = '';
-                if (customer.text1) customizationContent += customer.text1;
-                if (customer.customIcons && customer.customIcons.length > 0) {
-                    customizationContent += ' [图标×' + customer.customIcons.length + ']';
+                // 构建定制内容的HTML，按顺序显示文字和图标
+                let contentHtml = '<div class="custom-content-cell">';
+                
+                // 先显示文字1
+                if (customer.text1) {
+                    contentHtml += `<span>${customer.text1}</span>`;
                 }
-                if (customer.text2) customizationContent += ' ' + customer.text2;
+                
+                // 再显示所有图标（按存储顺序）
+                if (customer.customIcons && customer.customIcons.length > 0) {
+                    customer.customIcons.forEach(iconClass => {
+                        contentHtml += `<i class="${iconClass}"></i>`;
+                    });
+                }
+                
+                // 最后显示文字2
+                if (customer.text2) {
+                    contentHtml += `<span>${customer.text2}</span>`;
+                }
+                
+                contentHtml += '</div>';
                 
                 row.innerHTML = `
                     <td class="checkbox-column">
@@ -1793,7 +1808,7 @@
                     </td>
                     <td class="w-16">${index + 1}</td>
                     <td>${customer.name}</td>
-                    <td>${customizationContent}</td>
+                    <td>${contentHtml}</td>
                     <td class="action-column">
                         <i class="fa fa-trash delete-btn" onclick="showDeleteConfirmModal(${customer.id})" title="删除"></i>
                     </td>
