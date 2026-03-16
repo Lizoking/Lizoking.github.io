@@ -498,6 +498,11 @@
             text-align: center;
         }
         
+        .action-column {
+            width: 100px;
+            text-align: center;
+        }
+        
         .select-all-row {
             background-color: #f9fafb;
             border-bottom: 2px solid #d1d5db;
@@ -506,6 +511,37 @@
         .select-all-row td {
             padding: 0.5rem;
             font-weight: 500;
+        }
+        
+        .delete-btn {
+            color: #ef4444;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+        
+        .delete-btn:hover {
+            color: #dc2626;
+        }
+        
+        .batch-delete-btn {
+            background-color: #ef4444;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: background-color 0.2s;
+        }
+        
+        .batch-delete-btn:hover {
+            background-color: #dc2626;
+        }
+        
+        .batch-delete-btn:disabled {
+            background-color: #fca5a5;
+            cursor: not-allowed;
         }
     </style>
 </head>
@@ -741,6 +777,9 @@
                                 <span class="text-sm">全选</span>
                             </label>
                             <span id="selected-count" class="text-sm text-gray-600">已选择 0 项</span>
+                            <button id="batch-delete" class="batch-delete-btn" disabled>
+                                <i class="fa fa-trash mr-1"></i> 批量删除
+                            </button>
                         </div>
                         <input 
                             type="text" 
@@ -758,6 +797,7 @@
                                     <th class="w-16">序号</th>
                                     <th>姓名</th>
                                     <th>定制内容</th>
+                                    <th class="action-column">操作</th>
                                 </tr>
                             </thead>
                             <tbody id="customer-list">
@@ -876,6 +916,7 @@
         const customerList = document.getElementById('customer-list');
         const selectAllCheckbox = document.getElementById('select-all');
         const selectedCountSpan = document.getElementById('selected-count');
+        const batchDeleteBtn = document.getElementById('batch-delete');
         const exportSelectedExcelBtn = document.getElementById('export-selected-excel');
         const exportSelectedPdfBtn = document.getElementById('export-selected-pdf');
         const combinedPreview = document.getElementById('combined-preview');
@@ -932,6 +973,7 @@
             confirmDeleteBtn.addEventListener('click', confirmDeleteCustomer);
             
             selectAllCheckbox.addEventListener('change', toggleSelectAll);
+            batchDeleteBtn.addEventListener('click', showBatchDeleteConfirm);
             exportSelectedExcelBtn.addEventListener('click', exportSelectedToExcel);
             exportSelectedPdfBtn.addEventListener('click', exportSelectedToPDF);
             copyCombinedBtn.addEventListener('click', copyCombinedText);
@@ -1594,7 +1636,7 @@
 
         // 导出选中客户的Excel
         function exportSelectedToExcel() {
-            const selectedCustomers = customerData.filter(c => selectedCustomerIds.has(c));
+            const selectedCustomers = customerData.filter(c => selectedCustomerIds.has(c.id));
             
             if (selectedCustomers.length === 0) {
                 alert('请先选择要导出的客户');
@@ -1625,6 +1667,43 @@
             URL.revokeObjectURL(url);
         }
 
+        // 显示批量删除确认
+        function showBatchDeleteConfirm() {
+            if (selectedCustomerIds.size === 0) return;
+            
+            const customerNames = customerData
+                .filter(c => selectedCustomerIds.has(c.id))
+                .map(c => c.name)
+                .join('、');
+            
+            if (confirm(`确定要删除选中的 ${selectedCustomerIds.size} 个客户吗？\n\n客户：${customerNames}\n\n此操作不可恢复！`)) {
+                batchDeleteCustomers();
+            }
+        }
+
+        // 批量删除客户
+        function batchDeleteCustomers() {
+            // 从数组中删除选中的客户
+            customerData = customerData.filter(customer => !selectedCustomerIds.has(customer.id));
+            
+            // 清空选中集合
+            selectedCustomerIds.clear();
+            
+            // 更新本地存储
+            localStorage.setItem('customerData', JSON.stringify(customerData));
+            
+            // 更新客户列表
+            updateCustomerList(customerFilterInput.value.trim().toLowerCase());
+            
+            // 更新全选状态
+            selectAllCheckbox.checked = false;
+            
+            // 更新选中数量
+            updateSelectedCount();
+            
+            alert('选中的客户已成功删除');
+        }
+
         // 切换全选
         function toggleSelectAll(e) {
             const checkboxes = document.querySelectorAll('.customer-checkbox');
@@ -1642,6 +1721,8 @@
         // 更新选中数量显示
         function updateSelectedCount() {
             selectedCountSpan.textContent = `已选择 ${selectedCustomerIds.size} 项`;
+            batchDeleteBtn.disabled = selectedCustomerIds.size === 0;
+            
             const totalCheckboxes = document.querySelectorAll('.customer-checkbox').length;
             if (selectedCustomerIds.size === totalCheckboxes && totalCheckboxes > 0) {
                 selectAllCheckbox.checked = true;
@@ -1737,10 +1818,11 @@
             if (filteredData.length === 0) {
                 customerList.innerHTML = `
                     <tr>
-                        <td colspan="3" class="py-4 px-4 text-center text-gray-500">${filterText ? '未找到匹配的客户' : '暂无客户数据'}</td>
+                        <td colspan="5" class="py-4 px-4 text-center text-gray-500">${filterText ? '未找到匹配的客户' : '暂无客户数据'}</td>
                     </tr>
                 `;
                 selectAllCheckbox.disabled = true;
+                batchDeleteBtn.disabled = true;
                 return;
             }
             
@@ -1764,6 +1846,9 @@
                     <td class="w-16">${index + 1}</td>
                     <td>${customer.name}</td>
                     <td>${customizationContent}</td>
+                    <td class="action-column">
+                        <i class="fa fa-trash delete-btn" onclick="showDeleteConfirmModal(${customer.id})" title="删除"></i>
+                    </td>
                 `;
                 
                 // 添加复选框事件
