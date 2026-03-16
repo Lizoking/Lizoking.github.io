@@ -990,7 +990,7 @@
                 const response = await fetch(`${API_BASE}/database/${COLLECTION_NAME}/documents`, {
                     method: 'GET',
                     headers: {
-                        'X-Publishable-Key': PUBLISHABLE_KEY,
+                        'Authorization': `Bearer ${PUBLISHABLE_KEY}`,
                         'Content-Type': 'application/json'
                     }
                 });
@@ -1031,7 +1031,7 @@
                 const response = await fetch(`${API_BASE}/database/${COLLECTION_NAME}/document`, {
                     method: 'POST',
                     headers: {
-                        'X-Publishable-Key': PUBLISHABLE_KEY,
+                        'Authorization': `Bearer ${PUBLISHABLE_KEY}`,
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify(data)
@@ -1052,7 +1052,7 @@
                     await fetch(`${API_BASE}/database/${COLLECTION_NAME}/document/${id}`, {
                         method: 'DELETE',
                         headers: {
-                            'X-Publishable-Key': PUBLISHABLE_KEY,
+                            'Authorization': `Bearer ${PUBLISHABLE_KEY}`,
                             'Content-Type': 'application/json'
                         }
                     });
