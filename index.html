@@ -18,8 +18,8 @@
     <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
     <!-- FileSaver 用于下载ZIP文件 -->
     <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
-    <!-- Supabase SDK -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- 腾讯云云开发 SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@cloudbase/js-sdk@1.12.2/lib/cloudbase.js"></script>
     
     <!-- 字体图标定义 -->
     <style>
@@ -868,11 +868,25 @@
     </div>
 
     <script>
-        // ===== Supabase 配置 =====
-        const SUPABASE_URL = 'https://kajwdvystciyjhnopzyo.supabase.co';
-        const SUPABASE_ANON_KEY = 'sb_publishable_Buv5Z28bCl0cL5ON2LelPQ_jFrTg3jN';
-        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        const TABLE_NAME = 'customer_orders';
+        // ===== 腾讯云云开发配置 =====
+        const envId = 'my-custom-data-9gynn5a1d9f48be3'; // 你的环境ID
+        const COLLECTION_NAME = 'customer-orders'; // 集合名称
+
+        // 初始化云开发
+        let app, db;
+        let cloudEnabled = false;
+
+        try {
+            app = cloudbase.init({
+                env: envId
+            });
+            db = app.database();
+            cloudEnabled = true;
+            console.log('腾讯云初始化成功');
+        } catch (error) {
+            console.error('腾讯云初始化失败，将使用本地存储', error);
+            cloudEnabled = false;
+        }
 
         // ===== 172个图标的列表（使用 icon-1 到 icon-172 格式） =====
         const iconList = [];
@@ -954,8 +968,11 @@
         function init() {
             generateIconGrid();
             
-            // 从 Supabase 加载数据
-            loadFromSupabase();
+            // 强制从腾讯云加载，不使用本地
+            loadFromCloud();
+            
+            // 清空本地存储（避免干扰）
+            localStorage.removeItem('customerData');
             
             customerName.addEventListener('input', validateForm);
             textInput1.addEventListener('input', handleTextInput);
@@ -987,16 +1004,14 @@
             updateCustomerList();
         }
 
-        // 从 Supabase 加载数据
-        async function loadFromSupabase() {
+        // 从腾讯云数据库加载数据 - 强制云端，不读本地
+        async function loadFromCloud() {
             try {
-                const { data, error } = await supabase
-                    .from(TABLE_NAME)
-                    .select('*')
-                    .order('id', { ascending: false });
+                const result = await db.collection(COLLECTION_NAME).get();
                 
-                if (!error && data) {
-                    customerData = data.map(item => ({
+                if (result && result.data) {
+                    // 云端有数据，就用云端的
+                    customerData = result.data.map(item => ({
                         id: item.id,
                         name: item.name,
                         text1: item.text1 || '',
@@ -1006,51 +1021,26 @@
                         timestamp: item.timestamp || new Date().toISOString()
                     }));
                     
-                    // 同时存本地做备份
+                    // 可选：更新本地存储作为缓存（不是必须）
                     localStorage.setItem('customerData', JSON.stringify(customerData));
                     
-                    updateCustomerList();
-                    console.log('从 Supabase 加载成功', customerData.length, '条记录');
+                    console.log('从腾讯云加载成功', customerData.length, '条记录');
+                } else {
+                    // 云端没数据，就显示空
+                    customerData = [];
+                    localStorage.removeItem('customerData');
+                    console.log('云端暂无数据');
                 }
             } catch (error) {
-                console.error('加载失败，使用本地缓存', error);
-                customerData = JSON.parse(localStorage.getItem('customerData')) || [];
-                updateCustomerList();
+                console.error('从腾讯云加载失败:', error);
+                // 云端失败，也不读本地！直接显示空
+                customerData = [];
+                // 可以提示用户
+                alert('连接云端失败，请刷新重试。如果持续失败，请联系管理员。');
             }
-        }
-
-        // 保存到 Supabase
-        async function saveToSupabase(data) {
-            try {
-                const { error } = await supabase
-                    .from(TABLE_NAME)
-                    .insert([data]);
-                
-                return !error;
-            } catch (error) {
-                console.error('保存失败', error);
-                return false;
-            }
-        }
-
-        // 从 Supabase 删除（批量）
-        async function deleteFromSupabase(ids) {
-            try {
-                for (const id of ids) {
-                    const { error } = await supabase
-                        .from(TABLE_NAME)
-                        .delete()
-                        .eq('id', id);
-                    
-                    if (error) {
-                        console.error('删除失败', id, error);
-                    }
-                }
-                return true;
-            } catch (error) {
-                console.error('批量删除失败', error);
-                return false;
-            }
+            
+            // 无论成功失败，都用云端结果更新列表
+            updateCustomerList();
         }
 
         // 生成172个图标的网格
@@ -1078,6 +1068,7 @@
             const currentTotal = calculateTotalChars();
             
             if (currentTotal + charCount <= 15) {
+                // 添加到 orderedItems 末尾
                 orderedItems.push({
                     type: 'custom',
                     iconClass: iconClass,
@@ -1371,7 +1362,7 @@
             exportPdfBtn.disabled = !formValid;
         }
         
-        // 提交定制 - 保存到 Supabase
+        // 提交定制 - 强制先写云端
         async function submitCustomization() {
             if (!customerName.value.trim()) {
                 customerName.classList.add('input-error');
@@ -1405,19 +1396,21 @@
                 timestamp: new Date().toISOString()
             };
             
-            // 保存到 Supabase
-            const success = await saveToSupabase(customizationData);
-            
-            if (success) {
-                // 再保存到本地
+            // 先保存到腾讯云
+            try {
+                const result = await db.collection(COLLECTION_NAME).add(customizationData);
+                console.log('保存到腾讯云成功', result);
+                
+                // 云端成功后再存本地
                 customerData.push(customizationData);
                 localStorage.setItem('customerData', JSON.stringify(customerData));
                 
                 updateCustomerList();
                 currentCustomerId = customerId;
                 successModal.classList.remove('hidden');
-            } else {
-                alert('保存失败，请重试');
+            } catch (error) {
+                console.error('保存到腾讯云失败:', error);
+                alert('保存到云端失败，请检查：\n1. 匿名登录是否开启\n2. 安全域名是否配置\n3. 控制台查看错误详情');
             }
         }
         
@@ -1706,7 +1699,7 @@
             }
         }
 
-        // 批量删除客户 - 同步删除 Supabase
+        // 批量删除客户 - 同步删除腾讯云（如果可用）
         async function batchDeleteCustomers() {
             const idsToDelete = Array.from(selectedCustomerIds);
             
@@ -1716,11 +1709,24 @@
             // 更新本地存储作为备份
             localStorage.setItem('customerData', JSON.stringify(customerData));
             
-            // 从 Supabase 删除
-            const success = await deleteFromSupabase(idsToDelete);
-            
-            if (!success) {
-                console.warn('部分数据可能未从云端删除');
+            // 从腾讯云删除（如果可用）
+            if (cloudEnabled) {
+                try {
+                    // 逐个删除（需要根据id查询每个记录的_id）
+                    for (const id of idsToDelete) {
+                        const queryResult = await db.collection(COLLECTION_NAME).where({
+                            id: id
+                        }).get();
+                        
+                        if (queryResult.data && queryResult.data.length > 0) {
+                            const recordId = queryResult.data[0]._id;
+                            await db.collection(COLLECTION_NAME).doc(recordId).remove();
+                        }
+                    }
+                    console.log('删除腾讯云数据成功');
+                } catch (error) {
+                    console.error('删除腾讯云数据失败', error);
+                }
             }
             
             // 清空选中集合
@@ -1813,7 +1819,7 @@
             deleteCustomerId = null;
         }
         
-        // 确认删除单条客户 - 同步删除 Supabase
+        // 确认删除单条客户 - 同步删除腾讯云（如果可用）
         async function confirmDeleteCustomer() {
             if (!deleteCustomerId) return;
             
@@ -1823,11 +1829,21 @@
             // 更新本地存储作为备份
             localStorage.setItem('customerData', JSON.stringify(customerData));
             
-            // 从 Supabase 删除
-            const success = await deleteFromSupabase([deleteCustomerId]);
-            
-            if (!success) {
-                console.warn('数据可能未从云端删除');
+            // 从腾讯云删除（如果可用）
+            if (cloudEnabled) {
+                try {
+                    const queryResult = await db.collection(COLLECTION_NAME).where({
+                        id: deleteCustomerId
+                    }).get();
+                    
+                    if (queryResult.data && queryResult.data.length > 0) {
+                        const recordId = queryResult.data[0]._id;
+                        await db.collection(COLLECTION_NAME).doc(recordId).remove();
+                    }
+                    console.log('删除腾讯云数据成功');
+                } catch (error) {
+                    console.error('删除腾讯云数据失败', error);
+                }
             }
             
             // 从选中集合中删除
