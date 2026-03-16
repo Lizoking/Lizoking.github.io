@@ -10,7 +10,7 @@
     <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
     <!-- Inter Font + 中文字体 -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
-    <!-- html2canvas for PNG export -->
+    <!-- html2canvas for PNG export & PDF content capture -->
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <!-- jsPDF for PDF export -->
     <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
@@ -291,12 +291,6 @@
             transform: scale(1.1);
         }
         
-        /* 移除选中样式，因为支持重复选择不需要高亮 */
-        .icon-item.selected {
-            background-color: rgba(59, 130, 246, 0.2);
-            border: 2px solid #3B82F6;
-        }
-        
         /* ===== 预览项样式 ===== */
         .preview-item {
             display: flex !important;
@@ -437,29 +431,24 @@
             vertical-align: middle;
         }
         
-        /* ===== PDF导出专用样式 - 完全复制预览区样式但保证原生渲染 ===== */
-        #pdf-export-container {
-            position: fixed;
-            top: 0;
-            left: -9999px;
+        /* ===== PDF导出内容 ===== */
+        .pdf-simple-content {
+            width: 800px;
             background: white;
-            padding: 20px;
-            z-index: 9999;
-        }
-        
-        .pdf-content {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center;
             font-family: "Noto Sans SC", "custom-icons", sans-serif;
             font-size: 48px;
             line-height: 1.2;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-wrap: wrap;
+            padding: 40px;
+            box-sizing: border-box;
             gap: 8px;
-            background: white;
+            flex-wrap: wrap;
+            margin: 0 auto;
         }
         
-        .pdf-content i {
+        .pdf-simple-content i {
             font-size: inherit;
             color: black;
             display: inline-block;
@@ -467,7 +456,7 @@
             line-height: 1;
         }
         
-        .pdf-content span {
+        .pdf-simple-content span {
             display: inline-block;
             line-height: 1.2;
             vertical-align: middle;
@@ -760,7 +749,7 @@
                         >
                     </div>
                     
-                    <div class="max-h-96 overflow-y-auto custom-scrollbar">
+                    <div class="max-h-60 overflow-y-auto custom-scrollbar">
                         <table class="admin-table" id="customer-table">
                             <thead>
                                 <tr>
@@ -831,9 +820,11 @@
             </div>
         </div>
         
-        <!-- 纯内容PDF导出容器 - 采用原生渲染方案 -->
-        <div id="pdf-export-container" style="display: none;">
-            <div id="pdf-content" class="pdf-content"></div>
+        <!-- 纯内容PDF导出容器 -->
+        <div id="pdf-simple-container" class="hidden" style="position: absolute; left: -9999px; top: 0;">
+            <div class="pdf-simple-content" id="pdf-simple-content">
+                <!-- 只显示合并预览的内容 -->
+            </div>
         </div>
     </div>
 
@@ -893,8 +884,8 @@
         const copyCombinedBtn = document.getElementById('copy-combined');
         
         // PDF导出专用DOM元素
-        const pdfExportContainer = document.getElementById('pdf-export-container');
-        const pdfContent = document.getElementById('pdf-content');
+        const pdfSimpleContainer = document.getElementById('pdf-simple-container');
+        const pdfSimpleContent = document.getElementById('pdf-simple-content');
         
         // 管理员密码验证相关元素
         const adminPasswordModal = document.getElementById('admin-password-modal');
@@ -1001,13 +992,12 @@
             const value = input.value;
             const counter = input === textInput1 ? textCounter1 : textCounter2;
 
-            // 允许中英文、数字和常用标点符号（客户直接输入，系统自动校验）
+            // 允许中英文、数字和常用标点符号
             const validPattern = /^[\u4e00-\u9fa5a-zA-Z0-9\s\.,!?;:\-_\+\=\[\]\(\)\*&^%$#@!~`'"]*$/;
             const isValid = validPattern.test(value);
 
             if (!isValid && value.length > 0) {
                 input.classList.add('input-error');
-                // 不实时显示错误，等提交时统一校验
             } else {
                 input.classList.remove('input-error');
             }
@@ -1307,7 +1297,7 @@
             const nameValid = customerName.value.trim() !== '';
             const totalCharsValid = calculateTotalChars() > 0 && calculateTotalChars() <= 15;
 
-            // 允许中英文、数字和常用标点符号（客户直接输入，系统自动校验）
+            // 允许中英文、数字和常用标点符号
             const validPattern = /^[\u4e00-\u9fa5a-zA-Z0-9\s\.,!?;:\-_\+\=\[\]\(\)\*&^%$#@!~`'"]*$/;
             const text1Valid = validPattern.test(textInput1.value || '');
             const text2Valid = validPattern.test(textInput2.value || '');
@@ -1364,12 +1354,9 @@
             successModal.classList.remove('hidden');
         }
         
-        // 自适应尺寸导出为PNG
+        // 导出为PNG
         function exportToPNG() {
             const combinedPreviewElement = document.getElementById('combined-preview');
-            
-            // 获取实际内容尺寸
-            const rect = combinedPreviewElement.getBoundingClientRect();
             
             html2canvas(combinedPreviewElement, {
                 scale: 3,
@@ -1379,9 +1366,7 @@
                 allowTaint: true,
                 letterRendering: true,
                 imageTimeout: 15000,
-                fontRendering: 'canvas',
-                width: rect.width,
-                height: rect.height
+                fontRendering: 'canvas'
             }).then(canvas => {
                 const link = document.createElement('a');
                 link.download = `powerbank-${customerName.value.trim()}-${Date.now()}.png`;
@@ -1393,7 +1378,7 @@
             });
         }
         
-        // 自适应尺寸导出PDF - 原生渲染方案
+        // 导出PDF - 恢复到稳定版本
         function exportToPDF() {
             const combinedHtml = combinedPreview.innerHTML;
             
@@ -1402,90 +1387,53 @@
                 return;
             }
 
-            // 创建完整的HTML文档用于PDF导出
-            const htmlContent = `
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <meta charset="UTF-8">
-                <style>
-                    @font-face {
-                        font-family: 'custom-icons';
-                        src: url('fonts/icomoon.eot?123456');
-                        src: url('fonts/icomoon.eot?123456#iefix') format('embedded-opentype'),
-                             url('fonts/icomoon.ttf?123456') format('truetype'),
-                             url('fonts/icomoon.woff?123456') format('woff'),
-                             url('fonts/icomoon.svg?123456#icomoon') format('svg');
-                        font-weight: normal;
-                        font-style: normal;
-                    }
-                    [class^="icon-"], [class*=" icon-"] {
-                        font-family: 'custom-icons' !important;
-                        speak: never;
-                        font-style: normal;
-                        font-weight: normal;
-                        font-variant: normal;
-                        text-transform: none;
-                        line-height: 1;
-                        -webkit-font-smoothing: antialiased;
-                        -moz-osx-font-smoothing: grayscale;
-                    }
-                    body {
-                        margin: 0;
-                        padding: 20px;
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        min-height: 100vh;
-                        font-family: "Noto Sans SC", "custom-icons", sans-serif;
-                    }
-                    .content {
-                        font-size: 48px;
-                        line-height: 1.2;
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        flex-wrap: wrap;
-                        gap: 8px;
-                        background: white;
-                    }
-                    .content i {
-                        font-size: inherit;
-                        color: black;
-                        display: inline-block;
-                        vertical-align: middle;
-                        line-height: 1;
-                    }
-                    .content span {
-                        display: inline-block;
-                        line-height: 1.2;
-                        vertical-align: middle;
-                    }
-                </style>
-                <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
-            </head>
-            <body>
-                <div class="content">
-                    ${combinedHtml}
-                </div>
-            </body>
-            </html>
-            `;
+            pdfSimpleContent.innerHTML = combinedHtml;
+
+            pdfSimpleContainer.style.display = 'block';
+            pdfSimpleContainer.style.position = 'absolute';
+            pdfSimpleContainer.style.left = '-9999px';
+            pdfSimpleContainer.style.top = '0';
+
+            const canvasOptions = {
+                scale: 2,
+                useCORS: true,
+                allowTaint: true,
+                backgroundColor: '#ffffff',
+                logging: false,
+                letterRendering: true,
+                imageTimeout: 15000,
+                fontRendering: 'canvas'
+            };
             
-            // 创建Blob并下载
-            const blob = new Blob([htmlContent], { type: 'text/html' });
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = `定制内容_${customerName.value.trim()}_${Date.now()}.html`;
-            link.click();
-            URL.revokeObjectURL(url);
-            
-            // 提示用户
-            alert('PDF功能暂时调整为HTML导出，请用浏览器打印功能保存为PDF');
+            html2canvas(pdfSimpleContainer, canvasOptions).then(canvas => {
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF({
+                    orientation: 'portrait',
+                    unit: 'mm',
+                    format: 'a4',
+                    compress: true
+                });
+                
+                const imgData = canvas.toDataURL('image/png', 1.0);
+                const imgWidth = 210;
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                const yOffset = (297 - imgHeight) / 2;
+                pdf.addImage(imgData, 'PNG', 0, yOffset, imgWidth, imgHeight);
+                
+                pdf.save(`定制内容_${customerName.value.trim()}_${Date.now()}.pdf`);
+                
+            }).catch(err => {
+                console.error('PDF导出失败:', err);
+                alert('PDF导出失败，请重试！');
+            }).finally(() => {
+                pdfSimpleContainer.style.display = 'none';
+                pdfSimpleContainer.style.position = '';
+                pdfSimpleContainer.style.left = '';
+                pdfSimpleContainer.style.top = '';
+            });
         }
         
-        // 生成单个客户PDF并返回Blob - 使用原生渲染
+        // 生成单个客户PDF并返回Blob - 恢复稳定版本
         function generateCustomerPDF(customer) {
             return new Promise((resolve, reject) => {
                 let combinedHtml = '';
@@ -1505,83 +1453,58 @@
                     return;
                 }
 
-                // 创建完整的HTML文档
-                const htmlContent = `
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <meta charset="UTF-8">
-                    <style>
-                        @font-face {
-                            font-family: 'custom-icons';
-                            src: url('fonts/icomoon.eot?123456');
-                            src: url('fonts/icomoon.eot?123456#iefix') format('embedded-opentype'),
-                                 url('fonts/icomoon.ttf?123456') format('truetype'),
-                                 url('fonts/icomoon.woff?123456') format('woff'),
-                                 url('fonts/icomoon.svg?123456#icomoon') format('svg');
-                            font-weight: normal;
-                            font-style: normal;
-                        }
-                        [class^="icon-"], [class*=" icon-"] {
-                            font-family: 'custom-icons' !important;
-                            speak: never;
-                            font-style: normal;
-                            font-weight: normal;
-                            font-variant: normal;
-                            text-transform: none;
-                            line-height: 1;
-                        }
-                        body {
-                            margin: 0;
-                            padding: 20px;
-                            display: flex;
-                            align-items: center;
-                            justify-content: center;
-                            min-height: 100vh;
-                            font-family: "Noto Sans SC", "custom-icons", sans-serif;
-                        }
-                        .content {
-                            font-size: 48px;
-                            line-height: 1.2;
-                            display: flex;
-                            align-items: center;
-                            justify-content: center;
-                            flex-wrap: wrap;
-                            gap: 8px;
-                            background: white;
-                        }
-                        .content i {
-                            font-size: inherit;
-                            color: black;
-                            display: inline-block;
-                            vertical-align: middle;
-                            line-height: 1;
-                        }
-                        .content span {
-                            display: inline-block;
-                            line-height: 1.2;
-                            vertical-align: middle;
-                        }
-                    </style>
-                    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
-                </head>
-                <body>
-                    <div class="content">
-                        ${combinedHtml}
-                    </div>
-                </body>
-                </html>
-                `;
+                pdfSimpleContent.innerHTML = combinedHtml;
+
+                pdfSimpleContainer.style.display = 'block';
+                pdfSimpleContainer.style.position = 'absolute';
+                pdfSimpleContainer.style.left = '-9999px';
+                pdfSimpleContainer.style.top = '0';
+
+                const canvasOptions = {
+                    scale: 2,
+                    useCORS: true,
+                    allowTaint: true,
+                    backgroundColor: '#ffffff',
+                    logging: false,
+                    letterRendering: true,
+                    imageTimeout: 15000,
+                    fontRendering: 'canvas'
+                };
                 
-                const blob = new Blob([htmlContent], { type: 'text/html' });
-                
-                // 查找客户的序号
-                const index = customerData.findIndex(c => c.id === customer.id) + 1;
-                const fileName = `${index}-${customer.name}.html`;
-                
-                resolve({
-                    name: fileName,
-                    blob: blob
+                html2canvas(pdfSimpleContainer, canvasOptions).then(canvas => {
+                    const { jsPDF } = window.jspdf;
+                    const pdf = new jsPDF({
+                        orientation: 'portrait',
+                        unit: 'mm',
+                        format: 'a4',
+                        compress: true
+                    });
+                    
+                    const imgData = canvas.toDataURL('image/png', 1.0);
+                    const imgWidth = 210;
+                    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                    
+                    const yOffset = (297 - imgHeight) / 2;
+                    pdf.addImage(imgData, 'PNG', 0, yOffset, imgWidth, imgHeight);
+                    
+                    const pdfBlob = pdf.output('blob');
+                    
+                    // 查找客户的序号
+                    const index = customerData.findIndex(c => c.id === customer.id) + 1;
+                    const fileName = `${index}-${customer.name}.pdf`;
+                    
+                    resolve({
+                        name: fileName,
+                        blob: pdfBlob
+                    });
+                    
+                }).catch(err => {
+                    reject(err);
+                }).finally(() => {
+                    pdfSimpleContainer.style.display = 'none';
+                    pdfSimpleContainer.style.position = '';
+                    pdfSimpleContainer.style.left = '';
+                    pdfSimpleContainer.style.top = '';
                 });
             });
         }
@@ -1618,7 +1541,7 @@
                 const zipFileName = `选中定制订单_${now.getFullYear()}${(now.getMonth()+1).toString().padStart(2, '0')}${now.getDate().toString().padStart(2, '0')}.zip`;
                 saveAs(zipContent, zipFileName);
                 
-                alert(`成功导出 ${selectedCustomers.length} 个HTML文件，已打包为ZIP压缩包。请用浏览器打开后打印为PDF。`);
+                alert(`成功导出 ${selectedCustomers.length} 个PDF文件，已打包为ZIP压缩包`);
                 
             } catch (err) {
                 console.error('ZIP导出失败:', err);
