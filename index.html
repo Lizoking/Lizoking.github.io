@@ -819,7 +819,7 @@
                         <i class="fas fa-check-circle text-3xl"></i>
                     </div>
                     <h3 class="text-2xl font-bold text-gray-800 mb-2">提交成功！</h3>
-                    <p class="text-gray-600 mb-6">您的移动电源定制请求已提交，我们将尽快处理。</p>
+                    <p class="text-gray-600 mb-6">您的定制内容已提交到系统，如需修改，请联系管理员陈健涛。</p>
                     <div class="flex justify-center gap-4">
                         <button id="close-modal" class="px-6 py-2 bg-primary hover:bg-blue-600 text-white rounded-lg font-medium transition-colors">
                             确定
@@ -1326,17 +1326,26 @@
             }, { offset: Number.NEGATIVE_INFINITY }).element;
         }
 
-        // 更新选中列表顺序
+        // 更新选中列表顺序 - 修复版
         function updateSelectedItemsOrder() {
             const previewItems = [...previewContainer.querySelectorAll('.preview-item')];
             const newSelectedItems = [];
             
+            // 按照预览区的顺序重建 selectedItems
             previewItems.forEach(item => {
                 const index = parseInt(item.dataset.index);
-                newSelectedItems.push(selectedItems[index]);
+                if (!isNaN(index) && index >= 0 && index < selectedItems.length) {
+                    newSelectedItems.push(selectedItems[index]);
+                }
             });
             
             selectedItems = newSelectedItems;
+            
+            // 重新索引所有预览项的 data-index
+            const updatedPreviewItems = previewContainer.querySelectorAll('.preview-item');
+            updatedPreviewItems.forEach((item, newIndex) => {
+                item.dataset.index = newIndex;
+            });
             
             // 更新合并预览
             updateCombinedPreview();
