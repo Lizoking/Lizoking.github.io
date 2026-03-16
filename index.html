@@ -958,7 +958,7 @@
         const confirmDeleteBtn = document.getElementById('confirm-delete');
         
         // 存储客户定制数据
-        let customerData = JSON.parse(localStorage.getItem('customerData')) || [];
+        let customerData = [];
         let currentCustomerId = null;
         
         // 按输入顺序存储的项目
@@ -968,14 +968,11 @@
         function init() {
             generateIconGrid();
             
-            // 从腾讯云加载数据（如果可用）
-            if (cloudEnabled) {
-                loadFromCloud();
-            } else {
-                // 直接从本地存储加载
-                customerData = JSON.parse(localStorage.getItem('customerData')) || [];
-                updateCustomerList();
-            }
+            // 强制从腾讯云加载，不使用本地
+            loadFromCloud();
+            
+            // 清空本地存储（避免干扰）
+            localStorage.removeItem('customerData');
             
             customerName.addEventListener('input', validateForm);
             textInput1.addEventListener('input', handleTextInput);
@@ -1007,13 +1004,13 @@
             updateCustomerList();
         }
 
-        // 从腾讯云数据库加载数据
+        // 从腾讯云数据库加载数据 - 强制云端，不读本地
         async function loadFromCloud() {
             try {
                 const result = await db.collection(COLLECTION_NAME).get();
                 
                 if (result && result.data) {
-                    // 转换数据格式
+                    // 云端有数据，就用云端的
                     customerData = result.data.map(item => ({
                         id: item.id,
                         name: item.name,
@@ -1024,18 +1021,26 @@
                         timestamp: item.timestamp || new Date().toISOString()
                     }));
                     
-                    // 保存到本地存储作为备份
+                    // 可选：更新本地存储作为缓存（不是必须）
                     localStorage.setItem('customerData', JSON.stringify(customerData));
                     
-                    updateCustomerList();
                     console.log('从腾讯云加载成功', customerData.length, '条记录');
+                } else {
+                    // 云端没数据，就显示空
+                    customerData = [];
+                    localStorage.removeItem('customerData');
+                    console.log('云端暂无数据');
                 }
             } catch (error) {
-                console.error('从腾讯云加载失败，使用本地存储', error);
-                // 失败时使用localStorage
-                customerData = JSON.parse(localStorage.getItem('customerData')) || [];
-                updateCustomerList();
+                console.error('从腾讯云加载失败:', error);
+                // 云端失败，也不读本地！直接显示空
+                customerData = [];
+                // 可以提示用户
+                alert('连接云端失败，请刷新重试。如果持续失败，请联系管理员。');
             }
+            
+            // 无论成功失败，都用云端结果更新列表
+            updateCustomerList();
         }
 
         // 生成172个图标的网格
@@ -1165,7 +1170,6 @@
             orderedItems.forEach((item, index) => {
                 const previewItem = document.createElement('div');
                 previewItem.className = 'preview-item';
-                previewItem.draggable = false; // 关闭拖拽
                 previewItem.dataset.index = index;
                 
                 if (item.type === 'text') {
@@ -1358,7 +1362,7 @@
             exportPdfBtn.disabled = !formValid;
         }
         
-        // 提交定制 - 保存到腾讯云（如果可用）
+        // 提交定制 - 强制先写云端
         async function submitCustomization() {
             if (!customerName.value.trim()) {
                 customerName.classList.add('input-error');
@@ -1392,23 +1396,22 @@
                 timestamp: new Date().toISOString()
             };
             
-            // 保存到本地
-            customerData.push(customizationData);
-            localStorage.setItem('customerData', JSON.stringify(customerData));
-            
-            // 保存到腾讯云（如果可用）
-            if (cloudEnabled) {
-                try {
-                    const result = await db.collection(COLLECTION_NAME).add(customizationData);
-                    console.log('保存到腾讯云成功', result);
-                } catch (error) {
-                    console.error('保存到腾讯云失败，仅保存到本地', error);
-                }
+            // 先保存到腾讯云
+            try {
+                const result = await db.collection(COLLECTION_NAME).add(customizationData);
+                console.log('保存到腾讯云成功', result);
+                
+                // 云端成功后再存本地
+                customerData.push(customizationData);
+                localStorage.setItem('customerData', JSON.stringify(customerData));
+                
+                updateCustomerList();
+                currentCustomerId = customerId;
+                successModal.classList.remove('hidden');
+            } catch (error) {
+                console.error('保存到腾讯云失败:', error);
+                alert('保存到云端失败，请检查：\n1. 匿名登录是否开启\n2. 安全域名是否配置\n3. 控制台查看错误详情');
             }
-            
-            updateCustomerList();
-            currentCustomerId = customerId;
-            successModal.classList.remove('hidden');
         }
         
         // 导出为PNG - 不带背景（优化版）
