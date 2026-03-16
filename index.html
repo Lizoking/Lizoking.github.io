@@ -343,7 +343,7 @@
                             type="text" 
                             id="text-input-1" 
                             class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all"
-                            placeholder="选填，输入文字（支持中文、英文、数字）"
+                            placeholder="选填，输入文字（支持中文、英文、数字、标点）"
                             maxlength="15"
                         >
                         <div class="char-counter" id="text-counter-1">0/15</div>
@@ -355,15 +355,40 @@
                             type="text" 
                             id="text-input-2" 
                             class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all"
-                            placeholder="选填，输入文字（支持中文、英文、数字）"
+                            placeholder="选填，输入文字（支持中文、英文、数字、标点）"
                             maxlength="15"
                         >
                         <div class="char-counter" id="text-counter-2">0/15</div>
                     </div>
                     
+                    <!-- 常用标点按钮 -->
+                    <div class="mt-2">
+                        <div class="text-xs text-gray-500 mb-1">常用标点：</div>
+                        <div class="flex flex-wrap gap-1">
+                            <button type="button" class="px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm" onclick="insertPunctuation('.')">.</button>
+                            <button type="button" class="px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm" onclick="insertPunctuation(',')">,</button>
+                            <button type="button" class="px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm" onclick="insertPunctuation('!')">!</button>
+                            <button type="button" class="px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm" onclick="insertPunctuation('?')">?</button>
+                            <button type="button" class="px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm" onclick="insertPunctuation(';')">;</button>
+                            <button type="button" class="px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm" onclick="insertPunctuation(':')">:</button>
+                            <button type="button" class="px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm" onclick="insertPunctuation('-')">-</button>
+                            <button type="button" class="px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm" onclick="insertPunctuation('_')">_</button>
+                            <button type="button" class="px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm" onclick="insertPunctuation('@')">@</button>
+                            <button type="button" class="px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm" onclick="insertPunctuation('#')">#</button>
+                            <button type="button" class="px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm" onclick="insertPunctuation('&')">&</button>
+                            <button type="button" class="px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm" onclick="insertPunctuation('*')">*</button>
+                            <button type="button" class="px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm" onclick="insertPunctuation('(')">(</button>
+                            <button type="button" class="px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm" onclick="insertPunctuation(')')">)</button>
+                            <button type="button" class="px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm" onclick="insertPunctuation('[')">[</button>
+                            <button type="button" class="px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm" onclick="insertPunctuation(']')">]</button>
+                            <button type="button" class="px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm" onclick="insertPunctuation('{')">{</button>
+                            <button type="button" class="px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm" onclick="insertPunctuation('}')">}</button>
+                        </div>
+                    </div>
+                    
                     <div class="error-message hidden" id="text-error">
                         <i class="fa fa-exclamation-circle mr-1"></i>
-                        请输入有效的文字内容（仅支持中文、英文和数字）
+                        请输入有效的文字内容（仅支持中文、英文、数字和常用标点）
                     </div>
                 </div>
                 
@@ -527,7 +552,10 @@
                         </table>
                     </div>
                     
-                    <div class="mt-4 flex justify-end">
+                    <div class="mt-4 flex justify-end gap-2">
+                        <button id="export-excel" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm transition-colors flex items-center">
+                            <i class="fa fa-file-excel-o mr-1"></i> 导出Excel
+                        </button>
                         <button id="export-all-pdf" class="px-4 py-2 bg-accent hover:bg-yellow-600 text-white rounded-lg text-sm transition-colors flex items-center">
                             <i class="fa fa-file-pdf-o mr-1"></i> 导出全部PDF（ZIP）
                         </button>
@@ -640,6 +668,7 @@
         const adminPanel = document.getElementById('admin-panel');
         const customerList = document.getElementById('customer-list');
         const exportAllPdfBtn = document.getElementById('export-all-pdf');
+        const exportExcelBtn = document.getElementById('export-excel');
         const combinedPreview = document.getElementById('combined-preview');
         const combinedChars = document.getElementById('combined-chars');
         const copyCombinedBtn = document.getElementById('copy-combined');
@@ -694,6 +723,7 @@
             confirmDeleteBtn.addEventListener('click', confirmDeleteCustomer);
             
             exportAllPdfBtn.addEventListener('click', exportAllToPDFAsZip);
+            exportExcelBtn.addEventListener('click', exportToExcel);
             copyCombinedBtn.addEventListener('click', copyCombinedText);
             
             previewContainer.addEventListener('dragstart', handleDragStart);
@@ -790,7 +820,8 @@
             const value = input.value;
             const counter = input === textInput1 ? textCounter1 : textCounter2;
 
-            const validPattern = /^[\u4e00-\u9fa5a-zA-Z0-9]*$/;
+            // 允许中英文、数字和常用标点符号
+            const validPattern = /^[\u4e00-\u9fa5a-zA-Z0-9\s\.,!?;:\-_\+\=\[\]\(\)\*&^%$#@!~`'"]*$/;
             const isValid = validPattern.test(value);
 
             if (!isValid && value.length > 0) {
@@ -807,11 +838,37 @@
             updateTotalCharCount();
         }
 
+        // 插入标点符号
+        function insertPunctuation(char) {
+            const activeElement = document.activeElement;
+            if (activeElement && (activeElement.id === 'text-input-1' || activeElement.id === 'text-input-2')) {
+                const start = activeElement.selectionStart;
+                const end = activeElement.selectionEnd;
+                const value = activeElement.value;
+                const newValue = value.substring(0, start) + char + value.substring(end);
+                activeElement.value = newValue;
+                
+                // 更新字符计数
+                const event = new Event('input', { bubbles: true });
+                activeElement.dispatchEvent(event);
+                
+                // 光标移到插入字符后面
+                activeElement.selectionStart = activeElement.selectionEnd = start + char.length;
+            } else {
+                // 如果没有焦点，默认插入到第一个输入框
+                const input1 = document.getElementById('text-input-1');
+                input1.value += char;
+                const event = new Event('input', { bubbles: true });
+                input1.dispatchEvent(event);
+            }
+        }
+
         // 计算字符数
         function calculateCharCount(text) {
             let count = 0;
             for (let i = 0; i < text.length; i++) {
                 const char = text.charAt(i);
+                // 中文字符算2，其他算1
                 if (/[\u4e00-\u9fa5]/.test(char)) {
                     count += 2;
                 } else {
@@ -1119,7 +1176,8 @@
             const nameValid = customerName.value.trim() !== '';
             const totalCharsValid = calculateTotalChars() > 0 && calculateTotalChars() <= 15;
 
-            const validPattern = /^[\u4e00-\u9fa5a-zA-Z0-9]*$/;
+            // 允许中英文、数字和常用标点符号
+            const validPattern = /^[\u4e00-\u9fa5a-zA-Z0-9\s\.,!?;:\-_\+\=\[\]\(\)\*&^%$#@!~`'"]*$/;
             const text1Valid = validPattern.test(textInput1.value || '');
             const text2Valid = validPattern.test(textInput2.value || '');
             const finalTextValid = text1Valid && text2Valid;
@@ -1373,6 +1431,74 @@
                 exportAllPdfBtn.innerHTML = originalBtnText;
                 exportAllPdfBtn.disabled = false;
             }
+        }
+
+        // 导出Excel功能
+        function exportToExcel() {
+            if (customerData.length === 0) {
+                alert('暂无客户数据可导出');
+                return;
+            }
+
+            // 创建CSV内容
+            let csvContent = "\uFEFF姓名,定制内容,文字1,文字2,表情列表,图标列表,总字符数,提交时间\n";
+            
+            customerData.forEach(customer => {
+                // 格式化定制内容
+                let customizationText = '';
+                if (customer.text1) customizationText += customer.text1;
+                if (customer.emojis && customer.emojis.length > 0) {
+                    customizationText += ' ' + customer.emojis.join(' ');
+                }
+                if (customer.customIcons && customer.customIcons.length > 0) {
+                    customizationText += ' [图标]';
+                }
+                if (customer.text2) customizationText += ' ' + customer.text2;
+                
+                // 格式化表情列表
+                const emojiStr = customer.emojis ? customer.emojis.join(' ') : '';
+                
+                // 格式化图标列表
+                const iconStr = customer.customIcons ? customer.customIcons.join(' ') : '';
+                
+                // 格式化时间
+                const date = new Date(customer.timestamp);
+                const timeStr = `${date.getFullYear()}-${(date.getMonth()+1).toString().padStart(2,'0')}-${date.getDate().toString().padStart(2,'0')} ${date.getHours().toString().padStart(2,'0')}:${date.getMinutes().toString().padStart(2,'0')}`;
+                
+                // 转义CSV中的逗号和引号
+                const escapeCSV = (str) => {
+                    if (!str) return '';
+                    str = str.toString();
+                    if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+                        return '"' + str.replace(/"/g, '""') + '"';
+                    }
+                    return str;
+                };
+                
+                const row = [
+                    escapeCSV(customer.name),
+                    escapeCSV(customizationText),
+                    escapeCSV(customer.text1 || ''),
+                    escapeCSV(customer.text2 || ''),
+                    escapeCSV(emojiStr),
+                    escapeCSV(iconStr),
+                    customer.totalChars || 0,
+                    escapeCSV(timeStr)
+                ].join(',');
+                
+                csvContent += row + '\n';
+            });
+            
+            // 下载CSV文件（Excel可打开）
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', `定制数据_${new Date().toISOString().slice(0,10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
         }
         
         // 显示管理员密码弹窗
