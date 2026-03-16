@@ -18,8 +18,6 @@
     <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
     <!-- FileSaver 用于下载ZIP文件 -->
     <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
-    <!-- 腾讯云云开发 SDK -->
-    <script src="https://cdn.jsdelivr.net/npm/@cloudbase/js-sdk@1.12.2/lib/cloudbase.js"></script>
     
     <!-- 字体图标定义 -->
     <style>
@@ -868,26 +866,6 @@
     </div>
 
     <script>
-        // ===== 腾讯云云开发配置 =====
-        const envId = 'my-custom-data-9gynn5a1d9f48be3'; // 你的环境ID
-        const COLLECTION_NAME = 'customer-orders'; // 集合名称
-
-        // 初始化云开发
-        let app, db;
-        let cloudEnabled = false;
-
-        try {
-            app = cloudbase.init({
-                env: envId
-            });
-            db = app.database();
-            cloudEnabled = true;
-            console.log('腾讯云初始化成功');
-        } catch (error) {
-            console.error('腾讯云初始化失败，将使用本地存储', error);
-            cloudEnabled = false;
-        }
-
         // ===== 172个图标的列表（使用 icon-1 到 icon-172 格式） =====
         const iconList = [];
         for (let i = 1; i <= 172; i++) {
@@ -958,7 +936,7 @@
         const confirmDeleteBtn = document.getElementById('confirm-delete');
         
         // 存储客户定制数据
-        let customerData = [];
+        let customerData = JSON.parse(localStorage.getItem('customerData')) || [];
         let currentCustomerId = null;
         
         // 按输入顺序存储的项目
@@ -967,12 +945,6 @@
         // 初始化
         function init() {
             generateIconGrid();
-            
-            // 强制从腾讯云加载，不使用本地
-            loadFromCloud();
-            
-            // 清空本地存储（避免干扰）
-            localStorage.removeItem('customerData');
             
             customerName.addEventListener('input', validateForm);
             textInput1.addEventListener('input', handleTextInput);
@@ -1001,45 +973,6 @@
             exportSelectedPdfBtn.addEventListener('click', exportSelectedToPDF);
             copyCombinedBtn.addEventListener('click', copyCombinedText);
             
-            updateCustomerList();
-        }
-
-        // 从腾讯云数据库加载数据 - 强制云端，不读本地
-        async function loadFromCloud() {
-            try {
-                const result = await db.collection(COLLECTION_NAME).get();
-                
-                if (result && result.data) {
-                    // 云端有数据，就用云端的
-                    customerData = result.data.map(item => ({
-                        id: item.id,
-                        name: item.name,
-                        text1: item.text1 || '',
-                        text2: item.text2 || '',
-                        customIcons: item.customIcons || [],
-                        totalChars: item.totalChars || 0,
-                        timestamp: item.timestamp || new Date().toISOString()
-                    }));
-                    
-                    // 可选：更新本地存储作为缓存（不是必须）
-                    localStorage.setItem('customerData', JSON.stringify(customerData));
-                    
-                    console.log('从腾讯云加载成功', customerData.length, '条记录');
-                } else {
-                    // 云端没数据，就显示空
-                    customerData = [];
-                    localStorage.removeItem('customerData');
-                    console.log('云端暂无数据');
-                }
-            } catch (error) {
-                console.error('从腾讯云加载失败:', error);
-                // 云端失败，也不读本地！直接显示空
-                customerData = [];
-                // 可以提示用户
-                alert('连接云端失败，请刷新重试。如果持续失败，请联系管理员。');
-            }
-            
-            // 无论成功失败，都用云端结果更新列表
             updateCustomerList();
         }
 
@@ -1362,8 +1295,8 @@
             exportPdfBtn.disabled = !formValid;
         }
         
-        // 提交定制 - 强制先写云端
-        async function submitCustomization() {
+        // 提交定制
+        function submitCustomization() {
             if (!customerName.value.trim()) {
                 customerName.classList.add('input-error');
                 nameError.classList.remove('hidden');
@@ -1396,22 +1329,12 @@
                 timestamp: new Date().toISOString()
             };
             
-            // 先保存到腾讯云
-            try {
-                const result = await db.collection(COLLECTION_NAME).add(customizationData);
-                console.log('保存到腾讯云成功', result);
-                
-                // 云端成功后再存本地
-                customerData.push(customizationData);
-                localStorage.setItem('customerData', JSON.stringify(customerData));
-                
-                updateCustomerList();
-                currentCustomerId = customerId;
-                successModal.classList.remove('hidden');
-            } catch (error) {
-                console.error('保存到腾讯云失败:', error);
-                alert('保存到云端失败，请检查：\n1. 匿名登录是否开启\n2. 安全域名是否配置\n3. 控制台查看错误详情');
-            }
+            customerData.push(customizationData);
+            localStorage.setItem('customerData', JSON.stringify(customerData));
+            
+            updateCustomerList();
+            currentCustomerId = customerId;
+            successModal.classList.remove('hidden');
         }
         
         // 导出为PNG - 不带背景（优化版）
@@ -1699,38 +1622,16 @@
             }
         }
 
-        // 批量删除客户 - 同步删除腾讯云（如果可用）
-        async function batchDeleteCustomers() {
-            const idsToDelete = Array.from(selectedCustomerIds);
-            
-            // 从本地数组中删除
+        // 批量删除客户
+        function batchDeleteCustomers() {
+            // 从数组中删除选中的客户
             customerData = customerData.filter(customer => !selectedCustomerIds.has(customer.id));
-            
-            // 更新本地存储作为备份
-            localStorage.setItem('customerData', JSON.stringify(customerData));
-            
-            // 从腾讯云删除（如果可用）
-            if (cloudEnabled) {
-                try {
-                    // 逐个删除（需要根据id查询每个记录的_id）
-                    for (const id of idsToDelete) {
-                        const queryResult = await db.collection(COLLECTION_NAME).where({
-                            id: id
-                        }).get();
-                        
-                        if (queryResult.data && queryResult.data.length > 0) {
-                            const recordId = queryResult.data[0]._id;
-                            await db.collection(COLLECTION_NAME).doc(recordId).remove();
-                        }
-                    }
-                    console.log('删除腾讯云数据成功');
-                } catch (error) {
-                    console.error('删除腾讯云数据失败', error);
-                }
-            }
             
             // 清空选中集合
             selectedCustomerIds.clear();
+            
+            // 更新本地存储
+            localStorage.setItem('customerData', JSON.stringify(customerData));
             
             // 更新客户列表
             updateCustomerList(customerFilterInput.value.trim().toLowerCase());
@@ -1819,35 +1720,17 @@
             deleteCustomerId = null;
         }
         
-        // 确认删除单条客户 - 同步删除腾讯云（如果可用）
-        async function confirmDeleteCustomer() {
+        // 确认删除客户
+        function confirmDeleteCustomer() {
             if (!deleteCustomerId) return;
             
-            // 从本地数组中删除
+            // 从数组中删除
             customerData = customerData.filter(customer => customer.id !== deleteCustomerId);
-            
-            // 更新本地存储作为备份
-            localStorage.setItem('customerData', JSON.stringify(customerData));
-            
-            // 从腾讯云删除（如果可用）
-            if (cloudEnabled) {
-                try {
-                    const queryResult = await db.collection(COLLECTION_NAME).where({
-                        id: deleteCustomerId
-                    }).get();
-                    
-                    if (queryResult.data && queryResult.data.length > 0) {
-                        const recordId = queryResult.data[0]._id;
-                        await db.collection(COLLECTION_NAME).doc(recordId).remove();
-                    }
-                    console.log('删除腾讯云数据成功');
-                } catch (error) {
-                    console.error('删除腾讯云数据失败', error);
-                }
-            }
-            
             // 从选中集合中删除
             selectedCustomerIds.delete(deleteCustomerId);
+            
+            // 更新本地存储
+            localStorage.setItem('customerData', JSON.stringify(customerData));
             
             // 更新客户列表
             updateCustomerList(customerFilterInput.value.trim().toLowerCase());
