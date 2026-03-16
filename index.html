@@ -18,8 +18,6 @@
     <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
     <!-- FileSaver 用于下载ZIP文件 -->
     <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
-    <!-- 腾讯云云开发 SDK -->
-    <script src="https://cdn.jsdelivr.net/npm/@cloudbase/js-sdk@1.12.2/lib/cloudbase.js"></script>
     
     <!-- 字体图标定义 -->
     <style>
@@ -868,14 +866,20 @@
     </div>
 
     <script>
-        // ===== 腾讯云云开发配置 =====
-        // 【重要】替换为你自己的腾讯云环境ID
-        const envId = '你的环境ID'; // 比如：my-env-123456
+        // ===== 腾讯云 HTTP API 配置 =====
+        const API_BASE = 'https://my-custom-data-9gynn5a1d9f48be3.api.tcloudbasegateway.com'; // 你的默认域名
+        const PUBLISHABLE_KEY = '你的PublishableKey'; // 替换成你生成的密钥
         const COLLECTION_NAME = 'customer-orders'; // 集合名称
 
-        // 初始化云开发
-        let app, db;
-        let cloudEnabled = false;
+        // ===== 172个图标的列表（使用 icon-1 到 icon-172 格式） =====
+        const iconList = [];
+        for (let i = 1; i <= 172; i++) {
+            iconList.push({
+                id: `icon-${i}`,
+                type: 'custom',
+                iconClass: `icon-${i}`
+            });
+        }
 
         // 管理员密码
         const ADMIN_PASSWORD = 'admin123';
@@ -944,101 +948,12 @@
         let orderedItems = [];
 
         // 初始化
-        async function init() {
-            // 1. 先初始化云开发
-            await initCloudBase();
-            
-            // 2. 生成图标网格
+        function init() {
             generateIconGrid();
             
-            // 3. 加载数据（优先云端，本地作为备份）
-            await loadData();
+            // 从数据库加载数据
+            loadFromDatabase();
             
-            // 4. 绑定事件
-            bindEvents();
-            
-            // 5. 更新客户列表
-            updateCustomerList();
-        }
-
-        // 初始化腾讯云云开发
-        async function initCloudBase() {
-            try {
-                // 初始化云开发
-                app = cloudbase.init({
-                    env: envId
-                });
-                
-                // 匿名登录（必须！否则无法读写数据）
-                await app.auth({ persistence: 'local' }).anonymousAuthProvider().signIn();
-                
-                // 获取数据库实例
-                db = app.database();
-                cloudEnabled = true;
-                console.log('腾讯云初始化成功，已完成匿名登录');
-            } catch (error) {
-                console.error('腾讯云初始化失败', error);
-                cloudEnabled = false;
-                
-                // 提示用户配置问题
-                alert(`云开发初始化失败：${error.message}\n\n请检查：
-1. 环境ID是否正确
-2. 是否开启了匿名登录
-3. 是否配置了安全域名
-4. 网络是否正常`);
-            }
-        }
-
-        // 加载数据（优先云端，本地作为备份）
-        async function loadData() {
-            // 先尝试从云端加载
-            if (cloudEnabled) {
-                try {
-                    const result = await db.collection(COLLECTION_NAME).get();
-                    
-                    if (result && result.data && result.data.length > 0) {
-                        // 云端有数据，使用云端数据
-                        customerData = result.data.map(item => ({
-                            id: item.id,
-                            name: item.name,
-                            text1: item.text1 || '',
-                            text2: item.text2 || '',
-                            customIcons: item.customIcons || [],
-                            totalChars: item.totalChars || 0,
-                            timestamp: item.timestamp || new Date().toISOString(),
-                            _id: item._id // 保存云端的_id，用于删除
-                        }));
-                        
-                        // 同步到本地存储作为备份
-                        localStorage.setItem('customerData', JSON.stringify(customerData));
-                        console.log(`从腾讯云加载成功，共${customerData.length}条记录`);
-                    } else {
-                        // 云端无数据，尝试从本地加载
-                        const localData = localStorage.getItem('customerData');
-                        if (localData) {
-                            customerData = JSON.parse(localData);
-                            console.log('云端无数据，已加载本地备份数据');
-                        } else {
-                            customerData = [];
-                            console.log('云端和本地均无数据');
-                        }
-                    }
-                } catch (error) {
-                    console.error('从云端加载失败，尝试加载本地数据', error);
-                    // 云端加载失败，使用本地数据
-                    const localData = localStorage.getItem('customerData');
-                    customerData = localData ? JSON.parse(localData) : [];
-                }
-            } else {
-                // 云开发不可用，使用本地数据
-                const localData = localStorage.getItem('customerData');
-                customerData = localData ? JSON.parse(localData) : [];
-                console.log('云开发不可用，使用本地数据');
-            }
-        }
-
-        // 绑定所有事件
-        function bindEvents() {
             customerName.addEventListener('input', validateForm);
             textInput1.addEventListener('input', handleTextInput);
             textInput2.addEventListener('input', handleTextInput);
@@ -1065,27 +980,107 @@
             exportSelectedExcelBtn.addEventListener('click', exportSelectedToExcel);
             exportSelectedPdfBtn.addEventListener('click', exportSelectedToPDF);
             copyCombinedBtn.addEventListener('click', copyCombinedText);
+            
+            updateCustomerList();
+        }
+
+        // 从数据库加载数据
+        async function loadFromDatabase() {
+            try {
+                const response = await fetch(`${API_BASE}/database/${COLLECTION_NAME}/documents`, {
+                    method: 'GET',
+                    headers: {
+                        'X-Publishable-Key': PUBLISHABLE_KEY,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    customerData = result.data.map(item => ({
+                        id: item.id,
+                        name: item.name,
+                        text1: item.text1 || '',
+                        text2: item.text2 || '',
+                        customIcons: item.customIcons || [],
+                        totalChars: item.totalChars || 0,
+                        timestamp: item.timestamp || new Date().toISOString()
+                    }));
+                    
+                    // 更新本地缓存
+                    localStorage.setItem('customerData', JSON.stringify(customerData));
+                    
+                    updateCustomerList();
+                    console.log('从数据库加载成功', customerData.length, '条记录');
+                } else {
+                    console.error('加载失败:', response.status);
+                    // 失败时使用本地缓存
+                    customerData = JSON.parse(localStorage.getItem('customerData')) || [];
+                    updateCustomerList();
+                }
+            } catch (error) {
+                console.error('加载失败:', error);
+                customerData = JSON.parse(localStorage.getItem('customerData')) || [];
+                updateCustomerList();
+            }
+        }
+
+        // 保存数据到数据库
+        async function saveToDatabase(data) {
+            try {
+                const response = await fetch(`${API_BASE}/database/${COLLECTION_NAME}/document`, {
+                    method: 'POST',
+                    headers: {
+                        'X-Publishable-Key': PUBLISHABLE_KEY,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                return response.ok;
+            } catch (error) {
+                console.error('保存失败:', error);
+                return false;
+            }
+        }
+
+        // 从数据库删除数据（批量）
+        async function deleteFromDatabase(ids) {
+            try {
+                // 逐个删除（HTTP API可能不支持批量删除）
+                for (const id of ids) {
+                    await fetch(`${API_BASE}/database/${COLLECTION_NAME}/document/${id}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'X-Publishable-Key': PUBLISHABLE_KEY,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                }
+                return true;
+            } catch (error) {
+                console.error('删除失败:', error);
+                return false;
+            }
         }
 
         // 生成172个图标的网格
         function generateIconGrid() {
             iconGrid.innerHTML = '';
             
-            // 生成172个图标
-            for (let i = 1; i <= 172; i++) {
-                const iconClass = `icon-${i}`;
+            iconList.forEach(icon => {
                 const iconItem = document.createElement('div');
                 iconItem.className = 'icon-item';
-                iconItem.dataset.iconClass = iconClass;
+                iconItem.dataset.iconClass = icon.iconClass;
                 
                 const iconElement = document.createElement('i');
-                iconElement.className = iconClass;
+                iconElement.className = icon.iconClass;
                 iconItem.appendChild(iconElement);
                 
-                iconItem.addEventListener('click', () => toggleIconSelection(iconClass));
+                iconItem.addEventListener('click', () => toggleIconSelection(icon.iconClass));
                 
                 iconGrid.appendChild(iconItem);
-            }
+            });
         }
 
         // 图标选择逻辑 - 按点击顺序添加到末尾
@@ -1388,7 +1383,7 @@
             exportPdfBtn.disabled = !formValid;
         }
         
-        // 提交定制 - 优先保存到云端
+        // 提交定制
         async function submitCustomization() {
             if (!customerName.value.trim()) {
                 customerName.classList.add('input-error');
@@ -1422,38 +1417,19 @@
                 timestamp: new Date().toISOString()
             };
             
-            try {
-                // 如果云开发可用，先保存到云端
-                if (cloudEnabled) {
-                    const result = await db.collection(COLLECTION_NAME).add(customizationData);
-                    console.log('保存到腾讯云成功', result);
-                    // 保存云端的_id
-                    customizationData._id = result.id;
-                }
-                
-                // 无论云端是否成功，都保存到本地
+            // 先保存到数据库
+            const success = await saveToDatabase(customizationData);
+            
+            if (success) {
+                // 再保存到本地
                 customerData.push(customizationData);
                 localStorage.setItem('customerData', JSON.stringify(customerData));
                 
                 updateCustomerList();
                 currentCustomerId = customerId;
                 successModal.classList.remove('hidden');
-                
-                // 如果云端失败，提示用户
-                if (!cloudEnabled) {
-                    alert('数据已保存到本地，但未同步到云端，请检查云开发配置！');
-                }
-            } catch (error) {
-                console.error('保存失败:', error);
-                // 即使云端失败，也保存到本地
-                customerData.push(customizationData);
-                localStorage.setItem('customerData', JSON.stringify(customerData));
-                
-                updateCustomerList();
-                currentCustomerId = customerId;
-                successModal.classList.remove('hidden');
-                
-                alert(`云端保存失败：${error.message}\n\n数据已保存到本地，请稍后手动同步`);
+            } else {
+                alert('保存失败，请重试');
             }
         }
         
@@ -1532,4 +1508,490 @@
                 backgroundColor: '#ffffff',
                 logging: false,
                 letterRendering: true,
-                imageTimeout: 15
+                imageTimeout: 15000,
+                fontRendering: 'canvas'
+            };
+            
+            html2canvas(pdfSimpleContainer, canvasOptions).then(canvas => {
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF({
+                    orientation: 'portrait',
+                    unit: 'mm',
+                    format: 'a4',
+                    compress: true
+                });
+                
+                const imgData = canvas.toDataURL('image/png', 1.0);
+                const imgWidth = 210;
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                const yOffset = (297 - imgHeight) / 2;
+                pdf.addImage(imgData, 'PNG', 0, yOffset, imgWidth, imgHeight);
+                
+                pdf.save(`定制内容_${customerName.value.trim()}_${Date.now()}.pdf`);
+                
+            }).catch(err => {
+                console.error('PDF导出失败:', err);
+                alert('PDF导出失败，请重试！');
+            }).finally(() => {
+                pdfSimpleContainer.style.display = 'none';
+                pdfSimpleContainer.style.position = '';
+                pdfSimpleContainer.style.left = '';
+                pdfSimpleContainer.style.top = '';
+            });
+        }
+        
+        // 生成单个客户PDF并返回Blob
+        function generateCustomerPDF(customer) {
+            return new Promise((resolve, reject) => {
+                let combinedHtml = '';
+                
+                if (currentCustomerId === customer.id && orderedItems.length > 0) {
+                    // 当前预览的就是这个客户，直接用 orderedItems 的顺序
+                    orderedItems.forEach(item => {
+                        if (item.type === 'text') {
+                            combinedHtml += `<span>${item.content}</span>`;
+                        } else if (item.type === 'custom') {
+                            combinedHtml += `<i class="${item.iconClass}"></i>`;
+                        }
+                    });
+                } else {
+                    // 如果不是当前预览的客户，按存储的顺序
+                    if (customer.text1) combinedHtml += `<span>${customer.text1}</span>`;
+                    
+                    if (customer.customIcons && customer.customIcons.length > 0) {
+                        customer.customIcons.forEach(iconClass => {
+                            combinedHtml += `<i class="${iconClass}"></i>`;
+                        });
+                    }
+                    
+                    if (customer.text2) combinedHtml += `<span>${customer.text2}</span>`;
+                }
+                
+                if (!combinedHtml.trim()) {
+                    reject(new Error(`客户 ${customer.name} 没有定制内容`));
+                    return;
+                }
+
+                pdfSimpleContent.innerHTML = combinedHtml;
+
+                pdfSimpleContainer.style.display = 'block';
+                pdfSimpleContainer.style.position = 'absolute';
+                pdfSimpleContainer.style.left = '-9999px';
+                pdfSimpleContainer.style.top = '0';
+
+                const canvasOptions = {
+                    scale: 2,
+                    useCORS: true,
+                    allowTaint: true,
+                    backgroundColor: '#ffffff',
+                    logging: false,
+                    letterRendering: true,
+                    imageTimeout: 15000,
+                    fontRendering: 'canvas'
+                };
+                
+                html2canvas(pdfSimpleContainer, canvasOptions).then(canvas => {
+                    const { jsPDF } = window.jspdf;
+                    const pdf = new jsPDF({
+                        orientation: 'portrait',
+                        unit: 'mm',
+                        format: 'a4',
+                        compress: true
+                    });
+                    
+                    const imgData = canvas.toDataURL('image/png', 1.0);
+                    const imgWidth = 210;
+                    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                    
+                    const yOffset = (297 - imgHeight) / 2;
+                    pdf.addImage(imgData, 'PNG', 0, yOffset, imgWidth, imgHeight);
+                    
+                    const pdfBlob = pdf.output('blob');
+                    
+                    // 查找客户的序号
+                    const index = customerData.findIndex(c => c.id === customer.id) + 1;
+                    const fileName = `${index}-${customer.name}.pdf`;
+                    
+                    resolve({
+                        name: fileName,
+                        blob: pdfBlob
+                    });
+                    
+                }).catch(err => {
+                    reject(err);
+                }).finally(() => {
+                    pdfSimpleContainer.style.display = 'none';
+                    pdfSimpleContainer.style.position = '';
+                    pdfSimpleContainer.style.left = '';
+                    pdfSimpleContainer.style.top = '';
+                });
+            });
+        }
+        
+        // 导出选中客户的PDF为ZIP压缩包
+        async function exportSelectedToPDF() {
+            const selectedCustomers = customerData.filter(c => selectedCustomerIds.has(c.id));
+            
+            if (selectedCustomers.length === 0) {
+                alert('请先选择要导出的客户');
+                return;
+            }
+            
+            const originalBtnText = exportSelectedPdfBtn.innerHTML;
+            exportSelectedPdfBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> 正在导出...';
+            exportSelectedPdfBtn.disabled = true;
+            
+            try {
+                const zip = new JSZip();
+                const pdfPromises = selectedCustomers.map(customer => generateCustomerPDF(customer));
+                const pdfFiles = await Promise.all(pdfPromises);
+                
+                pdfFiles.forEach(file => {
+                    zip.file(file.name, file.blob);
+                });
+                
+                const zipContent = await zip.generateAsync({
+                    type: 'blob',
+                    compression: 'DEFLATE',
+                    compressionOptions: { level: 6 }
+                });
+                
+                const now = new Date();
+                const zipFileName = `选中定制订单_${now.getFullYear()}${(now.getMonth()+1).toString().padStart(2, '0')}${now.getDate().toString().padStart(2, '0')}.zip`;
+                saveAs(zipContent, zipFileName);
+                
+                alert(`成功导出 ${selectedCustomers.length} 个PDF文件，已打包为ZIP压缩包`);
+                
+            } catch (err) {
+                console.error('ZIP导出失败:', err);
+                alert('导出失败，请重试！');
+            } finally {
+                exportSelectedPdfBtn.innerHTML = originalBtnText;
+                exportSelectedPdfBtn.disabled = false;
+            }
+        }
+
+        // 导出选中客户的Excel
+        function exportSelectedToExcel() {
+            const selectedCustomers = customerData.filter(c => selectedCustomerIds.has(c.id));
+            
+            if (selectedCustomers.length === 0) {
+                alert('请先选择要导出的客户');
+                return;
+            }
+
+            // 创建CSV内容 - 只包含序号和姓名
+            let csvContent = "\uFEFF序号,姓名\n";
+            
+            selectedCustomers.forEach((customer, index) => {
+                const row = [
+                    index + 1,
+                    customer.name
+                ].join(',');
+                
+                csvContent += row + '\n';
+            });
+            
+            // 下载CSV文件（Excel可打开）
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', `选中客户_${new Date().toISOString().slice(0,10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        }
+
+        // 显示批量删除确认
+        function showBatchDeleteConfirm() {
+            if (selectedCustomerIds.size === 0) return;
+            
+            const customerNames = customerData
+                .filter(c => selectedCustomerIds.has(c.id))
+                .map(c => c.name)
+                .join('、');
+            
+            if (confirm(`确定要删除选中的 ${selectedCustomerIds.size} 个客户吗？\n\n客户：${customerNames}\n\n此操作不可恢复！`)) {
+                batchDeleteCustomers();
+            }
+        }
+
+        // 批量删除客户
+        async function batchDeleteCustomers() {
+            const idsToDelete = Array.from(selectedCustomerIds);
+            
+            // 从本地数组中删除
+            customerData = customerData.filter(customer => !selectedCustomerIds.has(customer.id));
+            
+            // 更新本地存储
+            localStorage.setItem('customerData', JSON.stringify(customerData));
+            
+            // 从数据库删除
+            const success = await deleteFromDatabase(idsToDelete);
+            
+            if (!success) {
+                console.warn('部分数据可能未从数据库删除');
+            }
+            
+            // 清空选中集合
+            selectedCustomerIds.clear();
+            
+            // 更新客户列表
+            updateCustomerList(customerFilterInput.value.trim().toLowerCase());
+            
+            // 更新全选状态
+            selectAllCheckbox.checked = false;
+            
+            // 更新选中数量
+            updateSelectedCount();
+            
+            alert('选中的客户已成功删除');
+        }
+
+        // 切换全选
+        function toggleSelectAll(e) {
+            const checkboxes = document.querySelectorAll('.customer-checkbox');
+            checkboxes.forEach(cb => {
+                cb.checked = e.target.checked;
+                if (e.target.checked) {
+                    selectedCustomerIds.add(parseInt(cb.dataset.id));
+                } else {
+                    selectedCustomerIds.delete(parseInt(cb.dataset.id));
+                }
+            });
+            updateSelectedCount();
+        }
+
+        // 更新选中数量显示
+        function updateSelectedCount() {
+            selectedCountSpan.textContent = `已选择 ${selectedCustomerIds.size} 项`;
+            batchDeleteBtn.disabled = selectedCustomerIds.size === 0;
+            
+            const totalCheckboxes = document.querySelectorAll('.customer-checkbox').length;
+            if (selectedCustomerIds.size === totalCheckboxes && totalCheckboxes > 0) {
+                selectAllCheckbox.checked = true;
+            } else {
+                selectAllCheckbox.checked = false;
+            }
+        }
+
+        // 显示管理员密码弹窗
+        function showAdminPasswordModal() {
+            adminPasswordInput.value = '';
+            passwordError.classList.add('hidden');
+            adminPasswordModal.classList.remove('hidden');
+        }
+        
+        // 隐藏管理员密码弹窗
+        function hideAdminPasswordModal() {
+            adminPasswordModal.classList.add('hidden');
+        }
+        
+        // 验证管理员密码
+        function verifyAdminPassword() {
+            const password = adminPasswordInput.value.trim();
+            
+            if (password === ADMIN_PASSWORD) {
+                hideAdminPasswordModal();
+                adminPanel.classList.remove('hidden');
+            } else {
+                passwordError.classList.remove('hidden');
+                adminPasswordInput.classList.add('input-error');
+                
+                setTimeout(() => {
+                    passwordError.classList.add('hidden');
+                    adminPasswordInput.classList.remove('input-error');
+                }, 3000);
+            }
+        }
+        
+        // 筛选客户列表
+        function filterCustomerList() {
+            const filterText = customerFilterInput.value.trim().toLowerCase();
+            updateCustomerList(filterText);
+        }
+        
+        // 显示删除确认弹窗
+        function showDeleteConfirmModal(id) {
+            deleteCustomerId = id;
+            deleteConfirmModal.classList.remove('hidden');
+        }
+        
+        // 隐藏删除确认弹窗
+        function hideDeleteConfirmModal() {
+            deleteConfirmModal.classList.add('hidden');
+            deleteCustomerId = null;
+        }
+        
+        // 确认删除单条客户
+        async function confirmDeleteCustomer() {
+            if (!deleteCustomerId) return;
+            
+            // 从本地数组中删除
+            customerData = customerData.filter(customer => customer.id !== deleteCustomerId);
+            
+            // 更新本地存储
+            localStorage.setItem('customerData', JSON.stringify(customerData));
+            
+            // 从数据库删除
+            const success = await deleteFromDatabase([deleteCustomerId]);
+            
+            if (!success) {
+                console.warn('数据可能未从数据库删除');
+            }
+            
+            // 从选中集合中删除
+            selectedCustomerIds.delete(deleteCustomerId);
+            
+            // 更新客户列表
+            updateCustomerList(customerFilterInput.value.trim().toLowerCase());
+            
+            // 隐藏弹窗
+            hideDeleteConfirmModal();
+            
+            // 更新选中数量
+            updateSelectedCount();
+            
+            alert('客户记录已成功删除');
+        }
+        
+        // 更新客户列表
+        function updateCustomerList(filterText = '') {
+            customerList.innerHTML = '';
+            
+            // 筛选客户数据
+            let filteredData = customerData;
+            if (filterText) {
+                filteredData = customerData.filter(customer => 
+                    customer.name.toLowerCase().includes(filterText)
+                );
+            }
+            
+            if (filteredData.length === 0) {
+                customerList.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="py-4 px-4 text-center text-gray-500">${filterText ? '未找到匹配的客户' : '暂无客户数据'}</td>
+                    </tr>
+                `;
+                selectAllCheckbox.disabled = true;
+                batchDeleteBtn.disabled = true;
+                return;
+            }
+            
+            selectAllCheckbox.disabled = false;
+            
+            filteredData.forEach((customer, index) => {
+                const row = document.createElement('tr');
+                
+                // 构建定制内容的HTML，按顺序显示文字和图标
+                let contentHtml = '<div class="custom-content-cell">';
+                
+                // 先显示文字1
+                if (customer.text1) {
+                    contentHtml += `<span>${customer.text1}</span>`;
+                }
+                
+                // 再显示所有图标（按存储顺序）
+                if (customer.customIcons && customer.customIcons.length > 0) {
+                    customer.customIcons.forEach(iconClass => {
+                        contentHtml += `<i class="${iconClass}"></i>`;
+                    });
+                }
+                
+                // 最后显示文字2
+                if (customer.text2) {
+                    contentHtml += `<span>${customer.text2}</span>`;
+                }
+                
+                contentHtml += '</div>';
+                
+                row.innerHTML = `
+                    <td class="checkbox-column">
+                        <input type="checkbox" class="customer-checkbox" data-id="${customer.id}" ${selectedCustomerIds.has(customer.id) ? 'checked' : ''}>
+                    </td>
+                    <td class="w-16">${index + 1}</td>
+                    <td>${customer.name}</td>
+                    <td>${contentHtml}</td>
+                    <td class="action-column">
+                        <i class="fas fa-trash delete-btn" onclick="showDeleteConfirmModal(${customer.id})" title="删除"></i>
+                    </td>
+                `;
+                
+                // 添加复选框事件
+                const checkbox = row.querySelector('.customer-checkbox');
+                checkbox.addEventListener('change', function(e) {
+                    if (this.checked) {
+                        selectedCustomerIds.add(customer.id);
+                    } else {
+                        selectedCustomerIds.delete(customer.id);
+                    }
+                    updateSelectedCount();
+                });
+                
+                customerList.appendChild(row);
+            });
+            
+            updateSelectedCount();
+        }
+        
+        // 查看客户详情
+        function viewCustomerDetail(id) {
+            const customer = customerData.find(c => c.id === id);
+            if (!customer) return;
+            
+            customerName.value = customer.name;
+            textInput1.value = customer.text1 || '';
+            textInput2.value = customer.text2 || '';
+            
+            orderedItems = [];
+            
+            if (customer.text1) {
+                orderedItems.push({
+                    type: 'text',
+                    content: customer.text1,
+                    charCount: calculateCharCount(customer.text1),
+                    inputId: 'text-input-1'
+                });
+            }
+            
+            if (customer.customIcons && customer.customIcons.length > 0) {
+                customer.customIcons.forEach(iconClass => {
+                    orderedItems.push({
+                        type: 'custom',
+                        iconClass: iconClass,
+                        charCount: 3
+                    });
+                });
+            }
+            
+            if (customer.text2) {
+                orderedItems.push({
+                    type: 'text',
+                    content: customer.text2,
+                    charCount: calculateCharCount(customer.text2),
+                    inputId: 'text-input-2'
+                });
+            }
+            
+            updatePreview();
+            updateTotalCharCount();
+            
+            textCounter1.textContent = `${calculateCharCount(customer.text1 || '')}/15`;
+            textCounter2.textContent = `${calculateCharCount(customer.text2 || '')}/15`;
+            
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+        
+        // 导出客户PNG
+        function exportCustomerPNG(id) {
+            viewCustomerDetail(id);
+            setTimeout(exportToPNG, 500);
+        }
+
+        // 初始化应用
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
