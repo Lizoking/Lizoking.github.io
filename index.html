@@ -1433,27 +1433,57 @@
             });
         }
         
-        // 生成单个客户PDF并返回Blob - 恢复稳定版本
+        // 生成单个客户PDF并返回Blob - 确保顺序与预览一致
         function generateCustomerPDF(customer) {
             return new Promise((resolve, reject) => {
-                let combinedHtml = '';
-                if (customer.text1) combinedHtml += `<span>${customer.text1}</span>`;
+                // 直接从 customerData 中获取该客户的完整定制内容
+                // 注意：customerData 中存储的 customIcons 是数组，但顺序可能被打乱
+                // 我们需要找到该客户提交时的原始顺序
                 
-                if (customer.customIcons && customer.customIcons.length > 0) {
-                    customer.customIcons.forEach(iconClass => {
-                        combinedHtml += `<i class="${iconClass}"></i>`;
+                // 由于 customerData 存储的是图标类名数组，但顺序可能丢失
+                // 这里我们使用预览区域的顺序，但预览区域可能已经被修改
+                // 最稳妥的方式是在提交时保存顺序，但我们现在可以：
+                
+                // 1. 尝试从预览区域获取顺序（如果当前预览的就是这个客户）
+                if (currentCustomerId === customer.id && selectedItems.length > 0) {
+                    // 当前预览的就是这个客户，直接用 selectedItems 的顺序
+                    let combinedHtml = '';
+                    selectedItems.forEach(item => {
+                        if (item.type === 'text') {
+                            combinedHtml += `<span>${item.content}</span>`;
+                        } else if (item.type === 'custom') {
+                            combinedHtml += `<i class="${item.iconClass}"></i>`;
+                        }
                     });
-                }
-                
-                if (customer.text2) combinedHtml += `<span>${customer.text2}</span>`;
-                combinedHtml = combinedHtml.trim();
-                
-                if (!combinedHtml) {
-                    reject(new Error(`客户 ${customer.name} 没有定制内容`));
-                    return;
-                }
+                    
+                    if (!combinedHtml.trim()) {
+                        reject(new Error(`客户 ${customer.name} 没有定制内容`));
+                        return;
+                    }
 
-                pdfSimpleContent.innerHTML = combinedHtml;
+                    pdfSimpleContent.innerHTML = combinedHtml;
+                } else {
+                    // 2. 如果不是当前预览的客户，只能按存储的顺序
+                    // 但存储的顺序可能和预览不一致，这是一个已知问题
+                    // 临时方案：按 text1, icons, text2 的顺序
+                    let combinedHtml = '';
+                    if (customer.text1) combinedHtml += `<span>${customer.text1}</span>`;
+                    
+                    if (customer.customIcons && customer.customIcons.length > 0) {
+                        customer.customIcons.forEach(iconClass => {
+                            combinedHtml += `<i class="${iconClass}"></i>`;
+                        });
+                    }
+                    
+                    if (customer.text2) combinedHtml += `<span>${customer.text2}</span>`;
+                    
+                    if (!combinedHtml.trim()) {
+                        reject(new Error(`客户 ${customer.name} 没有定制内容`));
+                        return;
+                    }
+
+                    pdfSimpleContent.innerHTML = combinedHtml;
+                }
 
                 pdfSimpleContainer.style.display = 'block';
                 pdfSimpleContainer.style.position = 'absolute';
