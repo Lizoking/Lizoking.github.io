@@ -417,23 +417,22 @@
         
         /* ===== 合并预览区域 ===== */
         #combined-preview {
-            font-size: var(--base-font-size);
+            font-size: var(--base-font-size) !important;
             display: flex !important;
             align-items: flex-start !important;
-            justify-content: center;
-            flex-wrap: wrap;
-            gap: 4px;
-            min-height: 80px;
-            padding: 10px;
-            background-color: #F9FAFB;
-
-             /* 添加SVG背景图 */
-            background-image: url(background.svg); 
-            background-repeat: no-repeat;
-            background-position: center;
-            background-size: contain;
-    
-            border-radius: 0.5rem;
+            justify-content: flex-start !important;
+            flex-wrap: wrap !important;
+            gap: 4px !important;
+            min-height: 80px !important;
+            padding: 10px !important;
+            background-color: #F9FAFB !important;
+            width: 100% !important;
+            margin: 0 !important; 
+            text-align: left !important;
+            margin-left: 0 !important;
+            margin-right: auto !important;
+            text-align: left !important;
+            border: 1px solid red;
     
         }
         
