@@ -950,11 +950,39 @@
         const confirmDeleteBtn = document.getElementById('confirm-delete');
         
         // 存储客户定制数据
-        let customerData = [];
+        let customerData = JSON.parse(localStorage.getItem('customerData')) || [];
         let currentCustomerId = null;
         
         // 按输入顺序存储的项目
         let orderedItems = [];
+
+        // ===== 从腾讯云数据库加载数据 =====
+        async function loadFromCloud() {
+            try {
+                const result = await db.collection(COLLECTION_NAME).get();
+                
+                if (result && result.data) {
+                    // 转换数据格式
+                    customerData = result.data.map(item => ({
+                        id: item.id,
+                        name: item.name,
+                        text1: item.text1 || '',
+                        text2: item.text2 || '',
+                        customIcons: item.customIcons || [],
+                        totalChars: item.totalChars || 0,
+                        timestamp: item.timestamp || new Date().toISOString()
+                    }));
+                    
+                    updateCustomerList();
+                    console.log('从腾讯云加载成功', customerData.length, '条记录');
+                }
+            } catch (error) {
+                console.error('从腾讯云加载失败:', error);
+                // 失败时尝试从localStorage加载
+                customerData = JSON.parse(localStorage.getItem('customerData')) || [];
+                updateCustomerList();
+            }
+        }
 
         // 初始化
         function init() {
@@ -991,34 +1019,6 @@
             copyCombinedBtn.addEventListener('click', copyCombinedText);
             
             updateCustomerList();
-        }
-
-        // 从腾讯云数据库加载数据
-        async function loadFromCloud() {
-            try {
-                const result = await db.collection(COLLECTION_NAME).get();
-                
-                if (result && result.data) {
-                    // 转换数据格式
-                    customerData = result.data.map(item => ({
-                        id: item.id,
-                        name: item.name,
-                        text1: item.text1 || '',
-                        text2: item.text2 || '',
-                        customIcons: item.customIcons || [],
-                        totalChars: item.totalChars || 0,
-                        timestamp: item.timestamp || new Date().toISOString()
-                    }));
-                    
-                    updateCustomerList();
-                    console.log('从腾讯云加载成功', customerData.length, '条记录');
-                }
-            } catch (error) {
-                console.error('从腾讯云加载失败:', error);
-                // 失败时尝试从localStorage加载
-                customerData = JSON.parse(localStorage.getItem('customerData')) || [];
-                updateCustomerList();
-            }
         }
 
         // 生成172个图标的网格
