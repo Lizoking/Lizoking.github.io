@@ -452,6 +452,7 @@
             width: auto;
             height: auto;
             max-width: 100%;
+            background-color: #ffffff;
         }
         
         .pdf-simple-content i {
@@ -517,6 +518,7 @@
             color: #ef4444;
             cursor: pointer;
             transition: color 0.2s;
+            margin: 0 5px;
         }
         
         .delete-btn:hover {
@@ -543,6 +545,21 @@
             background-color: #fca5a5;
             cursor: not-allowed;
         }
+        
+        /* 标点按钮组 */
+        .punctuation-group {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+            margin-top: 0.5rem;
+        }
+        
+        .punctuation-select {
+            padding: 0.25rem 0.5rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+        }
     </style>
 </head>
 <body class="bg-gray-50 min-h-screen font-sans">
@@ -550,7 +567,7 @@
         <!-- 标题区域 -->
         <header class="text-center mb-8">
             <h1 class="text-3xl font-bold text-neutral-dark mb-2">移动电源个性化定制</h1>
-            <p class="text-gray-600">172款专属图标，展示你的个性与创意</p>
+            <p class="text-gray-600">172款专属图标，支持重复选择</p>
         </header>
         
         <!-- 主要内容区域 -->
@@ -603,28 +620,34 @@
                         <div class="char-counter" id="text-counter-2">0/15</div>
                     </div>
                     
-                    <!-- 常用标点按钮 -->
+                    <!-- 常用标点按钮 - 可选择插入位置 -->
                     <div class="mt-2">
-                        <div class="text-xs text-gray-500 mb-1">常用标点：</div>
-                        <div class="flex flex-wrap gap-1">
-                            <button type="button" class="px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm" onclick="insertPunctuation('.')">.</button>
-                            <button type="button" class="px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm" onclick="insertPunctuation(',')">,</button>
-                            <button type="button" class="px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm" onclick="insertPunctuation('!')">!</button>
-                            <button type="button" class="px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm" onclick="insertPunctuation('?')">?</button>
-                            <button type="button" class="px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm" onclick="insertPunctuation(';')">;</button>
-                            <button type="button" class="px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm" onclick="insertPunctuation(':')">:</button>
-                            <button type="button" class="px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm" onclick="insertPunctuation('-')">-</button>
-                            <button type="button" class="px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm" onclick="insertPunctuation('_')">_</button>
-                            <button type="button" class="px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm" onclick="insertPunctuation('@')">@</button>
-                            <button type="button" class="px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm" onclick="insertPunctuation('#')">#</button>
-                            <button type="button" class="px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm" onclick="insertPunctuation('&')">&</button>
-                            <button type="button" class="px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm" onclick="insertPunctuation('*')">*</button>
-                            <button type="button" class="px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm" onclick="insertPunctuation('(')">(</button>
-                            <button type="button" class="px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm" onclick="insertPunctuation(')')">)</button>
-                            <button type="button" class="px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm" onclick="insertPunctuation('[')">[</button>
-                            <button type="button" class="px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm" onclick="insertPunctuation(']')">]</button>
-                            <button type="button" class="px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm" onclick="insertPunctuation('{')">{</button>
-                            <button type="button" class="px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm" onclick="insertPunctuation('}')">}</button>
+                        <div class="text-xs text-gray-500 mb-1">常用标点（选择插入位置）：</div>
+                        <div class="punctuation-group">
+                            <select id="punctuation-target" class="punctuation-select">
+                                <option value="text1">文字1</option>
+                                <option value="text2">文字2</option>
+                            </select>
+                            <div class="flex flex-wrap gap-1">
+                                <button type="button" class="px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm" onclick="insertPunctuation('.')">.</button>
+                                <button type="button" class="px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm" onclick="insertPunctuation(',')">,</button>
+                                <button type="button" class="px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm" onclick="insertPunctuation('!')">!</button>
+                                <button type="button" class="px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm" onclick="insertPunctuation('?')">?</button>
+                                <button type="button" class="px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm" onclick="insertPunctuation(';')">;</button>
+                                <button type="button" class="px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm" onclick="insertPunctuation(':')">:</button>
+                                <button type="button" class="px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm" onclick="insertPunctuation('-')">-</button>
+                                <button type="button" class="px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm" onclick="insertPunctuation('_')">_</button>
+                                <button type="button" class="px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm" onclick="insertPunctuation('@')">@</button>
+                                <button type="button" class="px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm" onclick="insertPunctuation('#')">#</button>
+                                <button type="button" class="px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm" onclick="insertPunctuation('&')">&</button>
+                                <button type="button" class="px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm" onclick="insertPunctuation('*')">*</button>
+                                <button type="button" class="px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm" onclick="insertPunctuation('(')">(</button>
+                                <button type="button" class="px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm" onclick="insertPunctuation(')')">)</button>
+                                <button type="button" class="px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm" onclick="insertPunctuation('[')">[</button>
+                                <button type="button" class="px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm" onclick="insertPunctuation(']')">]</button>
+                                <button type="button" class="px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm" onclick="insertPunctuation('{')">{</button>
+                                <button type="button" class="px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm" onclick="insertPunctuation('}')">}</button>
+                            </div>
                         </div>
                     </div>
                     
@@ -694,7 +717,7 @@
         <!-- ICON选择器区域（172个图标） -->
         <section class="mt-8 bg-white rounded-xl shadow-custom p-6">
             <h2 class="text-xl font-semibold mb-4 flex items-center">
-                <i class="fa fa-smile-o mr-2 text-primary"></i>图标选择（共172款，可多选）
+                <i class="fa fa-smile-o mr-2 text-primary"></i>图标选择（共172款，支持重复选择）
             </h2>
             
             <div class="icon-grid custom-scrollbar overflow-auto max-h-96 p-2" id="icon-grid">
@@ -922,6 +945,7 @@
         const combinedPreview = document.getElementById('combined-preview');
         const combinedChars = document.getElementById('combined-chars');
         const copyCombinedBtn = document.getElementById('copy-combined');
+        const punctuationTarget = document.getElementById('punctuation-target');
         
         // PDF导出专用DOM元素
         const pdfSimpleContainer = document.getElementById('pdf-simple-container');
@@ -1005,38 +1029,25 @@
             });
         }
 
-        // 图标选择逻辑
+        // 图标选择逻辑 - 修改为支持重复选择
         function toggleIconSelection(iconClass) {
-            const selector = `[data-type="custom"][data-icon-class="${iconClass}"]`;
-            const item = document.querySelector(selector);
+            const charCount = 3; 
+            const currentTotal = calculateTotalChars();
             
-            if (item.classList.contains('selected')) {
-                item.classList.remove('selected');
-                const index = selectedItems.findIndex(
-                    item => item.type === 'custom' && item.iconClass === iconClass
-                );
-                if (index !== -1) {
-                    selectedItems.splice(index, 1);
-                }
-            } else {
-                const charCount = 3; 
-                const currentTotal = calculateTotalChars();
+            if (currentTotal + charCount <= 15) {
+                // 不再检查是否已选中，直接添加
+                selectedItems.push({
+                    type: 'custom',
+                    iconClass: iconClass,
+                    charCount: charCount
+                });
                 
-                if (currentTotal + charCount <= 15) {
-                    item.classList.add('selected');
-                    selectedItems.push({
-                        type: 'custom',
-                        iconClass: iconClass,
-                        charCount: charCount
-                    });
-                } else {
-                    totalCharsError.classList.remove('hidden');
-                    setTimeout(() => totalCharsError.classList.add('hidden'), 2000);
-                }
+                updatePreview();
+                updateTotalCharCount();
+            } else {
+                totalCharsError.classList.remove('hidden');
+                setTimeout(() => totalCharsError.classList.add('hidden'), 2000);
             }
-            
-            updatePreview();
-            updateTotalCharCount();
         }
 
         // 处理文本输入
@@ -1063,29 +1074,23 @@
             updateTotalCharCount();
         }
 
-        // 插入标点符号
+        // 插入标点符号 - 修改为可选择的插入位置
         function insertPunctuation(char) {
-            const activeElement = document.activeElement;
-            if (activeElement && (activeElement.id === 'text-input-1' || activeElement.id === 'text-input-2')) {
-                const start = activeElement.selectionStart;
-                const end = activeElement.selectionEnd;
-                const value = activeElement.value;
-                const newValue = value.substring(0, start) + char + value.substring(end);
-                activeElement.value = newValue;
-                
-                // 更新字符计数
-                const event = new Event('input', { bubbles: true });
-                activeElement.dispatchEvent(event);
-                
-                // 光标移到插入字符后面
-                activeElement.selectionStart = activeElement.selectionEnd = start + char.length;
-            } else {
-                // 如果没有焦点，默认插入到第一个输入框
-                const input1 = document.getElementById('text-input-1');
-                input1.value += char;
-                const event = new Event('input', { bubbles: true });
-                input1.dispatchEvent(event);
-            }
+            const target = punctuationTarget.value;
+            const input = target === 'text1' ? textInput1 : textInput2;
+            
+            const start = input.selectionStart;
+            const end = input.selectionEnd;
+            const value = input.value;
+            const newValue = value.substring(0, start) + char + value.substring(end);
+            input.value = newValue;
+            
+            // 更新字符计数
+            const event = new Event('input', { bubbles: true });
+            input.dispatchEvent(event);
+            
+            // 光标移到插入字符后面
+            input.selectionStart = input.selectionEnd = start + char.length;
         }
 
         // 计算字符数
@@ -1220,12 +1225,6 @@
                     textInput2.value = '';
                     textCounter2.textContent = '0/15';
                 }
-            } else if (item.type === 'custom') {
-                const selector = `[data-type="custom"][data-icon-class="${item.iconClass}"]`;
-                const listItem = document.querySelector(selector);
-                if (listItem) {
-                    listItem.classList.remove('selected');
-                }
             }
             
             selectedItems.splice(index, 1);
@@ -1239,10 +1238,6 @@
             textInput2.value = '';
             textCounter1.textContent = '0/15';
             textCounter2.textContent = '0/15';
-            
-            document.querySelectorAll('.icon-item.selected').forEach(item => {
-                item.classList.remove('selected');
-            });
             
             selectedItems = [];
             updatePreview();
@@ -1481,7 +1476,14 @@
                 return;
             }
 
+            // 构建完整的HTML内容，确保字体被正确加载
             pdfSimpleContent.innerHTML = combinedHtml;
+            
+            // 确保字体被应用
+            pdfSimpleContent.style.fontFamily = '"Noto Sans SC", "custom-icons", sans-serif';
+            
+            // 强制重绘
+            pdfSimpleContent.offsetHeight;
 
             // 获取实际内容尺寸
             const rect = pdfSimpleContent.getBoundingClientRect();
@@ -1524,7 +1526,7 @@
             });
         }
         
-        // 生成单个客户PDF并返回Blob（自适应尺寸）
+        // 生成单个客户PDF并返回Blob（自适应尺寸）- 修复文件名格式为“序号-姓名”
         function generateCustomerPDF(customer) {
             return new Promise((resolve, reject) => {
                 let combinedHtml = '';
@@ -1545,6 +1547,10 @@
                 }
 
                 pdfSimpleContent.innerHTML = combinedHtml;
+                pdfSimpleContent.style.fontFamily = '"Noto Sans SC", "custom-icons", sans-serif';
+                
+                // 强制重绘
+                pdfSimpleContent.offsetHeight;
 
                 // 获取实际内容尺寸
                 const rect = pdfSimpleContent.getBoundingClientRect();
@@ -1580,8 +1586,12 @@
                     
                     const pdfBlob = pdf.output('blob');
                     
+                    // 查找客户的序号
+                    const index = customerData.findIndex(c => c.id === customer.id) + 1;
+                    const fileName = `${index}-${customer.name}.pdf`;
+                    
                     resolve({
-                        name: `定制内容_${customer.name}_${customer.id}.pdf`,
+                        name: fileName,
                         blob: pdfBlob
                     });
                     
@@ -1878,9 +1888,6 @@
             textInput2.value = customer.text2 || '';
             
             selectedItems = [];
-            document.querySelectorAll('.icon-item.selected').forEach(item => {
-                item.classList.remove('selected');
-            });
             
             if (customer.text1) {
                 const text1Count = calculateCharCount(customer.text1);
@@ -1894,12 +1901,6 @@
             
             if (customer.customIcons && customer.customIcons.length > 0) {
                 customer.customIcons.forEach(iconClass => {
-                    const selector = `[data-type="custom"][data-icon-class="${iconClass}"]`;
-                    const iconItem = document.querySelector(selector);
-                    if (iconItem) {
-                        iconItem.classList.add('selected');
-                    }
-                    
                     selectedItems.push({
                         type: 'custom',
                         iconClass: iconClass,
