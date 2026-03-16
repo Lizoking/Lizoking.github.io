@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>移动电源定制 - 172 ICON版</title>
+    <title>移动电源定制</title>
     <!-- Tailwind CSS v3 -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Font Awesome -->
@@ -18,6 +18,55 @@
     <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
     <!-- FileSaver 用于下载ZIP文件 -->
     <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+    
+    <!-- 字体图标定义 -->
+    <style>
+        @font-face {
+            font-family: 'icomoon';
+            src:  url('fonts/icomoon.eot?f5td7i');
+            src:  url('fonts/icomoon.eot?f5td7i#iefix') format('embedded-opentype'),
+                url('fonts/icomoon.ttf?f5td7i') format('truetype'),
+                url('fonts/icomoon.woff?f5td7i') format('woff'),
+                url('fonts/icomoon.svg?f5td7i#icomoon') format('svg');
+            font-weight: normal;
+            font-style: normal;
+            font-display: block;
+        }
+
+        [class^="icon-"], [class*=" icon-"] {
+            font-family: 'icomoon' !important;
+            speak: never;
+            font-style: normal;
+            font-weight: normal;
+            font-variant: normal;
+            text-transform: none;
+            line-height: 1;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* 图标映射 - 保持 icon-1, icon-2 格式 */
+        .icon-1:before { content: "\e900"; }
+        .icon-2:before { content: "\e901"; }
+        .icon-3:before { content: "\e902"; }
+        .icon-4:before { content: "\e903"; }
+        .icon-5:before { content: "\e904"; }
+        .icon-6:before { content: "\e905"; }
+        .icon-7:before { content: "\e906"; }
+        .icon-8:before { content: "\e907"; }
+        .icon-9:before { content: "\e908"; }
+        .icon-10:before { content: "\e909"; }
+        .icon-11:before { content: "\e90a"; }
+        .icon-12:before { content: "\e90b"; }
+        .icon-13:before { content: "\e90c"; }
+        .icon-14:before { content: "\e90d"; }
+        .icon-15:before { content: "\e90e"; }
+        .icon-16:before { content: "\e90f"; }
+        .icon-17:before { content: "\e910"; }
+        .icon-18:before { content: "\e911"; }
+        .icon-19:before { content: "\e912"; }
+        .icon-20:before { content: "\e913"; }
+    </style>
     
     <script>
         tailwind.config = {
@@ -43,209 +92,6 @@
     </script>
     
     <style>
-        /* ===== 字体图标定义 ===== */
-        @font-face {
-            font-family: 'custom-icons';
-            src: url('fonts/icomoon.eot?123456');
-            src: url('fonts/icomoon.eot?123456#iefix') format('embedded-opentype'),
-                 url('fonts/icomoon.ttf?123456') format('truetype'),
-                 url('fonts/icomoon.woff?123456') format('woff'),
-                 url('fonts/icomoon.svg?123456#icomoon') format('svg');
-            font-weight: normal;
-            font-style: normal;
-            font-display: block;
-        }
-
-        /* 图标基础样式 - 所有图标类统一使用这个字体 */
-        [class^="icon-"], [class*=" icon-"] {
-            font-family: 'custom-icons' !important;
-            speak: never;
-            font-style: normal;
-            font-weight: normal;
-            font-variant: normal;
-            text-transform: none;
-            line-height: 1;
-            vertical-align: middle;
-            display: inline-block;
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
-        }
-
-        /* ===== 172个图标的 Unicode 映射 ===== */
-        /* 注意：你需要根据你的 icomoon 生成的 style.css 里的实际值替换下面所有 \e900 等 */
-        .icon-001:before { content: "\e900"; }
-        .icon-002:before { content: "\e901"; }
-        .icon-003:before { content: "\e902"; }
-        .icon-004:before { content: "\e903"; }
-        .icon-005:before { content: "\e904"; }
-        .icon-006:before { content: "\e905"; }
-        .icon-007:before { content: "\e906"; }
-        .icon-008:before { content: "\e907"; }
-        .icon-009:before { content: "\e908"; }
-        .icon-010:before { content: "\e909"; }
-        .icon-011:before { content: "\e90a"; }
-        .icon-012:before { content: "\e90b"; }
-        .icon-013:before { content: "\e90c"; }
-        .icon-014:before { content: "\e90d"; }
-        .icon-015:before { content: "\e90e"; }
-        .icon-016:before { content: "\e90f"; }
-        .icon-017:before { content: "\e910"; }
-        .icon-018:before { content: "\e911"; }
-        .icon-019:before { content: "\e912"; }
-        .icon-020:before { content: "\e913"; }
-        .icon-021:before { content: "\e914"; }
-        .icon-022:before { content: "\e915"; }
-        .icon-023:before { content: "\e916"; }
-        .icon-024:before { content: "\e917"; }
-        .icon-025:before { content: "\e918"; }
-        .icon-026:before { content: "\e919"; }
-        .icon-027:before { content: "\e91a"; }
-        .icon-028:before { content: "\e91b"; }
-        .icon-029:before { content: "\e91c"; }
-        .icon-030:before { content: "\e91d"; }
-        .icon-031:before { content: "\e91e"; }
-        .icon-032:before { content: "\e91f"; }
-        .icon-033:before { content: "\e920"; }
-        .icon-034:before { content: "\e921"; }
-        .icon-035:before { content: "\e922"; }
-        .icon-036:before { content: "\e923"; }
-        .icon-037:before { content: "\e924"; }
-        .icon-038:before { content: "\e925"; }
-        .icon-039:before { content: "\e926"; }
-        .icon-040:before { content: "\e927"; }
-        .icon-041:before { content: "\e928"; }
-        .icon-042:before { content: "\e929"; }
-        .icon-043:before { content: "\e92a"; }
-        .icon-044:before { content: "\e92b"; }
-        .icon-045:before { content: "\e92c"; }
-        .icon-046:before { content: "\e92d"; }
-        .icon-047:before { content: "\e92e"; }
-        .icon-048:before { content: "\e92f"; }
-        .icon-049:before { content: "\e930"; }
-        .icon-050:before { content: "\e931"; }
-        .icon-051:before { content: "\e932"; }
-        .icon-052:before { content: "\e933"; }
-        .icon-053:before { content: "\e934"; }
-        .icon-054:before { content: "\e935"; }
-        .icon-055:before { content: "\e936"; }
-        .icon-056:before { content: "\e937"; }
-        .icon-057:before { content: "\e938"; }
-        .icon-058:before { content: "\e939"; }
-        .icon-059:before { content: "\e93a"; }
-        .icon-060:before { content: "\e93b"; }
-        .icon-061:before { content: "\e93c"; }
-        .icon-062:before { content: "\e93d"; }
-        .icon-063:before { content: "\e93e"; }
-        .icon-064:before { content: "\e93f"; }
-        .icon-065:before { content: "\e940"; }
-        .icon-066:before { content: "\e941"; }
-        .icon-067:before { content: "\e942"; }
-        .icon-068:before { content: "\e943"; }
-        .icon-069:before { content: "\e944"; }
-        .icon-070:before { content: "\e945"; }
-        .icon-071:before { content: "\e946"; }
-        .icon-072:before { content: "\e947"; }
-        .icon-073:before { content: "\e948"; }
-        .icon-074:before { content: "\e949"; }
-        .icon-075:before { content: "\e94a"; }
-        .icon-076:before { content: "\e94b"; }
-        .icon-077:before { content: "\e94c"; }
-        .icon-078:before { content: "\e94d"; }
-        .icon-079:before { content: "\e94e"; }
-        .icon-080:before { content: "\e94f"; }
-        .icon-081:before { content: "\e950"; }
-        .icon-082:before { content: "\e951"; }
-        .icon-083:before { content: "\e952"; }
-        .icon-084:before { content: "\e953"; }
-        .icon-085:before { content: "\e954"; }
-        .icon-086:before { content: "\e955"; }
-        .icon-087:before { content: "\e956"; }
-        .icon-088:before { content: "\e957"; }
-        .icon-089:before { content: "\e958"; }
-        .icon-090:before { content: "\e959"; }
-        .icon-091:before { content: "\e95a"; }
-        .icon-092:before { content: "\e95b"; }
-        .icon-093:before { content: "\e95c"; }
-        .icon-094:before { content: "\e95d"; }
-        .icon-095:before { content: "\e95e"; }
-        .icon-096:before { content: "\e95f"; }
-        .icon-097:before { content: "\e960"; }
-        .icon-098:before { content: "\e961"; }
-        .icon-099:before { content: "\e962"; }
-        .icon-100:before { content: "\e963"; }
-        .icon-101:before { content: "\e964"; }
-        .icon-102:before { content: "\e965"; }
-        .icon-103:before { content: "\e966"; }
-        .icon-104:before { content: "\e967"; }
-        .icon-105:before { content: "\e968"; }
-        .icon-106:before { content: "\e969"; }
-        .icon-107:before { content: "\e96a"; }
-        .icon-108:before { content: "\e96b"; }
-        .icon-109:before { content: "\e96c"; }
-        .icon-110:before { content: "\e96d"; }
-        .icon-111:before { content: "\e96e"; }
-        .icon-112:before { content: "\e96f"; }
-        .icon-113:before { content: "\e970"; }
-        .icon-114:before { content: "\e971"; }
-        .icon-115:before { content: "\e972"; }
-        .icon-116:before { content: "\e973"; }
-        .icon-117:before { content: "\e974"; }
-        .icon-118:before { content: "\e975"; }
-        .icon-119:before { content: "\e976"; }
-        .icon-120:before { content: "\e977"; }
-        .icon-121:before { content: "\e978"; }
-        .icon-122:before { content: "\e979"; }
-        .icon-123:before { content: "\e97a"; }
-        .icon-124:before { content: "\e97b"; }
-        .icon-125:before { content: "\e97c"; }
-        .icon-126:before { content: "\e97d"; }
-        .icon-127:before { content: "\e97e"; }
-        .icon-128:before { content: "\e97f"; }
-        .icon-129:before { content: "\e980"; }
-        .icon-130:before { content: "\e981"; }
-        .icon-131:before { content: "\e982"; }
-        .icon-132:before { content: "\e983"; }
-        .icon-133:before { content: "\e984"; }
-        .icon-134:before { content: "\e985"; }
-        .icon-135:before { content: "\e986"; }
-        .icon-136:before { content: "\e987"; }
-        .icon-137:before { content: "\e988"; }
-        .icon-138:before { content: "\e989"; }
-        .icon-139:before { content: "\e98a"; }
-        .icon-140:before { content: "\e98b"; }
-        .icon-141:before { content: "\e98c"; }
-        .icon-142:before { content: "\e98d"; }
-        .icon-143:before { content: "\e98e"; }
-        .icon-144:before { content: "\e98f"; }
-        .icon-145:before { content: "\e990"; }
-        .icon-146:before { content: "\e991"; }
-        .icon-147:before { content: "\e992"; }
-        .icon-148:before { content: "\e993"; }
-        .icon-149:before { content: "\e994"; }
-        .icon-150:before { content: "\e995"; }
-        .icon-151:before { content: "\e996"; }
-        .icon-152:before { content: "\e997"; }
-        .icon-153:before { content: "\e998"; }
-        .icon-154:before { content: "\e999"; }
-        .icon-155:before { content: "\e99a"; }
-        .icon-156:before { content: "\e99b"; }
-        .icon-157:before { content: "\e99c"; }
-        .icon-158:before { content: "\e99d"; }
-        .icon-159:before { content: "\e99e"; }
-        .icon-160:before { content: "\e99f"; }
-        .icon-161:before { content: "\e9a0"; }
-        .icon-162:before { content: "\e9a1"; }
-        .icon-163:before { content: "\e9a2"; }
-        .icon-164:before { content: "\e9a3"; }
-        .icon-165:before { content: "\e9a4"; }
-        .icon-166:before { content: "\e9a5"; }
-        .icon-167:before { content: "\e9a6"; }
-        .icon-168:before { content: "\e9a7"; }
-        .icon-169:before { content: "\e9a8"; }
-        .icon-170:before { content: "\e9a9"; }
-        .icon-171:before { content: "\e9aa"; }
-        .icon-172:before { content: "\e9ab"; }
-
         /* ===== 全局样式 ===== */
         * {
             box-sizing: border-box;
@@ -258,7 +104,7 @@
             --base-line-height: 1.2;
         }
         
-        /* ICON网格 - 每行10个，共18行 */
+        /* ICON网格 - 每行10个 */
         .icon-grid {
             display: grid;
             grid-template-columns: repeat(10, 1fr);
@@ -276,7 +122,7 @@
             width: 2.5rem;
             border-radius: 0.375rem;
             font-size: 1.5rem;
-            font-family: "custom-icons", sans-serif;
+            font-family: "icomoon", sans-serif;
             overflow: hidden;
             position: relative;
         }
@@ -318,6 +164,7 @@
             vertical-align: middle;
             line-height: 1;
             flex-shrink: 0;
+            font-family: "icomoon", sans-serif;
         }
         
         .preview-item span {
@@ -423,6 +270,7 @@
             display: inline-block;
             vertical-align: middle;
             line-height: 1;
+            font-family: "icomoon", sans-serif;
         }
         
         #combined-preview span {
@@ -438,7 +286,7 @@
             display: flex !important;
             align-items: center !important;
             justify-content: center;
-            font-family: "Noto Sans SC", "custom-icons", sans-serif;
+            font-family: "Noto Sans SC", "icomoon", sans-serif;
             font-size: 48px;
             line-height: 1.2;
             padding: 40px;
@@ -454,6 +302,7 @@
             display: inline-block;
             vertical-align: middle;
             line-height: 1;
+            font-family: "icomoon", sans-serif;
         }
         
         .pdf-simple-content span {
@@ -529,7 +378,7 @@
             cursor: not-allowed;
         }
         
-        /* 定制内容单元格样式 - 用于显示图标 */
+        /* 定制内容单元格样式 */
         .custom-content-cell {
             display: flex;
             align-items: center;
@@ -540,6 +389,7 @@
         .custom-content-cell i {
             font-size: 20px;
             color: #333;
+            font-family: "icomoon", sans-serif;
         }
         
         .custom-content-cell span {
@@ -553,7 +403,7 @@
         <!-- 标题区域 -->
         <header class="text-center mb-8">
             <h1 class="text-3xl font-bold text-neutral-dark mb-2">移动电源个性化定制</h1>
-            <p class="text-gray-600">172款专属图标，支持重复选择</p>
+            <p class="text-gray-600">20款专属图标，支持重复选择</p>
         </header>
         
         <!-- 主要内容区域 -->
@@ -669,14 +519,14 @@
             </div>
         </main>
         
-        <!-- ICON选择器区域（172个图标） -->
+        <!-- ICON选择器区域（20个图标） -->
         <section class="mt-8 bg-white rounded-xl shadow-custom p-6">
             <h2 class="text-xl font-semibold mb-4 flex items-center">
-                <i class="fa fa-smile-o mr-2 text-primary"></i>图标选择（共172款，支持重复选择）
+                <i class="fa fa-smile-o mr-2 text-primary"></i>图标选择（共20款，支持重复选择）
             </h2>
             
             <div class="icon-grid custom-scrollbar overflow-auto max-h-96 p-2" id="icon-grid">
-                <!-- 172个图标将通过JavaScript动态生成 -->
+                <!-- 20个图标将通过JavaScript动态生成 -->
             </div>
         </section>
         
@@ -847,15 +697,13 @@
     </div>
 
     <script>
-        // ===== 172个图标的列表（自动生成） =====
+        // ===== 20个图标的列表（使用 icon-1, icon-2 格式） =====
         const iconList = [];
-        for (let i = 1; i <= 172; i++) {
-            // 生成三位数的编号，如 001, 002, ... 172
-            const number = i.toString().padStart(3, '0');
+        for (let i = 1; i <= 20; i++) {
             iconList.push({
-                id: `icon-${number}`,
+                id: `icon-${i}`,
                 type: 'custom',
-                iconClass: `icon-${number}`
+                iconClass: `icon-${i}`  // 生成 icon-1, icon-2, ... icon-20
             });
         }
 
@@ -963,7 +811,7 @@
             updateCustomerList();
         }
 
-        // 生成172个图标的网格
+        // 生成20个图标的网格
         function generateIconGrid() {
             iconGrid.innerHTML = '';
             
@@ -1451,10 +1299,9 @@
             });
         }
         
-        // 生成单个客户PDF并返回Blob - 确保顺序与预览一致
+        // 生成单个客户PDF并返回Blob
         function generateCustomerPDF(customer) {
             return new Promise((resolve, reject) => {
-                // 尝试从预览区域获取顺序（如果当前预览的就是这个客户）
                 let combinedHtml = '';
                 
                 if (currentCustomerId === customer.id && selectedItems.length > 0) {
@@ -1752,7 +1599,7 @@
             alert('客户记录已成功删除');
         }
         
-        // 更新客户列表 - 修复定制内容列的顺序和图标显示
+        // 更新客户列表
         function updateCustomerList(filterText = '') {
             customerList.innerHTML = '';
             
