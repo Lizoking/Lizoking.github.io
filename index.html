@@ -424,14 +424,13 @@
              flex-wrap: wrap;
              gap: 4px;
              min-height: 80px;
-             padding: 50px;
+             padding: 30px;
              background-color: #F9FAFB;
              background-image: url(background.svg);  
              background-repeat: no-repeat;
              background-position: center;
              background-size: contain;  
              border-radius: 0.1rem;
-    
         }
         
         #combined-preview i {
@@ -1338,13 +1337,34 @@
             successModal.classList.remove('hidden');
         }
         
-        // 导出为PNG
+        // 导出为PNG - 不带背景（优化版）
         function exportToPNG() {
-            const combinedPreviewElement = document.getElementById('combined-preview');
+            // 创建一个临时容器，只复制内容不复制背景
+            const contentContainer = document.createElement('div');
+            contentContainer.style.cssText = `
+                font-size: 16px;
+                display: flex;
+                align-items: center;
+                justify-content: flex-start;
+                flex-wrap: wrap;
+                gap: 4px;
+                padding: 30px;
+                background-color: transparent;
+                font-family: "Noto Sans SC", "icomoon", sans-serif;
+            `;
             
-            html2canvas(combinedPreviewElement, {
+            // 复制合并预览的内容（不包含背景）
+            contentContainer.innerHTML = combinedPreview.innerHTML;
+            
+            // 临时添加到 body
+            contentContainer.style.position = 'absolute';
+            contentContainer.style.left = '-9999px';
+            contentContainer.style.top = '0';
+            document.body.appendChild(contentContainer);
+            
+            html2canvas(contentContainer, {
                 scale: 3,
-                backgroundColor: '#F9FAFB',
+                backgroundColor: null,  // 透明背景
                 logging: false,
                 useCORS: true, 
                 allowTaint: true,
@@ -1356,9 +1376,16 @@
                 link.download = `powerbank-${customerName.value.trim()}-${Date.now()}.png`;
                 link.href = canvas.toDataURL('image/png', 1.0);
                 link.click();
+                
+                // 清理临时元素
+                document.body.removeChild(contentContainer);
             }).catch(err => {
                 console.error('导出PNG失败:', err);
                 alert('导出PNG失败，请重试');
+                // 出错也要清理
+                if (document.body.contains(contentContainer)) {
+                    document.body.removeChild(contentContainer);
+                }
             });
         }
         
