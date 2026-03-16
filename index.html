@@ -436,12 +436,10 @@
             vertical-align: middle;
         }
         
-        /* ===== PDF导出内容 ===== */
+        /* ===== PDF导出内容 - 自适应尺寸 ===== */
         .pdf-simple-content {
-            width: 595px;
-            height: 842px;
             background: white;
-            display: flex !important;
+            display: inline-flex !important;
             align-items: center !important;
             justify-content: center;
             font-family: "Noto Sans SC", "custom-icons", sans-serif;
@@ -451,6 +449,9 @@
             box-sizing: border-box;
             gap: 8px;
             flex-wrap: wrap;
+            width: auto;
+            height: auto;
+            max-width: 100%;
         }
         
         .pdf-simple-content i {
@@ -465,6 +466,46 @@
             display: inline-block;
             line-height: 1.2;
             vertical-align: middle;
+        }
+        
+        /* 管理员表格样式 */
+        .admin-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .admin-table th {
+            background-color: #f3f4f6;
+            padding: 0.5rem;
+            text-align: left;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #374151;
+            border-bottom: 2px solid #d1d5db;
+        }
+        
+        .admin-table td {
+            padding: 0.5rem;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .admin-table tr:hover {
+            background-color: #f9fafb;
+        }
+        
+        .checkbox-column {
+            width: 40px;
+            text-align: center;
+        }
+        
+        .select-all-row {
+            background-color: #f9fafb;
+            border-bottom: 2px solid #d1d5db;
+        }
+        
+        .select-all-row td {
+            padding: 0.5rem;
+            font-weight: 500;
         }
     </style>
 </head>
@@ -692,37 +733,45 @@
                 <div id="admin-panel" class="mt-4 bg-gray-50 p-4 rounded-lg hidden">
                     <h3 class="text-lg font-semibold mb-2">客户定制列表</h3>
                     
-                    <!-- 姓名筛选框 -->
-                    <div class="mb-4">
+                    <!-- 筛选和全选栏 -->
+                    <div class="mb-4 flex items-center justify-between">
+                        <div class="flex items-center gap-4">
+                            <label class="flex items-center">
+                                <input type="checkbox" id="select-all" class="mr-2">
+                                <span class="text-sm">全选</span>
+                            </label>
+                            <span id="selected-count" class="text-sm text-gray-600">已选择 0 项</span>
+                        </div>
                         <input 
                             type="text" 
                             id="customer-filter" 
-                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all"
+                            class="w-64 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all"
                             placeholder="输入姓名筛选..."
                         >
                     </div>
                     
-                    <div class="max-h-60 overflow-y-auto custom-scrollbar">
-                        <table class="min-w-full bg-white">
-                            <thead class="bg-gray-100">
+                    <div class="max-h-96 overflow-y-auto custom-scrollbar">
+                        <table class="admin-table" id="customer-table">
+                            <thead>
                                 <tr>
-                                    <th class="py-2 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">姓名</th>
-                                    <th class="py-2 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">定制内容</th>
-                                    <th class="py-2 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
+                                    <th class="checkbox-column"></th>
+                                    <th class="w-16">序号</th>
+                                    <th>姓名</th>
+                                    <th>定制内容</th>
                                 </tr>
                             </thead>
-                            <tbody id="customer-list" class="divide-y divide-gray-200">
+                            <tbody id="customer-list">
                                 <!-- 客户列表将通过JavaScript动态生成 -->
                             </tbody>
                         </table>
                     </div>
                     
                     <div class="mt-4 flex justify-end gap-2">
-                        <button id="export-excel" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm transition-colors flex items-center">
-                            <i class="fa fa-file-excel-o mr-1"></i> 导出Excel
+                        <button id="export-selected-excel" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm transition-colors flex items-center">
+                            <i class="fa fa-file-excel-o mr-1"></i> 导出选中Excel
                         </button>
-                        <button id="export-all-pdf" class="px-4 py-2 bg-accent hover:bg-yellow-600 text-white rounded-lg text-sm transition-colors flex items-center">
-                            <i class="fa fa-file-pdf-o mr-1"></i> 导出全部PDF（ZIP）
+                        <button id="export-selected-pdf" class="px-4 py-2 bg-accent hover:bg-yellow-600 text-white rounded-lg text-sm transition-colors flex items-center">
+                            <i class="fa fa-file-pdf-o mr-1"></i> 导出选中PDF（ZIP）
                         </button>
                     </div>
                 </div>
@@ -771,8 +820,8 @@
             </div>
         </div>
         
-        <!-- 纯内容PDF导出容器 -->
-        <div id="pdf-simple-container" class="hidden">
+        <!-- 纯内容PDF导出容器 - 用于自适应尺寸导出 -->
+        <div id="pdf-simple-container" class="hidden" style="position: absolute; left: -9999px; top: 0; display: inline-block;">
             <div class="pdf-simple-content" id="pdf-simple-content">
                 <!-- 只显示合并预览的内容 -->
             </div>
@@ -799,6 +848,8 @@
         let deleteCustomerId = null;
         // 拖拽元素变量
         let draggedItem = null;
+        // 存储选中的客户ID
+        let selectedCustomerIds = new Set();
 
         // DOM元素
         const customerName = document.getElementById('customer-name');
@@ -823,8 +874,10 @@
         const toggleAdminPanelBtn = document.getElementById('toggle-admin-panel');
         const adminPanel = document.getElementById('admin-panel');
         const customerList = document.getElementById('customer-list');
-        const exportAllPdfBtn = document.getElementById('export-all-pdf');
-        const exportExcelBtn = document.getElementById('export-excel');
+        const selectAllCheckbox = document.getElementById('select-all');
+        const selectedCountSpan = document.getElementById('selected-count');
+        const exportSelectedExcelBtn = document.getElementById('export-selected-excel');
+        const exportSelectedPdfBtn = document.getElementById('export-selected-pdf');
         const combinedPreview = document.getElementById('combined-preview');
         const combinedChars = document.getElementById('combined-chars');
         const copyCombinedBtn = document.getElementById('copy-combined');
@@ -878,8 +931,9 @@
             cancelDeleteBtn.addEventListener('click', hideDeleteConfirmModal);
             confirmDeleteBtn.addEventListener('click', confirmDeleteCustomer);
             
-            exportAllPdfBtn.addEventListener('click', exportAllToPDFAsZip);
-            exportExcelBtn.addEventListener('click', exportToExcel);
+            selectAllCheckbox.addEventListener('change', toggleSelectAll);
+            exportSelectedExcelBtn.addEventListener('click', exportSelectedToExcel);
+            exportSelectedPdfBtn.addEventListener('click', exportSelectedToPDF);
             copyCombinedBtn.addEventListener('click', copyCombinedText);
             
             previewContainer.addEventListener('dragstart', handleDragStart);
@@ -1347,9 +1401,12 @@
             successModal.classList.remove('hidden');
         }
         
-        // 导出为PNG
+        // 自适应尺寸导出为PNG
         function exportToPNG() {
             const combinedPreviewElement = document.getElementById('combined-preview');
+            
+            // 获取实际内容尺寸
+            const rect = combinedPreviewElement.getBoundingClientRect();
             
             html2canvas(combinedPreviewElement, {
                 scale: 3,
@@ -1359,7 +1416,9 @@
                 allowTaint: true,
                 letterRendering: true,
                 imageTimeout: 15000,
-                fontRendering: 'canvas'
+                fontRendering: 'canvas',
+                width: rect.width,
+                height: rect.height
             }).then(canvas => {
                 const link = document.createElement('a');
                 link.download = `powerbank-${customerName.value.trim()}-${Date.now()}.png`;
@@ -1371,7 +1430,7 @@
             });
         }
         
-        // 导出PDF
+        // 自适应尺寸导出PDF
         function exportToPDF() {
             const combinedHtml = combinedPreview.innerHTML;
             
@@ -1382,10 +1441,8 @@
 
             pdfSimpleContent.innerHTML = combinedHtml;
 
-            pdfSimpleContainer.style.display = 'block';
-            pdfSimpleContainer.style.position = 'absolute';
-            pdfSimpleContainer.style.left = '-9999px';
-            pdfSimpleContainer.style.top = '0';
+            // 获取实际内容尺寸
+            const rect = pdfSimpleContent.getBoundingClientRect();
 
             const canvasOptions = {
                 scale: 3,
@@ -1395,38 +1452,37 @@
                 logging: false,
                 letterRendering: true,
                 imageTimeout: 15000,
-                fontRendering: 'canvas'
+                fontRendering: 'canvas',
+                width: rect.width,
+                height: rect.height
             };
             
             html2canvas(pdfSimpleContainer, canvasOptions).then(canvas => {
                 const { jsPDF } = window.jspdf;
+                
+                // 根据canvas尺寸计算PDF尺寸（毫米单位）
+                const pdfWidth = (canvas.width * 0.264583); // 像素转毫米
+                const pdfHeight = (canvas.height * 0.264583);
+                
                 const pdf = new jsPDF({
-                    orientation: 'portrait',
+                    orientation: pdfWidth > pdfHeight ? 'landscape' : 'portrait',
                     unit: 'mm',
-                    format: 'a4',
+                    format: [pdfWidth, pdfHeight],
                     compress: true
                 });
                 
                 const imgData = canvas.toDataURL('image/png', 1.0);
-                const imgWidth = 210;
-                const imgHeight = (canvas.height * imgWidth) / canvas.width;
-                const yOffset = (297 - imgHeight) / 2;
-                pdf.addImage(imgData, 'PNG', 0, yOffset, imgWidth, imgHeight);
+                pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
                 
                 pdf.save(`定制内容_${customerName.value.trim()}_${Date.now()}.pdf`);
                 
             }).catch(err => {
                 console.error('PDF导出失败:', err);
                 alert('PDF导出失败，请检查网络或重试！');
-            }).finally(() => {
-                pdfSimpleContainer.style.display = 'none';
-                pdfSimpleContainer.style.position = '';
-                pdfSimpleContainer.style.left = '';
-                pdfSimpleContainer.style.top = '';
             });
         }
         
-        // 生成单个客户PDF并返回Blob
+        // 生成单个客户PDF并返回Blob（自适应尺寸）
         function generateCustomerPDF(customer) {
             return new Promise((resolve, reject) => {
                 let combinedHtml = '';
@@ -1448,10 +1504,8 @@
 
                 pdfSimpleContent.innerHTML = combinedHtml;
 
-                pdfSimpleContainer.style.display = 'block';
-                pdfSimpleContainer.style.position = 'absolute';
-                pdfSimpleContainer.style.left = '-9999px';
-                pdfSimpleContainer.style.top = '0';
+                // 获取实际内容尺寸
+                const rect = pdfSimpleContent.getBoundingClientRect();
 
                 const canvasOptions = {
                     scale: 3,
@@ -1461,24 +1515,26 @@
                     logging: false,
                     letterRendering: true,
                     imageTimeout: 15000,
-                    fontRendering: 'canvas'
+                    fontRendering: 'canvas',
+                    width: rect.width,
+                    height: rect.height
                 };
                 
                 html2canvas(pdfSimpleContainer, canvasOptions).then(canvas => {
                     const { jsPDF } = window.jspdf;
+                    
+                    const pdfWidth = (canvas.width * 0.264583);
+                    const pdfHeight = (canvas.height * 0.264583);
+                    
                     const pdf = new jsPDF({
-                        orientation: 'portrait',
+                        orientation: pdfWidth > pdfHeight ? 'landscape' : 'portrait',
                         unit: 'mm',
-                        format: 'a4',
+                        format: [pdfWidth, pdfHeight],
                         compress: true
                     });
                     
                     const imgData = canvas.toDataURL('image/png', 1.0);
-                    const imgWidth = 210;
-                    const imgHeight = (canvas.height * imgWidth) / canvas.width;
-                    
-                    const yOffset = (297 - imgHeight) / 2;
-                    pdf.addImage(imgData, 'PNG', 0, yOffset, imgWidth, imgHeight);
+                    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
                     
                     const pdfBlob = pdf.output('blob');
                     
@@ -1489,29 +1545,26 @@
                     
                 }).catch(err => {
                     reject(err);
-                }).finally(() => {
-                    pdfSimpleContainer.style.display = 'none';
-                    pdfSimpleContainer.style.position = '';
-                    pdfSimpleContainer.style.left = '';
-                    pdfSimpleContainer.style.top = '';
                 });
             });
         }
         
-        // 导出全部PDF为ZIP压缩包
-        async function exportAllToPDFAsZip() {
-            if (customerData.length === 0) {
-                alert('暂无客户数据可导出');
+        // 导出选中客户的PDF为ZIP压缩包
+        async function exportSelectedToPDF() {
+            const selectedCustomers = customerData.filter(c => selectedCustomerIds.has(c.id));
+            
+            if (selectedCustomers.length === 0) {
+                alert('请先选择要导出的客户');
                 return;
             }
             
-            const originalBtnText = exportAllPdfBtn.innerHTML;
-            exportAllPdfBtn.innerHTML = '<i class="fa fa-spinner fa-spin mr-1"></i> 正在导出...';
-            exportAllPdfBtn.disabled = true;
+            const originalBtnText = exportSelectedPdfBtn.innerHTML;
+            exportSelectedPdfBtn.innerHTML = '<i class="fa fa-spinner fa-spin mr-1"></i> 正在导出...';
+            exportSelectedPdfBtn.disabled = true;
             
             try {
                 const zip = new JSZip();
-                const pdfPromises = customerData.map(customer => generateCustomerPDF(customer));
+                const pdfPromises = selectedCustomers.map(customer => generateCustomerPDF(customer));
                 const pdfFiles = await Promise.all(pdfPromises);
                 
                 pdfFiles.forEach(file => {
@@ -1525,64 +1578,36 @@
                 });
                 
                 const now = new Date();
-                const zipFileName = `移动电源定制订单_${now.getFullYear()}${(now.getMonth()+1).toString().padStart(2, '0')}${now.getDate().toString().padStart(2, '0')}.zip`;
+                const zipFileName = `选中定制订单_${now.getFullYear()}${(now.getMonth()+1).toString().padStart(2, '0')}${now.getDate().toString().padStart(2, '0')}.zip`;
                 saveAs(zipContent, zipFileName);
                 
-                alert(`成功导出 ${customerData.length} 个PDF文件，已打包为ZIP压缩包`);
+                alert(`成功导出 ${selectedCustomers.length} 个PDF文件，已打包为ZIP压缩包`);
                 
             } catch (err) {
                 console.error('ZIP导出失败:', err);
                 alert('导出失败，请重试！');
             } finally {
-                exportAllPdfBtn.innerHTML = originalBtnText;
-                exportAllPdfBtn.disabled = false;
+                exportSelectedPdfBtn.innerHTML = originalBtnText;
+                exportSelectedPdfBtn.disabled = false;
             }
         }
 
-        // 导出Excel功能
-        function exportToExcel() {
-            if (customerData.length === 0) {
-                alert('暂无客户数据可导出');
+        // 导出选中客户的Excel
+        function exportSelectedToExcel() {
+            const selectedCustomers = customerData.filter(c => selectedCustomerIds.has(c));
+            
+            if (selectedCustomers.length === 0) {
+                alert('请先选择要导出的客户');
                 return;
             }
 
-            // 创建CSV内容
-            let csvContent = "\uFEFF姓名,定制内容,文字1,文字2,图标列表,总字符数,提交时间\n";
+            // 创建CSV内容 - 只包含序号和姓名
+            let csvContent = "\uFEFF序号,姓名\n";
             
-            customerData.forEach(customer => {
-                // 格式化定制内容
-                let customizationText = '';
-                if (customer.text1) customizationText += customer.text1;
-                if (customer.customIcons && customer.customIcons.length > 0) {
-                    customizationText += ' [图标×' + customer.customIcons.length + ']';
-                }
-                if (customer.text2) customizationText += ' ' + customer.text2;
-                
-                // 格式化图标列表
-                const iconStr = customer.customIcons ? customer.customIcons.join(' ') : '';
-                
-                // 格式化时间
-                const date = new Date(customer.timestamp);
-                const timeStr = `${date.getFullYear()}-${(date.getMonth()+1).toString().padStart(2,'0')}-${date.getDate().toString().padStart(2,'0')} ${date.getHours().toString().padStart(2,'0')}:${date.getMinutes().toString().padStart(2,'0')}`;
-                
-                // 转义CSV中的逗号和引号
-                const escapeCSV = (str) => {
-                    if (!str) return '';
-                    str = str.toString();
-                    if (str.includes(',') || str.includes('"') || str.includes('\n')) {
-                        return '"' + str.replace(/"/g, '""') + '"';
-                    }
-                    return str;
-                };
-                
+            selectedCustomers.forEach((customer, index) => {
                 const row = [
-                    escapeCSV(customer.name),
-                    escapeCSV(customizationText),
-                    escapeCSV(customer.text1 || ''),
-                    escapeCSV(customer.text2 || ''),
-                    escapeCSV(iconStr),
-                    customer.totalChars || 0,
-                    escapeCSV(timeStr)
+                    index + 1,
+                    customer.name
                 ].join(',');
                 
                 csvContent += row + '\n';
@@ -1593,13 +1618,38 @@
             const link = document.createElement('a');
             const url = URL.createObjectURL(blob);
             link.setAttribute('href', url);
-            link.setAttribute('download', `定制数据_${new Date().toISOString().slice(0,10)}.csv`);
+            link.setAttribute('download', `选中客户_${new Date().toISOString().slice(0,10)}.csv`);
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
             URL.revokeObjectURL(url);
         }
-        
+
+        // 切换全选
+        function toggleSelectAll(e) {
+            const checkboxes = document.querySelectorAll('.customer-checkbox');
+            checkboxes.forEach(cb => {
+                cb.checked = e.target.checked;
+                if (e.target.checked) {
+                    selectedCustomerIds.add(parseInt(cb.dataset.id));
+                } else {
+                    selectedCustomerIds.delete(parseInt(cb.dataset.id));
+                }
+            });
+            updateSelectedCount();
+        }
+
+        // 更新选中数量显示
+        function updateSelectedCount() {
+            selectedCountSpan.textContent = `已选择 ${selectedCustomerIds.size} 项`;
+            const totalCheckboxes = document.querySelectorAll('.customer-checkbox').length;
+            if (selectedCustomerIds.size === totalCheckboxes && totalCheckboxes > 0) {
+                selectAllCheckbox.checked = true;
+            } else {
+                selectAllCheckbox.checked = false;
+            }
+        }
+
         // 显示管理员密码弹窗
         function showAdminPasswordModal() {
             adminPasswordInput.value = '';
@@ -1652,12 +1702,23 @@
         function confirmDeleteCustomer() {
             if (!deleteCustomerId) return;
             
+            // 从数组中删除
             customerData = customerData.filter(customer => customer.id !== deleteCustomerId);
+            // 从选中集合中删除
+            selectedCustomerIds.delete(deleteCustomerId);
+            
+            // 更新本地存储
             localStorage.setItem('customerData', JSON.stringify(customerData));
             
+            // 更新客户列表
             updateCustomerList(customerFilterInput.value.trim().toLowerCase());
             
+            // 隐藏弹窗
             hideDeleteConfirmModal();
+            
+            // 更新选中数量
+            updateSelectedCount();
+            
             alert('客户记录已成功删除');
         }
         
@@ -1665,6 +1726,7 @@
         function updateCustomerList(filterText = '') {
             customerList.innerHTML = '';
             
+            // 筛选客户数据
             let filteredData = customerData;
             if (filterText) {
                 filteredData = customerData.filter(customer => 
@@ -1678,12 +1740,16 @@
                         <td colspan="3" class="py-4 px-4 text-center text-gray-500">${filterText ? '未找到匹配的客户' : '暂无客户数据'}</td>
                     </tr>
                 `;
+                selectAllCheckbox.disabled = true;
                 return;
             }
             
-            filteredData.forEach(customer => {
+            selectAllCheckbox.disabled = false;
+            
+            filteredData.forEach((customer, index) => {
                 const row = document.createElement('tr');
                 
+                // 格式化定制内容
                 let customizationContent = '';
                 if (customer.text1) customizationContent += customer.text1;
                 if (customer.customIcons && customer.customIcons.length > 0) {
@@ -1692,23 +1758,29 @@
                 if (customer.text2) customizationContent += ' ' + customer.text2;
                 
                 row.innerHTML = `
-                    <td class="py-2 px-4 whitespace-nowrap">${customer.name}</td>
-                    <td class="py-2 px-4">${customizationContent}</td>
-                    <td class="py-2 px-4 whitespace-nowrap">
-                        <button class="text-blue-500 hover:text-blue-700 mr-2" onclick="viewCustomerDetail(${customer.id})">
-                            <i class="fa fa-eye"></i>
-                        </button>
-                        <button class="text-green-500 hover:text-green-700 mr-2" onclick="exportCustomerPNG(${customer.id})">
-                            <i class="fa fa-download"></i>
-                        </button>
-                        <button class="text-red-500 hover:text-red-700" onclick="showDeleteConfirmModal(${customer.id})">
-                            <i class="fa fa-trash"></i>
-                        </button>
+                    <td class="checkbox-column">
+                        <input type="checkbox" class="customer-checkbox" data-id="${customer.id}" ${selectedCustomerIds.has(customer.id) ? 'checked' : ''}>
                     </td>
+                    <td class="w-16">${index + 1}</td>
+                    <td>${customer.name}</td>
+                    <td>${customizationContent}</td>
                 `;
+                
+                // 添加复选框事件
+                const checkbox = row.querySelector('.customer-checkbox');
+                checkbox.addEventListener('change', function(e) {
+                    if (this.checked) {
+                        selectedCustomerIds.add(customer.id);
+                    } else {
+                        selectedCustomerIds.delete(customer.id);
+                    }
+                    updateSelectedCount();
+                });
                 
                 customerList.appendChild(row);
             });
+            
+            updateSelectedCount();
         }
         
         // 查看客户详情
