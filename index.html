@@ -964,15 +964,12 @@
         // 按输入顺序存储的项目
         let orderedItems = [];
 
-        // 初始化
+        // 初始化 - 修复版
         function init() {
             generateIconGrid();
             
-            // 强制从腾讯云加载，不使用本地
+            // 从腾讯云加载数据（不再清空本地）
             loadFromCloud();
-            
-            // 清空本地存储（避免干扰）
-            localStorage.removeItem('customerData');
             
             customerName.addEventListener('input', validateForm);
             textInput1.addEventListener('input', handleTextInput);
@@ -1004,7 +1001,7 @@
             updateCustomerList();
         }
 
-        // 从腾讯云数据库加载数据 - 强制云端，不读本地
+        // 从腾讯云数据库加载数据 - 优化版（不再清空本地）
         async function loadFromCloud() {
             try {
                 const result = await db.collection(COLLECTION_NAME).get();
@@ -1021,25 +1018,23 @@
                         timestamp: item.timestamp || new Date().toISOString()
                     }));
                     
-                    // 可选：更新本地存储作为缓存（不是必须）
+                    // 更新本地存储作为缓存
                     localStorage.setItem('customerData', JSON.stringify(customerData));
                     
                     console.log('从腾讯云加载成功', customerData.length, '条记录');
                 } else {
-                    // 云端没数据，就显示空
-                    customerData = [];
-                    localStorage.removeItem('customerData');
-                    console.log('云端暂无数据');
+                    // 云端没数据，尝试读本地
+                    customerData = JSON.parse(localStorage.getItem('customerData')) || [];
+                    console.log('云端暂无数据，使用本地缓存');
                 }
             } catch (error) {
                 console.error('从腾讯云加载失败:', error);
-                // 云端失败，也不读本地！直接显示空
-                customerData = [];
-                // 可以提示用户
-                alert('连接云端失败，请刷新重试。如果持续失败，请联系管理员。');
+                // 云端失败时，尝试读本地
+                customerData = JSON.parse(localStorage.getItem('customerData')) || [];
+                console.log('连接云端失败，使用本地缓存数据');
             }
             
-            // 无论成功失败，都用云端结果更新列表
+            // 更新列表
             updateCustomerList();
         }
 
