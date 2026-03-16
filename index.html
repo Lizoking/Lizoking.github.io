@@ -568,7 +568,7 @@
         <!-- 标题区域 -->
         <header class="text-center mb-8">
             <h1 class="text-3xl font-bold text-neutral-dark mb-2">定制内容收集</h1>
-            <p class="text-gray-600"> </p>
+            <p class="text-gray-600">按输入顺序排列，不支持拖拽排序</p>
         </header>
         
         <!-- 主要内容区域 -->
@@ -652,7 +652,7 @@
                 
                 <div class="powerbank-preview mb-4">
                     <div id="preview-container" class="flex flex-wrap items-center justify-center gap-2 min-h-[100px]">
-                        <p class="text-gray-400 text-center">拖拽元素可调整顺序</p>
+                        <p class="text-gray-400 text-center">按输入顺序显示</p>
                     </div>
                 </div>
                 
@@ -819,7 +819,7 @@
                         <i class="fas fa-check-circle text-3xl"></i>
                     </div>
                     <h3 class="text-2xl font-bold text-gray-800 mb-2">提交成功！</h3>
-                    <p class="text-gray-600 mb-6">您的定制内容已提交到系统，如需修改，请联系管理员陈健涛。</p>
+                    <p class="text-gray-600 mb-6">您的移动电源定制请求已提交，我们将尽快处理。</p>
                     <div class="flex justify-center gap-4">
                         <button id="close-modal" class="px-6 py-2 bg-primary hover:bg-blue-600 text-white rounded-lg font-medium transition-colors">
                             确定
@@ -877,8 +877,6 @@
         
         // 存储待删除的客户ID
         let deleteCustomerId = null;
-        // 拖拽元素变量
-        let draggedItem = null;
         // 存储选中的客户ID
         let selectedCustomerIds = new Set();
 
@@ -936,7 +934,9 @@
         // 存储客户定制数据
         let customerData = JSON.parse(localStorage.getItem('customerData')) || [];
         let currentCustomerId = null;
-        let selectedItems = [];
+        
+        // 按输入顺序存储的项目
+        let orderedItems = [];
 
         // 初始化
         function init() {
@@ -969,10 +969,6 @@
             exportSelectedPdfBtn.addEventListener('click', exportSelectedToPDF);
             copyCombinedBtn.addEventListener('click', copyCombinedText);
             
-            previewContainer.addEventListener('dragstart', handleDragStart);
-            previewContainer.addEventListener('dragover', handleDragOver);
-            previewContainer.addEventListener('drop', handleDrop);
-            
             updateCustomerList();
         }
 
@@ -983,7 +979,6 @@
             iconList.forEach(icon => {
                 const iconItem = document.createElement('div');
                 iconItem.className = 'icon-item';
-                iconItem.dataset.type = 'custom';
                 iconItem.dataset.iconClass = icon.iconClass;
                 
                 const iconElement = document.createElement('i');
@@ -996,14 +991,14 @@
             });
         }
 
-        // 图标选择逻辑 - 支持重复选择
+        // 图标选择逻辑 - 按点击顺序添加到末尾
         function toggleIconSelection(iconClass) {
             const charCount = 3; 
             const currentTotal = calculateTotalChars();
             
             if (currentTotal + charCount <= 15) {
-                // 直接添加，不检查是否已选中
-                selectedItems.push({
+                // 添加到 orderedItems 末尾
+                orderedItems.push({
                     type: 'custom',
                     iconClass: iconClass,
                     charCount: charCount
@@ -1017,11 +1012,12 @@
             }
         }
 
-        // 处理文本输入 - 自动校验标点符号
+        // 处理文本输入 - 更新文字内容
         function handleTextInput(e) {
             const input = e.target;
             const value = input.value;
             const counter = input === textInput1 ? textCounter1 : textCounter2;
+            const inputId = input.id;
 
             // 允许中英文、数字和常用标点符号
             const validPattern = /^[\u4e00-\u9fa5a-zA-Z0-9\s\.,!?;:\-_\+\=\[\]\(\)\*&^%$#@!~`'"]*$/;
@@ -1036,11 +1032,38 @@
             const charCount = calculateCharCount(value);
             counter.textContent = `${charCount}/15`;
 
-            // 更新总字符数显示
-            updateTotalCharCount();
+            // 更新 orderedItems 中的文字
+            updateTextInOrderedItems(inputId, value, charCount);
             
-            // 更新预览
+            // 更新总字符数显示和预览
+            updateTotalCharCount();
             updatePreview();
+        }
+
+        // 更新 orderedItems 中的文字
+        function updateTextInOrderedItems(inputId, value, charCount) {
+            // 查找是否已存在该输入框的文字项
+            const existingIndex = orderedItems.findIndex(item => item.type === 'text' && item.inputId === inputId);
+            
+            if (value) {
+                const textItem = {
+                    type: 'text',
+                    content: value,
+                    charCount: charCount,
+                    inputId: inputId
+                };
+                
+                if (existingIndex !== -1) {
+                    // 更新已存在的文字项
+                    orderedItems[existingIndex] = textItem;
+                } else {
+                    // 添加到末尾
+                    orderedItems.push(textItem);
+                }
+            } else if (existingIndex !== -1) {
+                // 如果文字为空，移除该文字项
+                orderedItems.splice(existingIndex, 1);
+            }
         }
 
         // 计算字符数
@@ -1058,79 +1081,37 @@
             return count;
         }
 
-        // 计算总字符数 - 包含所有选中的项目和文字
+        // 计算总字符数
         function calculateTotalChars() {
-            // 计算图标字符数（每个图标算3字符）
-            const iconChars = selectedItems.reduce((total, item) => {
-                if (item.type === 'custom') {
-                    return total + item.charCount;
-                }
-                return total;
-            }, 0);
-            
-            // 计算文本字符数
-            const text1Chars = textInput1.value ? calculateCharCount(textInput1.value) : 0;
-            const text2Chars = textInput2.value ? calculateCharCount(textInput2.value) : 0;
-            
-            return iconChars + text1Chars + text2Chars;
+            return orderedItems.reduce((total, item) => total + item.charCount, 0);
         }
 
-        // 更新选中列表中的文本项
-        function updateSelectedTextItems() {
-            // 移除所有文本项
-            selectedItems = selectedItems.filter(item => item.type !== 'text');
-            
-            // 添加文字1（如果有）
-            if (textInput1.value) {
-                selectedItems.push({
-                    type: 'text',
-                    content: textInput1.value,
-                    charCount: calculateCharCount(textInput1.value),
-                    inputId: 'text-input-1'
-                });
-            }
-            
-            // 添加文字2（如果有）
-            if (textInput2.value) {
-                selectedItems.push({
-                    type: 'text',
-                    content: textInput2.value,
-                    charCount: calculateCharCount(textInput2.value),
-                    inputId: 'text-input-2'
-                });
-            }
-        }
-
-        // 更新预览区域 - 所有项目都从 selectedItems 读取
+        // 更新预览区域 - 按 orderedItems 顺序显示
         function updatePreview() {
-            // 先更新 selectedItems 中的文本
-            updateSelectedTextItems();
-            
             previewContainer.innerHTML = '';
             
-            if (selectedItems.length === 0) {
+            if (orderedItems.length === 0) {
                 previewContainer.innerHTML = '<p class="text-gray-400 text-center">请输入文字并选择图标</p>';
                 updateCombinedPreview();
                 return;
             }
             
-            selectedItems.forEach((item, index) => {
+            orderedItems.forEach((item, index) => {
                 const previewItem = document.createElement('div');
                 previewItem.className = 'preview-item';
-                previewItem.draggable = true;
                 previewItem.dataset.index = index;
                 
                 if (item.type === 'text') {
                     previewItem.innerHTML = `
                         <span>${item.content}</span>
-                        <button class="ml-2 text-gray-400 hover:text-red-500" onclick="removePreviewItem(${index})">
+                        <button class="ml-2 text-gray-400 hover:text-red-500" onclick="removeItem(${index})">
                             <i class="fas fa-times-circle"></i>
                         </button>
                     `;
                 } else if (item.type === 'custom') {
                     previewItem.innerHTML = `
                         <i class="${item.iconClass}"></i>
-                        <button class="ml-2 text-gray-400 hover:text-red-500" onclick="removePreviewItem(${index})">
+                        <button class="ml-2 text-gray-400 hover:text-red-500" onclick="removeItem(${index})">
                             <i class="fas fa-times-circle"></i>
                         </button>
                     `;
@@ -1144,7 +1125,7 @@
         
         // 更新合并预览
         function updateCombinedPreview() {
-            if (selectedItems.length === 0) {
+            if (orderedItems.length === 0) {
                 combinedPreview.innerHTML = '<p class="text-gray-400 text-base">合并后的内容将显示在这里</p>';
                 combinedChars.textContent = '0';
                 return;
@@ -1153,7 +1134,7 @@
             let combinedHtml = '';
             let totalChars = 0;
             
-            selectedItems.forEach(item => {
+            orderedItems.forEach(item => {
                 totalChars += item.charCount;
                 if (item.type === 'text') {
                     combinedHtml += `<span>${item.content}</span>`;
@@ -1177,10 +1158,10 @@
         
         // 复制合并文本
         function copyCombinedText() {
-            if (selectedItems.length === 0) return;
+            if (orderedItems.length === 0) return;
             
             let copyText = '';
-            selectedItems.forEach(item => {
+            orderedItems.forEach(item => {
                 if (item.type === 'text') {
                     copyText += item.content;
                 } else {
@@ -1205,11 +1186,12 @@
             });
         }
 
-        // 移除预览项目
-        function removePreviewItem(index) {
-            const item = selectedItems[index];
+        // 移除项目
+        function removeItem(index) {
+            const item = orderedItems[index];
             
             if (item.type === 'text') {
+                // 如果是文字，清空对应的输入框
                 if (item.inputId === 'text-input-1') {
                     textInput1.value = '';
                     textCounter1.textContent = '0/15';
@@ -1219,7 +1201,7 @@
                 }
             }
             
-            selectedItems.splice(index, 1);
+            orderedItems.splice(index, 1);
             updateTotalCharCount();
             updatePreview();
         }
@@ -1231,7 +1213,7 @@
             textCounter1.textContent = '0/15';
             textCounter2.textContent = '0/15';
             
-            selectedItems = [];
+            orderedItems = [];
             updatePreview();
             updateTotalCharCount();
             
@@ -1266,89 +1248,6 @@
             }
             
             validateForm();
-        }
-
-        // 拖拽开始
-        function handleDragStart(e) {
-            if (e.target.classList.contains('preview-item')) {
-                draggedItem = e.target;
-                e.dataTransfer.effectAllowed = 'move';
-                e.dataTransfer.setData('text/html', e.target.innerHTML);
-                setTimeout(() => {
-                    e.target.classList.add('opacity-50');
-                }, 0);
-            }
-        }
-
-        // 拖拽经过
-        function handleDragOver(e) {
-            e.preventDefault();
-            e.dataTransfer.dropEffect = 'move';
-            
-            const afterElement = getDragAfterElement(previewContainer, e.clientY);
-            const draggable = document.querySelector('.preview-item.opacity-50');
-            
-            if (draggable) {
-                if (afterElement == null) {
-                    previewContainer.appendChild(draggable);
-                } else {
-                    previewContainer.insertBefore(draggable, afterElement);
-                }
-            }
-        }
-
-        // 拖拽放置
-        function handleDrop(e) {
-            e.preventDefault();
-            
-            const draggable = document.querySelector('.preview-item.opacity-50');
-            if (draggable) {
-                draggable.classList.remove('opacity-50');
-            }
-            
-            // 更新选中列表顺序
-            updateSelectedItemsOrder();
-        }
-
-        // 获取拖拽元素应该放置的位置
-        function getDragAfterElement(container, y) {
-            const draggableElements = [...container.querySelectorAll('.preview-item:not(.opacity-50)')];
-            
-            return draggableElements.reduce((closest, child) => {
-                const box = child.getBoundingClientRect();
-                const offset = y - box.top - box.height / 2;
-                
-                if (offset < 0 && offset > closest.offset) {
-                    return { offset: offset, element: child };
-                } else {
-                    return closest;
-                }
-            }, { offset: Number.NEGATIVE_INFINITY }).element;
-        }
-
-        // 更新选中列表顺序 - 修复版
-        function updateSelectedItemsOrder() {
-            const previewItems = [...previewContainer.querySelectorAll('.preview-item')];
-            const newSelectedItems = [];
-            
-            // 按照预览区的顺序重建 selectedItems
-            previewItems.forEach(item => {
-                const index = parseInt(item.dataset.index);
-                if (!isNaN(index) && index >= 0 && index < selectedItems.length) {
-                    newSelectedItems.push(selectedItems[index]);
-                }
-            });
-            
-            selectedItems = newSelectedItems;
-            
-            // 重新索引所有预览项的 data-index
-            const updatedPreviewItems = previewContainer.querySelectorAll('.preview-item');
-            updatedPreviewItems.forEach((item, newIndex) => {
-                item.dataset.index = newIndex;
-            });
-            
-            // 更新合并预览
-            updateCombinedPreview();
         }
 
         // 验证表单
@@ -1411,12 +1310,9 @@
                 return;
             }
             
-            // 更新 selectedItems 中的文本
-            updateSelectedTextItems();
-            
             const text1 = textInput1.value;
             const text2 = textInput2.value;
-            const customIcons = selectedItems.filter(item => item.type === 'custom').map(item => item.iconClass);
+            const customIcons = orderedItems.filter(item => item.type === 'custom').map(item => item.iconClass);
             
             const customerId = Date.now();
             const customizationData = {
@@ -1521,9 +1417,9 @@
             return new Promise((resolve, reject) => {
                 let combinedHtml = '';
                 
-                if (currentCustomerId === customer.id && selectedItems.length > 0) {
-                    // 当前预览的就是这个客户，直接用 selectedItems 的顺序
-                    selectedItems.forEach(item => {
+                if (currentCustomerId === customer.id && orderedItems.length > 0) {
+                    // 当前预览的就是这个客户，直接用 orderedItems 的顺序
+                    orderedItems.forEach(item => {
                         if (item.type === 'text') {
                             combinedHtml += `<span>${item.content}</span>`;
                         } else if (item.type === 'custom') {
@@ -1904,10 +1800,10 @@
             textInput1.value = customer.text1 || '';
             textInput2.value = customer.text2 || '';
             
-            selectedItems = [];
+            orderedItems = [];
             
             if (customer.text1) {
-                selectedItems.push({
+                orderedItems.push({
                     type: 'text',
                     content: customer.text1,
                     charCount: calculateCharCount(customer.text1),
@@ -1917,7 +1813,7 @@
             
             if (customer.customIcons && customer.customIcons.length > 0) {
                 customer.customIcons.forEach(iconClass => {
-                    selectedItems.push({
+                    orderedItems.push({
                         type: 'custom',
                         iconClass: iconClass,
                         charCount: 3
@@ -1926,7 +1822,7 @@
             }
             
             if (customer.text2) {
-                selectedItems.push({
+                orderedItems.push({
                     type: 'text',
                     content: customer.text2,
                     charCount: calculateCharCount(customer.text2),
