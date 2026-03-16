@@ -6,8 +6,8 @@
     <title>移动电源定制</title>
     <!-- Tailwind CSS v3 -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Font Awesome -->
-    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <!-- Font Awesome 5 (使用最新版本) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <!-- Inter Font + 中文字体 -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
     <!-- html2canvas for PNG export & PDF content capture -->
@@ -171,6 +171,24 @@
             display: inline-block;
             line-height: 1.2;
             vertical-align: middle;
+        }
+        
+        /* 删除按钮样式 */
+        .preview-item .fa-times-circle,
+        .preview-item .fa-times-circle-o,
+        .preview-item .delete-icon {
+            font-family: "Font Awesome 6 Free" !important;
+            font-weight: 900;
+            color: #9ca3af;
+            transition: color 0.2s;
+            margin-left: 0.5rem;
+            font-size: 0.875rem;
+        }
+        
+        .preview-item .fa-times-circle:hover,
+        .preview-item .fa-times-circle-o:hover,
+        .preview-item .delete-icon:hover {
+            color: #ef4444;
         }
         
         .preview-item:hover {
@@ -411,7 +429,7 @@
             <!-- 左侧：输入区域 -->
             <div class="bg-white rounded-xl shadow-custom p-6">
                 <h2 class="text-xl font-semibold mb-4 flex items-center">
-                    <i class="fa fa-pencil-square-o mr-2 text-primary"></i>文字输入
+                    <i class="fas fa-pencil-alt mr-2 text-primary"></i>文字输入
                 </h2>
                 
                 <!-- 客户信息 -->
@@ -425,7 +443,7 @@
                         required
                     >
                     <div class="error-message hidden" id="name-error">
-                        <i class="fa fa-exclamation-circle mr-1"></i>
+                        <i class="fas fa-exclamation-circle mr-1"></i>
                         请输入姓名
                     </div>
                 </div>
@@ -457,7 +475,7 @@
                     </div>
                     
                     <div class="error-message hidden" id="text-error">
-                        <i class="fa fa-exclamation-circle mr-1"></i>
+                        <i class="fas fa-exclamation-circle mr-1"></i>
                         请输入有效的文字内容（仅支持中文、英文、数字和常用标点 . , ! ? ; : - _ @ # & * ( ) [ ] { }）
                     </div>
                 </div>
@@ -473,7 +491,7 @@
                         <div id="char-progress" class="bg-primary h-2.5 rounded-full" style="width: 0%"></div>
                     </div>
                     <div id="total-chars-error" class="error-message hidden">
-                        <i class="fa fa-exclamation-circle mr-1"></i>
+                        <i class="fas fa-exclamation-circle mr-1"></i>
                         总字符数超过限制（15字符）
                     </div>
                 </div>
@@ -482,7 +500,7 @@
             <!-- 右侧：预览区域 -->
             <div class="bg-white rounded-xl shadow-custom p-6">
                 <h2 class="text-xl font-semibold mb-4 flex items-center">
-                    <i class="fa fa-eye mr-2 text-primary"></i>调整预览
+                    <i class="fas fa-eye mr-2 text-primary"></i>调整预览
                 </h2>
                 
                 <div class="powerbank-preview mb-4">
@@ -494,7 +512,7 @@
                 <div class="text-center">
                     <div class="flex justify-center space-x-2">
                         <button id="clear-preview" class="px-3 py-1.5 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg text-sm transition-colors flex items-center">
-                            <i class="fa fa-trash-o mr-1"></i> 清空预览
+                            <i class="fas fa-trash-alt mr-1"></i> 清空预览
                         </button>
                     </div>
                 </div>
@@ -502,7 +520,7 @@
                 <!-- 合并预览区域 -->
                 <div class="mt-6">
                     <h3 class="text-md font-semibold mb-2 flex items-center">
-                        <i class="fa fa-file-text-o mr-2 text-primary"></i>合并预览
+                        <i class="fas fa-file-alt mr-2 text-primary"></i>合并预览
                     </h3>
                     <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
                         <div id="combined-preview" class="min-h-[80px]">
@@ -511,7 +529,7 @@
                         <div class="mt-2 flex justify-between items-center">
                             <span class="text-xs text-gray-500">总字符数: <span id="combined-chars">0</span>/15</span>
                             <button id="copy-combined" class="px-3 py-1 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded text-xs transition-colors flex items-center">
-                                <i class="fa fa-copy mr-1"></i> 复制
+                                <i class="fas fa-copy mr-1"></i> 复制
                             </button>
                         </div>
                     </div>
@@ -522,7 +540,7 @@
         <!-- ICON选择器区域（20个图标） -->
         <section class="mt-8 bg-white rounded-xl shadow-custom p-6">
             <h2 class="text-xl font-semibold mb-4 flex items-center">
-                <i class="fa fa-smile-o mr-2 text-primary"></i>图标选择（共20款，支持重复选择）
+                <i class="fas fa-smile mr-2 text-primary"></i>图标选择（共20款，支持重复选择）
             </h2>
             
             <div class="icon-grid custom-scrollbar overflow-auto max-h-96 p-2" id="icon-grid">
@@ -538,7 +556,7 @@
                     class="px-8 py-3 bg-primary hover:bg-blue-600 text-white rounded-lg font-medium shadow-custom hover:shadow-custom-hover transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     disabled
                 >
-                    <i class="fa fa-check-circle mr-2"></i>提交定制
+                    <i class="fas fa-check-circle mr-2"></i>提交定制
                 </button>
                 
                 <button 
@@ -546,7 +564,7 @@
                     class="px-8 py-3 bg-secondary hover:bg-green-600 text-white rounded-lg font-medium shadow-custom hover:shadow-custom-hover transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     disabled
                 >
-                    <i class="fa fa-download mr-2"></i>导出PNG
+                    <i class="fas fa-download mr-2"></i>导出PNG
                 </button>
                 
                 <button 
@@ -554,14 +572,14 @@
                     class="px-8 py-3 bg-accent hover:bg-yellow-600 text-white rounded-lg font-medium shadow-custom hover:shadow-custom-hover transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     disabled
                 >
-                    <i class="fa fa-file-pdf-o mr-2"></i>生成PDF
+                    <i class="fas fa-file-pdf mr-2"></i>生成PDF
                 </button>
             </div>
             
             <!-- 管理员区域 -->
             <div class="mt-8 border-t pt-4">
                 <button id="toggle-admin-panel" class="text-sm text-gray-500 hover:text-primary transition-colors">
-                    <i class="fa fa-lock mr-1"></i> 管理员面板
+                    <i class="fas fa-lock mr-1"></i> 管理员面板
                 </button>
                 
                 <!-- 管理员密码弹窗 -->
@@ -579,7 +597,7 @@
                                 placeholder="输入管理员密码"
                             >
                             <div class="error-message hidden" id="password-error">
-                                <i class="fa fa-exclamation-circle mr-1"></i>
+                                <i class="fas fa-exclamation-circle mr-1"></i>
                                 密码错误，请重试
                             </div>
                         </div>
@@ -606,7 +624,7 @@
                             </label>
                             <span id="selected-count" class="text-sm text-gray-600">已选择 0 项</span>
                             <button id="batch-delete" class="batch-delete-btn" disabled>
-                                <i class="fa fa-trash mr-1"></i> 批量删除
+                                <i class="fas fa-trash mr-1"></i> 批量删除
                             </button>
                         </div>
                         <input 
@@ -636,10 +654,10 @@
                     
                     <div class="mt-4 flex justify-end gap-2">
                         <button id="export-selected-excel" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm transition-colors flex items-center">
-                            <i class="fa fa-file-excel-o mr-1"></i> 导出选中Excel
+                            <i class="fas fa-file-excel mr-1"></i> 导出选中Excel
                         </button>
                         <button id="export-selected-pdf" class="px-4 py-2 bg-accent hover:bg-yellow-600 text-white rounded-lg text-sm transition-colors flex items-center">
-                            <i class="fa fa-file-pdf-o mr-1"></i> 导出选中PDF（ZIP）
+                            <i class="fas fa-file-pdf mr-1"></i> 导出选中PDF（ZIP）
                         </button>
                     </div>
                 </div>
@@ -651,7 +669,7 @@
             <div class="bg-white rounded-xl p-8 max-w-md w-full mx-4 transform transition-all">
                 <div class="text-center">
                     <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-100 text-green-500 mb-4">
-                        <i class="fa fa-check-circle text-3xl"></i>
+                        <i class="fas fa-check-circle text-3xl"></i>
                     </div>
                     <h3 class="text-2xl font-bold text-gray-800 mb-2">提交成功！</h3>
                     <p class="text-gray-600 mb-6">您的移动电源定制请求已提交，我们将尽快处理。</p>
@@ -672,7 +690,7 @@
             <div class="bg-white rounded-xl p-8 max-w-md w-full mx-4 transform transition-all">
                 <div class="text-center">
                     <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-100 text-red-500 mb-4">
-                        <i class="fa fa-exclamation-triangle text-3xl"></i>
+                        <i class="fas fa-exclamation-triangle text-3xl"></i>
                     </div>
                     <h3 class="text-xl font-bold text-gray-800 mb-2">确认删除</h3>
                     <p class="text-gray-600 mb-6">确定要删除该客户的定制记录吗？此操作不可恢复。</p>
@@ -871,8 +889,11 @@
             const charCount = calculateCharCount(value);
             counter.textContent = `${charCount}/15`;
 
+            // 先更新 selectedItems 中的文本项
+            updateSelectedTextItems(input, charCount);
+            
+            // 再更新预览
             updatePreview();
-            updateTotalCharCount();
         }
 
         // 计算字符数
@@ -910,14 +931,14 @@
                     previewItem.innerHTML = `
                         <span>${item.content}</span>
                         <button class="ml-2 text-gray-400 hover:text-red-500" onclick="removePreviewItem(${index})">
-                            <i class="fa fa-times-circle"></i>
+                            <i class="fas fa-times-circle"></i>
                         </button>
                     `;
                 } else if (item.type === 'custom') {
                     previewItem.innerHTML = `
                         <i class="${item.iconClass}"></i>
                         <button class="ml-2 text-gray-400 hover:text-red-500" onclick="removePreviewItem(${index})">
-                            <i class="fa fa-times-circle"></i>
+                            <i class="fas fa-times-circle"></i>
                         </button>
                     `;
                 }
@@ -980,7 +1001,7 @@
             
             navigator.clipboard.writeText(copyText).then(() => {
                 const originalText = copyCombinedBtn.innerHTML;
-                copyCombinedBtn.innerHTML = '<i class="fa fa-check mr-1"></i> 已复制';
+                copyCombinedBtn.innerHTML = '<i class="fas fa-check mr-1"></i> 已复制';
                 copyCombinedBtn.classList.remove('bg-gray-200', 'hover:bg-gray-300');
                 copyCombinedBtn.classList.add('bg-green-100', 'hover:bg-green-200');
                 
@@ -1078,11 +1099,14 @@
                 };
                 
                 if (existingIndex !== -1) {
+                    // 更新已存在的文本项
                     selectedItems[existingIndex] = textItem;
                 } else {
+                    // 添加新的文本项
                     selectedItems.push(textItem);
                 }
             } else if (existingIndex !== -1) {
+                // 如果文本为空，移除已存在的文本项
                 selectedItems.splice(existingIndex, 1);
             }
         }
@@ -1397,7 +1421,7 @@
             }
             
             const originalBtnText = exportSelectedPdfBtn.innerHTML;
-            exportSelectedPdfBtn.innerHTML = '<i class="fa fa-spinner fa-spin mr-1"></i> 正在导出...';
+            exportSelectedPdfBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> 正在导出...';
             exportSelectedPdfBtn.disabled = true;
             
             try {
@@ -1657,7 +1681,7 @@
                     <td>${customer.name}</td>
                     <td>${contentHtml}</td>
                     <td class="action-column">
-                        <i class="fa fa-trash delete-btn" onclick="showDeleteConfirmModal(${customer.id})" title="删除"></i>
+                        <i class="fas fa-trash delete-btn" onclick="showDeleteConfirmModal(${customer.id})" title="删除"></i>
                     </td>
                 `;
                 
