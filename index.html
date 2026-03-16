@@ -417,7 +417,7 @@
         <!-- 标题区域 -->
         <header class="text-center mb-8">
             <h1 class="text-3xl font-bold text-neutral-dark mb-2">移动电源个性化定制</h1>
-            <p class="text-gray-600">20款专属图标，支持重复选择</p>
+            <p class="text-gray-600">20款专属图标，支持重复选择和拖拽排序</p>
         </header>
         
         <!-- 主要内容区域 -->
@@ -500,7 +500,7 @@
                 </h2>
                 
                 <div class="powerbank-preview mb-4">
-                    <div id="preview-container" class="flex flex-wrap items-center justify-center gap-2">
+                    <div id="preview-container" class="flex flex-wrap items-center justify-center gap-2 min-h-[100px]">
                         <p class="text-gray-400 text-center">拖拽元素可调整顺序</p>
                     </div>
                 </div>
@@ -717,7 +717,7 @@
             iconList.push({
                 id: `icon-${i}`,
                 type: 'custom',
-                iconClass: `icon-${i}`  // 生成 icon-1, icon-2, ... icon-20
+                iconClass: `icon-${i}`
             });
         }
 
@@ -907,7 +907,7 @@
             return count;
         }
 
-        // 计算总字符数 - 修复版（包含文字输入框的内容）
+        // 计算总字符数 - 包含所有选中的项目和文字
         function calculateTotalChars() {
             // 计算图标字符数（每个图标算3字符）
             const iconChars = selectedItems.reduce((total, item) => {
@@ -924,41 +924,46 @@
             return iconChars + text1Chars + text2Chars;
         }
 
-        // 更新预览区域
+        // 更新选中列表中的文本项
+        function updateSelectedTextItems() {
+            // 移除所有文本项
+            selectedItems = selectedItems.filter(item => item.type !== 'text');
+            
+            // 添加文字1（如果有）
+            if (textInput1.value) {
+                selectedItems.push({
+                    type: 'text',
+                    content: textInput1.value,
+                    charCount: calculateCharCount(textInput1.value),
+                    inputId: 'text-input-1'
+                });
+            }
+            
+            // 添加文字2（如果有）
+            if (textInput2.value) {
+                selectedItems.push({
+                    type: 'text',
+                    content: textInput2.value,
+                    charCount: calculateCharCount(textInput2.value),
+                    inputId: 'text-input-2'
+                });
+            }
+        }
+
+        // 更新预览区域 - 所有项目都从 selectedItems 读取
         function updatePreview() {
+            // 先更新 selectedItems 中的文本
+            updateSelectedTextItems();
+            
             previewContainer.innerHTML = '';
             
-            if (selectedItems.length === 0 && !textInput1.value && !textInput2.value) {
+            if (selectedItems.length === 0) {
                 previewContainer.innerHTML = '<p class="text-gray-400 text-center">请输入文字并选择图标</p>';
                 updateCombinedPreview();
                 return;
             }
             
-            // 创建一个临时数组来存储所有要显示的项目
-            const allItems = [];
-            
-            // 添加文字1
-            if (textInput1.value) {
-                allItems.push({
-                    type: 'text',
-                    content: textInput1.value,
-                    inputId: 'text-input-1'
-                });
-            }
-            
-            // 添加所有图标
-            allItems.push(...selectedItems);
-            
-            // 添加文字2
-            if (textInput2.value) {
-                allItems.push({
-                    type: 'text',
-                    content: textInput2.value,
-                    inputId: 'text-input-2'
-                });
-            }
-            
-            allItems.forEach((item, index) => {
+            selectedItems.forEach((item, index) => {
                 const previewItem = document.createElement('div');
                 previewItem.className = 'preview-item';
                 previewItem.draggable = true;
@@ -967,14 +972,14 @@
                 if (item.type === 'text') {
                     previewItem.innerHTML = `
                         <span>${item.content}</span>
-                        <button class="ml-2 text-gray-400 hover:text-red-500" onclick="removeTextItem('${item.inputId}')">
+                        <button class="ml-2 text-gray-400 hover:text-red-500" onclick="removePreviewItem(${index})">
                             <i class="fas fa-times-circle"></i>
                         </button>
                     `;
                 } else if (item.type === 'custom') {
                     previewItem.innerHTML = `
                         <i class="${item.iconClass}"></i>
-                        <button class="ml-2 text-gray-400 hover:text-red-500" onclick="removeIconItem('${item.iconClass}')">
+                        <button class="ml-2 text-gray-400 hover:text-red-500" onclick="removePreviewItem(${index})">
                             <i class="fas fa-times-circle"></i>
                         </button>
                     `;
@@ -986,32 +991,9 @@
             updateCombinedPreview();
         }
         
-        // 移除文字项
-        function removeTextItem(inputId) {
-            if (inputId === 'text-input-1') {
-                textInput1.value = '';
-                textCounter1.textContent = '0/15';
-            } else if (inputId === 'text-input-2') {
-                textInput2.value = '';
-                textCounter2.textContent = '0/15';
-            }
-            updateTotalCharCount();
-            updatePreview();
-        }
-        
-        // 移除图标项
-        function removeIconItem(iconClass) {
-            const index = selectedItems.findIndex(item => item.iconClass === iconClass);
-            if (index !== -1) {
-                selectedItems.splice(index, 1);
-            }
-            updateTotalCharCount();
-            updatePreview();
-        }
-        
         // 更新合并预览
         function updateCombinedPreview() {
-            if (selectedItems.length === 0 && !textInput1.value && !textInput2.value) {
+            if (selectedItems.length === 0) {
                 combinedPreview.innerHTML = '<p class="text-gray-400 text-base">合并后的内容将显示在这里</p>';
                 combinedChars.textContent = '0';
                 return;
@@ -1020,23 +1002,14 @@
             let combinedHtml = '';
             let totalChars = 0;
             
-            // 添加文字1
-            if (textInput1.value) {
-                combinedHtml += `<span>${textInput1.value}</span>`;
-                totalChars += calculateCharCount(textInput1.value);
-            }
-            
-            // 添加图标
             selectedItems.forEach(item => {
-                combinedHtml += `<i class="${item.iconClass}"></i>`;
                 totalChars += item.charCount;
+                if (item.type === 'text') {
+                    combinedHtml += `<span>${item.content}</span>`;
+                } else if (item.type === 'custom') {
+                    combinedHtml += `<i class="${item.iconClass}"></i>`;
+                }
             });
-            
-            // 添加文字2
-            if (textInput2.value) {
-                combinedHtml += `<span>${textInput2.value}</span>`;
-                totalChars += calculateCharCount(textInput2.value);
-            }
             
             combinedPreview.innerHTML = combinedHtml;
             combinedChars.textContent = totalChars;
@@ -1053,12 +1026,16 @@
         
         // 复制合并文本
         function copyCombinedText() {
-            if (selectedItems.length === 0 && !textInput1.value && !textInput2.value) return;
+            if (selectedItems.length === 0) return;
             
             let copyText = '';
-            if (textInput1.value) copyText += textInput1.value;
-            if (selectedItems.length > 0) copyText += ' [图标]';
-            if (textInput2.value) copyText += textInput2.value;
+            selectedItems.forEach(item => {
+                if (item.type === 'text') {
+                    copyText += item.content;
+                } else {
+                    copyText += '[图标]';
+                }
+            });
             
             navigator.clipboard.writeText(copyText).then(() => {
                 const originalText = copyCombinedBtn.innerHTML;
@@ -1075,6 +1052,25 @@
                 console.error('复制失败:', err);
                 alert('复制失败，请重试');
             });
+        }
+
+        // 移除预览项目
+        function removePreviewItem(index) {
+            const item = selectedItems[index];
+            
+            if (item.type === 'text') {
+                if (item.inputId === 'text-input-1') {
+                    textInput1.value = '';
+                    textCounter1.textContent = '0/15';
+                } else if (item.inputId === 'text-input-2') {
+                    textInput2.value = '';
+                    textCounter2.textContent = '0/15';
+                }
+            }
+            
+            selectedItems.splice(index, 1);
+            updateTotalCharCount();
+            updatePreview();
         }
 
         // 清空预览
@@ -1179,30 +1175,23 @@
             }, { offset: Number.NEGATIVE_INFINITY }).element;
         }
 
-        // 更新选中列表顺序
+        // 更新选中列表顺序 - 修复版
         function updateSelectedItemsOrder() {
-            // 由于预览区现在包含文字和图标，拖拽顺序需要重新处理
-            // 简单起见，暂时禁用拖拽排序功能，或保持原有逻辑
-            // 这里保持原有逻辑，但可能不完美
             const previewItems = [...previewContainer.querySelectorAll('.preview-item')];
             const newSelectedItems = [];
             
             previewItems.forEach(item => {
-                // 如果是图标项
-                const iconElement = item.querySelector('i[class^="icon-"]');
-                if (iconElement) {
-                    const iconClass = iconElement.className;
-                    const found = selectedItems.find(i => i.iconClass === iconClass);
-                    if (found) {
-                        newSelectedItems.push(found);
-                    }
-                }
+                const index = parseInt(item.dataset.index);
+                newSelectedItems.push(selectedItems[index]);
             });
             
             selectedItems = newSelectedItems;
+            
+            // 更新合并预览
+            updateCombinedPreview();
         }
 
-        // 验证表单 - 修复版
+        // 验证表单
         function validateForm() {
             const nameValid = customerName.value.trim() !== '';
             const totalCharsValid = calculateTotalChars() > 0 && calculateTotalChars() <= 15;
@@ -1261,6 +1250,9 @@
                 alert('请至少输入文字或选择图标！');
                 return;
             }
+            
+            // 更新 selectedItems 中的文本
+            updateSelectedTextItems();
             
             const text1 = textInput1.value;
             const text2 = textInput2.value;
@@ -1369,15 +1361,15 @@
             return new Promise((resolve, reject) => {
                 let combinedHtml = '';
                 
-                if (currentCustomerId === customer.id && (selectedItems.length > 0 || textInput1.value || textInput2.value)) {
-                    // 当前预览的就是这个客户，直接用预览的顺序
-                    if (textInput1.value) combinedHtml += `<span>${textInput1.value}</span>`;
-                    
+                if (currentCustomerId === customer.id && selectedItems.length > 0) {
+                    // 当前预览的就是这个客户，直接用 selectedItems 的顺序
                     selectedItems.forEach(item => {
-                        combinedHtml += `<i class="${item.iconClass}"></i>`;
+                        if (item.type === 'text') {
+                            combinedHtml += `<span>${item.content}</span>`;
+                        } else if (item.type === 'custom') {
+                            combinedHtml += `<i class="${item.iconClass}"></i>`;
+                        }
                     });
-                    
-                    if (textInput2.value) combinedHtml += `<span>${textInput2.value}</span>`;
                 } else {
                     // 如果不是当前预览的客户，按存储的顺序
                     if (customer.text1) combinedHtml += `<span>${customer.text1}</span>`;
@@ -1754,6 +1746,15 @@
             
             selectedItems = [];
             
+            if (customer.text1) {
+                selectedItems.push({
+                    type: 'text',
+                    content: customer.text1,
+                    charCount: calculateCharCount(customer.text1),
+                    inputId: 'text-input-1'
+                });
+            }
+            
             if (customer.customIcons && customer.customIcons.length > 0) {
                 customer.customIcons.forEach(iconClass => {
                     selectedItems.push({
@@ -1761,6 +1762,15 @@
                         iconClass: iconClass,
                         charCount: 3
                     });
+                });
+            }
+            
+            if (customer.text2) {
+                selectedItems.push({
+                    type: 'text',
+                    content: customer.text2,
+                    charCount: calculateCharCount(customer.text2),
+                    inputId: 'text-input-2'
                 });
             }
             
