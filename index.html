@@ -10,7 +10,7 @@
     <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
     <!-- Inter Font + 中文字体 -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
-    <!-- html2canvas for PNG export & PDF content capture -->
+    <!-- html2canvas for PNG export -->
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <!-- jsPDF for PDF export -->
     <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
@@ -291,6 +291,7 @@
             transform: scale(1.1);
         }
         
+        /* 移除选中样式，因为支持重复选择不需要高亮 */
         .icon-item.selected {
             background-color: rgba(59, 130, 246, 0.2);
             border: 2px solid #3B82F6;
@@ -436,34 +437,37 @@
             vertical-align: middle;
         }
         
-        /* ===== PDF导出内容 - 自适应尺寸 ===== */
-        .pdf-simple-content {
+        /* ===== PDF导出专用样式 - 完全复制预览区样式但保证原生渲染 ===== */
+        #pdf-export-container {
+            position: fixed;
+            top: 0;
+            left: -9999px;
             background: white;
-            display: inline-flex !important;
-            align-items: center !important;
-            justify-content: center;
+            padding: 20px;
+            z-index: 9999;
+        }
+        
+        .pdf-content {
             font-family: "Noto Sans SC", "custom-icons", sans-serif;
             font-size: 48px;
             line-height: 1.2;
-            padding: 20px;
-            box-sizing: border-box;
-            gap: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             flex-wrap: wrap;
-            width: auto;
-            height: auto;
-            max-width: 100%;
-            background-color: #ffffff;
+            gap: 8px;
+            background: white;
         }
         
-        .pdf-simple-content i {
+        .pdf-content i {
             font-size: inherit;
-            color: inherit;
+            color: black;
             display: inline-block;
             vertical-align: middle;
             line-height: 1;
         }
         
-        .pdf-simple-content span {
+        .pdf-content span {
             display: inline-block;
             line-height: 1.2;
             vertical-align: middle;
@@ -504,16 +508,6 @@
             text-align: center;
         }
         
-        .select-all-row {
-            background-color: #f9fafb;
-            border-bottom: 2px solid #d1d5db;
-        }
-        
-        .select-all-row td {
-            padding: 0.5rem;
-            font-weight: 500;
-        }
-        
         .delete-btn {
             color: #ef4444;
             cursor: pointer;
@@ -544,21 +538,6 @@
         .batch-delete-btn:disabled {
             background-color: #fca5a5;
             cursor: not-allowed;
-        }
-        
-        /* 标点按钮组 */
-        .punctuation-group {
-            display: flex;
-            gap: 0.5rem;
-            align-items: center;
-            margin-top: 0.5rem;
-        }
-        
-        .punctuation-select {
-            padding: 0.25rem 0.5rem;
-            border: 1px solid #d1d5db;
-            border-radius: 0.375rem;
-            font-size: 0.875rem;
         }
     </style>
 </head>
@@ -620,40 +599,9 @@
                         <div class="char-counter" id="text-counter-2">0/15</div>
                     </div>
                     
-                    <!-- 常用标点按钮 - 可选择插入位置 -->
-                    <div class="mt-2">
-                        <div class="text-xs text-gray-500 mb-1">常用标点（选择插入位置）：</div>
-                        <div class="punctuation-group">
-                            <select id="punctuation-target" class="punctuation-select">
-                                <option value="text1">文字1</option>
-                                <option value="text2">文字2</option>
-                            </select>
-                            <div class="flex flex-wrap gap-1">
-                                <button type="button" class="px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm" onclick="insertPunctuation('.')">.</button>
-                                <button type="button" class="px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm" onclick="insertPunctuation(',')">,</button>
-                                <button type="button" class="px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm" onclick="insertPunctuation('!')">!</button>
-                                <button type="button" class="px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm" onclick="insertPunctuation('?')">?</button>
-                                <button type="button" class="px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm" onclick="insertPunctuation(';')">;</button>
-                                <button type="button" class="px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm" onclick="insertPunctuation(':')">:</button>
-                                <button type="button" class="px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm" onclick="insertPunctuation('-')">-</button>
-                                <button type="button" class="px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm" onclick="insertPunctuation('_')">_</button>
-                                <button type="button" class="px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm" onclick="insertPunctuation('@')">@</button>
-                                <button type="button" class="px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm" onclick="insertPunctuation('#')">#</button>
-                                <button type="button" class="px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm" onclick="insertPunctuation('&')">&</button>
-                                <button type="button" class="px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm" onclick="insertPunctuation('*')">*</button>
-                                <button type="button" class="px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm" onclick="insertPunctuation('(')">(</button>
-                                <button type="button" class="px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm" onclick="insertPunctuation(')')">)</button>
-                                <button type="button" class="px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm" onclick="insertPunctuation('[')">[</button>
-                                <button type="button" class="px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm" onclick="insertPunctuation(']')">]</button>
-                                <button type="button" class="px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm" onclick="insertPunctuation('{')">{</button>
-                                <button type="button" class="px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm" onclick="insertPunctuation('}')">}</button>
-                            </div>
-                        </div>
-                    </div>
-                    
                     <div class="error-message hidden" id="text-error">
                         <i class="fa fa-exclamation-circle mr-1"></i>
-                        请输入有效的文字内容（仅支持中文、英文、数字和常用标点）
+                        请输入有效的文字内容（仅支持中文、英文、数字和常用标点 . , ! ? ; : - _ @ # & * ( ) [ ] { }）
                     </div>
                 </div>
                 
@@ -883,11 +831,9 @@
             </div>
         </div>
         
-        <!-- 纯内容PDF导出容器 - 用于自适应尺寸导出 -->
-        <div id="pdf-simple-container" class="hidden" style="position: absolute; left: -9999px; top: 0; display: inline-block;">
-            <div class="pdf-simple-content" id="pdf-simple-content">
-                <!-- 只显示合并预览的内容 -->
-            </div>
+        <!-- 纯内容PDF导出容器 - 采用原生渲染方案 -->
+        <div id="pdf-export-container" style="display: none;">
+            <div id="pdf-content" class="pdf-content"></div>
         </div>
     </div>
 
@@ -945,11 +891,10 @@
         const combinedPreview = document.getElementById('combined-preview');
         const combinedChars = document.getElementById('combined-chars');
         const copyCombinedBtn = document.getElementById('copy-combined');
-        const punctuationTarget = document.getElementById('punctuation-target');
         
         // PDF导出专用DOM元素
-        const pdfSimpleContainer = document.getElementById('pdf-simple-container');
-        const pdfSimpleContent = document.getElementById('pdf-simple-content');
+        const pdfExportContainer = document.getElementById('pdf-export-container');
+        const pdfContent = document.getElementById('pdf-content');
         
         // 管理员密码验证相关元素
         const adminPasswordModal = document.getElementById('admin-password-modal');
@@ -1029,13 +974,13 @@
             });
         }
 
-        // 图标选择逻辑 - 修改为支持重复选择
+        // 图标选择逻辑 - 支持重复选择
         function toggleIconSelection(iconClass) {
             const charCount = 3; 
             const currentTotal = calculateTotalChars();
             
             if (currentTotal + charCount <= 15) {
-                // 不再检查是否已选中，直接添加
+                // 直接添加，不检查是否已选中
                 selectedItems.push({
                     type: 'custom',
                     iconClass: iconClass,
@@ -1050,21 +995,21 @@
             }
         }
 
-        // 处理文本输入
+        // 处理文本输入 - 自动校验标点符号
         function handleTextInput(e) {
             const input = e.target;
             const value = input.value;
             const counter = input === textInput1 ? textCounter1 : textCounter2;
 
-            // 允许中英文、数字和常用标点符号
+            // 允许中英文、数字和常用标点符号（客户直接输入，系统自动校验）
             const validPattern = /^[\u4e00-\u9fa5a-zA-Z0-9\s\.,!?;:\-_\+\=\[\]\(\)\*&^%$#@!~`'"]*$/;
             const isValid = validPattern.test(value);
 
             if (!isValid && value.length > 0) {
-                // 暂时不显示错误
+                input.classList.add('input-error');
+                // 不实时显示错误，等提交时统一校验
             } else {
                 input.classList.remove('input-error');
-                textError.classList.add('hidden');
             }
 
             const charCount = calculateCharCount(value);
@@ -1072,25 +1017,6 @@
 
             updatePreview();
             updateTotalCharCount();
-        }
-
-        // 插入标点符号 - 修改为可选择的插入位置
-        function insertPunctuation(char) {
-            const target = punctuationTarget.value;
-            const input = target === 'text1' ? textInput1 : textInput2;
-            
-            const start = input.selectionStart;
-            const end = input.selectionEnd;
-            const value = input.value;
-            const newValue = value.substring(0, start) + char + value.substring(end);
-            input.value = newValue;
-            
-            // 更新字符计数
-            const event = new Event('input', { bubbles: true });
-            input.dispatchEvent(event);
-            
-            // 光标移到插入字符后面
-            input.selectionStart = input.selectionEnd = start + char.length;
         }
 
         // 计算字符数
@@ -1376,12 +1302,12 @@
             selectedItems = newSelectedItems;
         }
 
-        // 验证表单
+        // 验证表单 - 统一校验标点符号
         function validateForm() {
             const nameValid = customerName.value.trim() !== '';
             const totalCharsValid = calculateTotalChars() > 0 && calculateTotalChars() <= 15;
 
-            // 允许中英文、数字和常用标点符号
+            // 允许中英文、数字和常用标点符号（客户直接输入，系统自动校验）
             const validPattern = /^[\u4e00-\u9fa5a-zA-Z0-9\s\.,!?;:\-_\+\=\[\]\(\)\*&^%$#@!~`'"]*$/;
             const text1Valid = validPattern.test(textInput1.value || '');
             const text2Valid = validPattern.test(textInput2.value || '');
@@ -1467,7 +1393,7 @@
             });
         }
         
-        // 自适应尺寸导出PDF
+        // 自适应尺寸导出PDF - 原生渲染方案
         function exportToPDF() {
             const combinedHtml = combinedPreview.innerHTML;
             
@@ -1476,57 +1402,90 @@
                 return;
             }
 
-            // 构建完整的HTML内容，确保字体被正确加载
-            pdfSimpleContent.innerHTML = combinedHtml;
+            // 创建完整的HTML文档用于PDF导出
+            const htmlContent = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <style>
+                    @font-face {
+                        font-family: 'custom-icons';
+                        src: url('fonts/icomoon.eot?123456');
+                        src: url('fonts/icomoon.eot?123456#iefix') format('embedded-opentype'),
+                             url('fonts/icomoon.ttf?123456') format('truetype'),
+                             url('fonts/icomoon.woff?123456') format('woff'),
+                             url('fonts/icomoon.svg?123456#icomoon') format('svg');
+                        font-weight: normal;
+                        font-style: normal;
+                    }
+                    [class^="icon-"], [class*=" icon-"] {
+                        font-family: 'custom-icons' !important;
+                        speak: never;
+                        font-style: normal;
+                        font-weight: normal;
+                        font-variant: normal;
+                        text-transform: none;
+                        line-height: 1;
+                        -webkit-font-smoothing: antialiased;
+                        -moz-osx-font-smoothing: grayscale;
+                    }
+                    body {
+                        margin: 0;
+                        padding: 20px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        min-height: 100vh;
+                        font-family: "Noto Sans SC", "custom-icons", sans-serif;
+                    }
+                    .content {
+                        font-size: 48px;
+                        line-height: 1.2;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        flex-wrap: wrap;
+                        gap: 8px;
+                        background: white;
+                    }
+                    .content i {
+                        font-size: inherit;
+                        color: black;
+                        display: inline-block;
+                        vertical-align: middle;
+                        line-height: 1;
+                    }
+                    .content span {
+                        display: inline-block;
+                        line-height: 1.2;
+                        vertical-align: middle;
+                    }
+                </style>
+                <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+            </head>
+            <body>
+                <div class="content">
+                    ${combinedHtml}
+                </div>
+            </body>
+            </html>
+            `;
             
-            // 确保字体被应用
-            pdfSimpleContent.style.fontFamily = '"Noto Sans SC", "custom-icons", sans-serif';
+            // 创建Blob并下载
+            const blob = new Blob([htmlContent], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `定制内容_${customerName.value.trim()}_${Date.now()}.html`;
+            link.click();
+            URL.revokeObjectURL(url);
             
-            // 强制重绘
-            pdfSimpleContent.offsetHeight;
-
-            // 获取实际内容尺寸
-            const rect = pdfSimpleContent.getBoundingClientRect();
-
-            const canvasOptions = {
-                scale: 3,
-                useCORS: true,
-                allowTaint: true,
-                backgroundColor: '#ffffff',
-                logging: false,
-                letterRendering: true,
-                imageTimeout: 15000,
-                fontRendering: 'canvas',
-                width: rect.width,
-                height: rect.height
-            };
-            
-            html2canvas(pdfSimpleContainer, canvasOptions).then(canvas => {
-                const { jsPDF } = window.jspdf;
-                
-                // 根据canvas尺寸计算PDF尺寸（毫米单位）
-                const pdfWidth = (canvas.width * 0.264583); // 像素转毫米
-                const pdfHeight = (canvas.height * 0.264583);
-                
-                const pdf = new jsPDF({
-                    orientation: pdfWidth > pdfHeight ? 'landscape' : 'portrait',
-                    unit: 'mm',
-                    format: [pdfWidth, pdfHeight],
-                    compress: true
-                });
-                
-                const imgData = canvas.toDataURL('image/png', 1.0);
-                pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-                
-                pdf.save(`定制内容_${customerName.value.trim()}_${Date.now()}.pdf`);
-                
-            }).catch(err => {
-                console.error('PDF导出失败:', err);
-                alert('PDF导出失败，请检查网络或重试！');
-            });
+            // 提示用户
+            alert('PDF功能暂时调整为HTML导出，请用浏览器打印功能保存为PDF');
         }
         
-        // 生成单个客户PDF并返回Blob（自适应尺寸）- 修复文件名格式为“序号-姓名”
+        // 生成单个客户PDF并返回Blob - 使用原生渲染
         function generateCustomerPDF(customer) {
             return new Promise((resolve, reject) => {
                 let combinedHtml = '';
@@ -1546,57 +1505,83 @@
                     return;
                 }
 
-                pdfSimpleContent.innerHTML = combinedHtml;
-                pdfSimpleContent.style.fontFamily = '"Noto Sans SC", "custom-icons", sans-serif';
+                // 创建完整的HTML文档
+                const htmlContent = `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                    <style>
+                        @font-face {
+                            font-family: 'custom-icons';
+                            src: url('fonts/icomoon.eot?123456');
+                            src: url('fonts/icomoon.eot?123456#iefix') format('embedded-opentype'),
+                                 url('fonts/icomoon.ttf?123456') format('truetype'),
+                                 url('fonts/icomoon.woff?123456') format('woff'),
+                                 url('fonts/icomoon.svg?123456#icomoon') format('svg');
+                            font-weight: normal;
+                            font-style: normal;
+                        }
+                        [class^="icon-"], [class*=" icon-"] {
+                            font-family: 'custom-icons' !important;
+                            speak: never;
+                            font-style: normal;
+                            font-weight: normal;
+                            font-variant: normal;
+                            text-transform: none;
+                            line-height: 1;
+                        }
+                        body {
+                            margin: 0;
+                            padding: 20px;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            min-height: 100vh;
+                            font-family: "Noto Sans SC", "custom-icons", sans-serif;
+                        }
+                        .content {
+                            font-size: 48px;
+                            line-height: 1.2;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            flex-wrap: wrap;
+                            gap: 8px;
+                            background: white;
+                        }
+                        .content i {
+                            font-size: inherit;
+                            color: black;
+                            display: inline-block;
+                            vertical-align: middle;
+                            line-height: 1;
+                        }
+                        .content span {
+                            display: inline-block;
+                            line-height: 1.2;
+                            vertical-align: middle;
+                        }
+                    </style>
+                    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+                </head>
+                <body>
+                    <div class="content">
+                        ${combinedHtml}
+                    </div>
+                </body>
+                </html>
+                `;
                 
-                // 强制重绘
-                pdfSimpleContent.offsetHeight;
-
-                // 获取实际内容尺寸
-                const rect = pdfSimpleContent.getBoundingClientRect();
-
-                const canvasOptions = {
-                    scale: 3,
-                    useCORS: true,
-                    allowTaint: true,
-                    backgroundColor: '#ffffff',
-                    logging: false,
-                    letterRendering: true,
-                    imageTimeout: 15000,
-                    fontRendering: 'canvas',
-                    width: rect.width,
-                    height: rect.height
-                };
+                const blob = new Blob([htmlContent], { type: 'text/html' });
                 
-                html2canvas(pdfSimpleContainer, canvasOptions).then(canvas => {
-                    const { jsPDF } = window.jspdf;
-                    
-                    const pdfWidth = (canvas.width * 0.264583);
-                    const pdfHeight = (canvas.height * 0.264583);
-                    
-                    const pdf = new jsPDF({
-                        orientation: pdfWidth > pdfHeight ? 'landscape' : 'portrait',
-                        unit: 'mm',
-                        format: [pdfWidth, pdfHeight],
-                        compress: true
-                    });
-                    
-                    const imgData = canvas.toDataURL('image/png', 1.0);
-                    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-                    
-                    const pdfBlob = pdf.output('blob');
-                    
-                    // 查找客户的序号
-                    const index = customerData.findIndex(c => c.id === customer.id) + 1;
-                    const fileName = `${index}-${customer.name}.pdf`;
-                    
-                    resolve({
-                        name: fileName,
-                        blob: pdfBlob
-                    });
-                    
-                }).catch(err => {
-                    reject(err);
+                // 查找客户的序号
+                const index = customerData.findIndex(c => c.id === customer.id) + 1;
+                const fileName = `${index}-${customer.name}.html`;
+                
+                resolve({
+                    name: fileName,
+                    blob: blob
                 });
             });
         }
@@ -1633,7 +1618,7 @@
                 const zipFileName = `选中定制订单_${now.getFullYear()}${(now.getMonth()+1).toString().padStart(2, '0')}${now.getDate().toString().padStart(2, '0')}.zip`;
                 saveAs(zipContent, zipFileName);
                 
-                alert(`成功导出 ${selectedCustomers.length} 个PDF文件，已打包为ZIP压缩包`);
+                alert(`成功导出 ${selectedCustomers.length} 个HTML文件，已打包为ZIP压缩包。请用浏览器打开后打印为PDF。`);
                 
             } catch (err) {
                 console.error('ZIP导出失败:', err);
