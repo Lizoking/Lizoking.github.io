@@ -18,6 +18,8 @@
     <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
     <!-- FileSaver 用于下载ZIP文件 -->
     <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+    <!-- Supabase SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
     <!-- 字体图标定义 -->
     <style>
@@ -104,35 +106,6 @@
         .icon-56:before { content: "\e937"; }
         .icon-57:before { content: "\e938"; }
         .icon-58:before { content: "\e939"; }
-        .icon-59:before { content: "\e93a"; }
-        .icon-60:before { content: "\e93b"; }
-        .icon-61:before { content: "\e93c"; }
-        .icon-62:before { content: "\e93d"; }
-        .icon-63:before { content: "\e93e"; }
-        .icon-64:before { content: "\e93f"; }
-        .icon-65:before { content: "\e940"; }
-        .icon-66:before { content: "\e941"; }
-        .icon-67:before { content: "\e942"; }
-        .icon-68:before { content: "\e943"; }
-        .icon-69:before { content: "\e944"; }
-        .icon-70:before { content: "\e945"; }
-        .icon-71:before { content: "\e946"; }
-        .icon-72:before { content: "\e947"; }
-        .icon-73:before { content: "\e948"; }
-        .icon-74:before { content: "\e949"; }
-        .icon-75:before { content: "\e94a"; }
-        .icon-76:before { content: "\e94b"; }
-        .icon-77:before { content: "\e94c"; }
-        .icon-78:before { content: "\e94d"; }
-        .icon-79:before { content: "\e94e"; }
-        .icon-80:before { content: "\e94f"; }
-        .icon-81:before { content: "\e950"; }
-        .icon-82:before { content: "\e951"; }
-        .icon-83:before { content: "\e952"; }
-        .icon-84:before { content: "\e953"; }
-        .icon-85:before { content: "\e954"; }
-        .icon-86:before { content: "\e955"; }
-        .icon-87:before { content: "\e956"; }
         .icon-89:before { content: "\e965"; }
         .icon-90:before { content: "\e966"; }
         .icon-91:before { content: "\e967"; }
@@ -803,14 +776,7 @@
                         </table>
                     </div>
                     
-                    <!-- 新增：数据导出导入按钮 -->
                     <div class="mt-4 flex justify-end gap-2">
-                        <button id="export-data" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm transition-colors flex items-center">
-                            <i class="fas fa-download mr-1"></i> 导出数据
-                        </button>
-                        <button id="import-data" class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm transition-colors flex items-center">
-                            <i class="fas fa-upload mr-1"></i> 导入数据
-                        </button>
                         <button id="export-selected-excel" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm transition-colors flex items-center">
                             <i class="fas fa-file-excel mr-1"></i> 导出选中Excel
                         </button>
@@ -872,10 +838,24 @@
         </div>
     </div>
 
-    <!-- 添加导入文件的隐藏input -->
-    <input type="file" id="import-file" accept=".json" style="display: none;">
-
     <script>
+        // ===== Supabase 配置 =====
+        // 替换为你的 Supabase 信息
+        const SUPABASE_URL = "https://kajvdystciyjhnqpzybt.supabase.co";
+        const SUPABASE_ANON_KEY = "你的 Publishable key（anon public key）";
+        
+        // 初始化 Supabase 客户端
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+            global: {
+                fetch: (url, options = {}) => {
+                    return Promise.race([
+                        fetch(url, { ...options, signal: AbortSignal.timeout(10000) }),
+                        new Promise((_, reject) => setTimeout(() => reject(new Error('请求超时')), 10000))
+                    ]);
+                }
+            }
+        });
+
         // ===== 172个图标的列表（使用 icon-1 到 icon-172 格式） =====
         const iconList = [];
         for (let i = 1; i <= 172; i++) {
@@ -945,13 +925,8 @@
         const cancelDeleteBtn = document.getElementById('cancel-delete');
         const confirmDeleteBtn = document.getElementById('confirm-delete');
         
-        // 新增：导入文件相关元素
-        const importFileInput = document.getElementById('import-file');
-        const exportDataBtn = document.getElementById('export-data');
-        const importDataBtn = document.getElementById('import-data');
-        
-        // 存储客户定制数据
-        let customerData = JSON.parse(localStorage.getItem('customerData')) || [];
+        // 存储客户定制数据（从 Supabase 获取）
+        let customerData = [];
         let currentCustomerId = null;
         
         // 按输入顺序存储的项目
@@ -988,20 +963,29 @@
             exportSelectedPdfBtn.addEventListener('click', exportSelectedToPDF);
             copyCombinedBtn.addEventListener('click', copyCombinedText);
             
-            // 新增：导出/导入按钮事件
-            if (exportDataBtn) {
-                exportDataBtn.addEventListener('click', exportAllData);
+            // 从 Supabase 获取客户数据
+            fetchCustomerData();
+        }
+
+        // 从 Supabase 获取客户数据
+        async function fetchCustomerData() {
+            try {
+                const { data, error } = await supabase
+                    .from('customer_customizations')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+                
+                if (error) throw error;
+                
+                customerData = data || [];
+                updateCustomerList();
+            } catch (error) {
+                console.error('获取客户数据失败:', error);
+                alert('获取数据失败，请检查网络或稍后重试');
+                // 降级使用 localStorage
+                customerData = JSON.parse(localStorage.getItem('customerData')) || [];
+                updateCustomerList();
             }
-            if (importDataBtn) {
-                importDataBtn.addEventListener('click', () => {
-                    importFileInput.click();
-                });
-            }
-            if (importFileInput) {
-                importFileInput.addEventListener('change', importData);
-            }
-            
-            updateCustomerList();
         }
 
         // 生成172个图标的网格
@@ -1323,8 +1307,8 @@
             exportPdfBtn.disabled = !formValid;
         }
         
-        // 提交定制
-        function submitCustomization() {
+        // 提交定制到 Supabase
+        async function submitCustomization() {
             if (!customerName.value.trim()) {
                 customerName.classList.add('input-error');
                 nameError.classList.remove('hidden');
@@ -1346,23 +1330,60 @@
             const text2 = textInput2.value;
             const customIcons = orderedItems.filter(item => item.type === 'custom').map(item => item.iconClass);
             
-            const customerId = Date.now();
             const customizationData = {
-                id: customerId,
                 name: customerName.value.trim(),
                 text1: text1,
                 text2: text2,
-                customIcons: customIcons,
-                totalChars: calculateTotalChars(),
-                timestamp: new Date().toISOString()
+                custom_icons: customIcons, // 注意字段名用下划线（Supabase 推荐）
+                total_chars: calculateTotalChars(),
+                created_at: new Date().toISOString()
             };
             
-            customerData.push(customizationData);
-            localStorage.setItem('customerData', JSON.stringify(customerData));
-            
-            updateCustomerList();
-            currentCustomerId = customerId;
-            successModal.classList.remove('hidden');
+            try {
+                // 插入数据到 Supabase
+                const { data, error } = await supabase
+                    .from('customer_customizations')
+                    .insert([customizationData])
+                    .select();
+                
+                if (error) throw error;
+                
+                // 更新本地数据
+                customerData.unshift({
+                    id: data[0].id,
+                    ...customizationData
+                });
+                
+                currentCustomerId = data[0].id;
+                successModal.classList.remove('hidden');
+                updateCustomerList();
+                
+                // 清空表单
+                clearPreview();
+                customerName.value = '';
+            } catch (error) {
+                console.error('提交失败:', error);
+                alert('提交失败，请检查网络或稍后重试');
+                
+                // 降级使用 localStorage
+                const customerId = Date.now();
+                const fallbackData = {
+                    id: customerId,
+                    name: customerName.value.trim(),
+                    text1: text1,
+                    text2: text2,
+                    customIcons: customIcons,
+                    totalChars: calculateTotalChars(),
+                    timestamp: new Date().toISOString()
+                };
+                
+                customerData.push(fallbackData);
+                localStorage.setItem('customerData', JSON.stringify(customerData));
+                
+                currentCustomerId = customerId;
+                successModal.classList.remove('hidden');
+                updateCustomerList();
+            }
         }
         
         // 导出为PNG - 不带背景（优化版）
@@ -1490,8 +1511,9 @@
                     // 如果不是当前预览的客户，按存储的顺序
                     if (customer.text1) combinedHtml += `<span>${customer.text1}</span>`;
                     
-                    if (customer.customIcons && customer.customIcons.length > 0) {
-                        customer.customIcons.forEach(iconClass => {
+                    const icons = customer.custom_icons || customer.customIcons || [];
+                    if (icons.length > 0) {
+                        icons.forEach(iconClass => {
                             combinedHtml += `<i class="${iconClass}"></i>`;
                         });
                     }
@@ -1560,429 +1582,4 @@
             });
         }
         
-        // 导出选中客户的PDF为ZIP压缩包
-        async function exportSelectedToPDF() {
-            const selectedCustomers = customerData.filter(c => selectedCustomerIds.has(c.id));
-            
-            if (selectedCustomers.length === 0) {
-                alert('请先选择要导出的客户');
-                return;
-            }
-            
-            const originalBtnText = exportSelectedPdfBtn.innerHTML;
-            exportSelectedPdfBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> 正在导出...';
-            exportSelectedPdfBtn.disabled = true;
-            
-            try {
-                const zip = new JSZip();
-                const pdfPromises = selectedCustomers.map(customer => generateCustomerPDF(customer));
-                const pdfFiles = await Promise.all(pdfPromises);
-                
-                pdfFiles.forEach(file => {
-                    zip.file(file.name, file.blob);
-                });
-                
-                const zipContent = await zip.generateAsync({
-                    type: 'blob',
-                    compression: 'DEFLATE',
-                    compressionOptions: { level: 6 }
-                });
-                
-                const now = new Date();
-                const zipFileName = `选中定制订单_${now.getFullYear()}${(now.getMonth()+1).toString().padStart(2, '0')}${now.getDate().toString().padStart(2, '0')}.zip`;
-                saveAs(zipContent, zipFileName);
-                
-                alert(`成功导出 ${selectedCustomers.length} 个PDF文件，已打包为ZIP压缩包`);
-                
-            } catch (err) {
-                console.error('ZIP导出失败:', err);
-                alert('导出失败，请重试！');
-            } finally {
-                exportSelectedPdfBtn.innerHTML = originalBtnText;
-                exportSelectedPdfBtn.disabled = false;
-            }
-        }
-
-        // 导出选中客户的Excel
-        function exportSelectedToExcel() {
-            const selectedCustomers = customerData.filter(c => selectedCustomerIds.has(c.id));
-            
-            if (selectedCustomers.length === 0) {
-                alert('请先选择要导出的客户');
-                return;
-            }
-
-            // 创建CSV内容 - 只包含序号和姓名
-            let csvContent = "\uFEFF序号,姓名\n";
-            
-            selectedCustomers.forEach((customer, index) => {
-                const row = [
-                    index + 1,
-                    customer.name
-                ].join(',');
-                
-                csvContent += row + '\n';
-            });
-            
-            // 下载CSV文件（Excel可打开）
-            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement('a');
-            const url = URL.createObjectURL(blob);
-            link.setAttribute('href', url);
-            link.setAttribute('download', `选中客户_${new Date().toISOString().slice(0,10)}.csv`);
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            URL.revokeObjectURL(url);
-        }
-
-        // 显示批量删除确认
-        function showBatchDeleteConfirm() {
-            if (selectedCustomerIds.size === 0) return;
-            
-            const customerNames = customerData
-                .filter(c => selectedCustomerIds.has(c.id))
-                .map(c => c.name)
-                .join('、');
-            
-            if (confirm(`确定要删除选中的 ${selectedCustomerIds.size} 个客户吗？\n\n客户：${customerNames}\n\n此操作不可恢复！`)) {
-                batchDeleteCustomers();
-            }
-        }
-
-        // 批量删除客户
-        function batchDeleteCustomers() {
-            // 从数组中删除选中的客户
-            customerData = customerData.filter(customer => !selectedCustomerIds.has(customer.id));
-            
-            // 清空选中集合
-            selectedCustomerIds.clear();
-            
-            // 更新本地存储
-            localStorage.setItem('customerData', JSON.stringify(customerData));
-            
-            // 更新客户列表
-            updateCustomerList(customerFilterInput.value.trim().toLowerCase());
-            
-            // 更新全选状态
-            selectAllCheckbox.checked = false;
-            
-            // 更新选中数量
-            updateSelectedCount();
-            
-            alert('选中的客户已成功删除');
-        }
-
-        // 切换全选
-        function toggleSelectAll(e) {
-            const checkboxes = document.querySelectorAll('.customer-checkbox');
-            checkboxes.forEach(cb => {
-                cb.checked = e.target.checked;
-                if (e.target.checked) {
-                    selectedCustomerIds.add(parseInt(cb.dataset.id));
-                } else {
-                    selectedCustomerIds.delete(parseInt(cb.dataset.id));
-                }
-            });
-            updateSelectedCount();
-        }
-
-        // 更新选中数量显示
-        function updateSelectedCount() {
-            selectedCountSpan.textContent = `已选择 ${selectedCustomerIds.size} 项`;
-            batchDeleteBtn.disabled = selectedCustomerIds.size === 0;
-            
-            const totalCheckboxes = document.querySelectorAll('.customer-checkbox').length;
-            if (selectedCustomerIds.size === totalCheckboxes && totalCheckboxes > 0) {
-                selectAllCheckbox.checked = true;
-            } else {
-                selectAllCheckbox.checked = false;
-            }
-        }
-
-        // 显示管理员密码弹窗
-        function showAdminPasswordModal() {
-            adminPasswordInput.value = '';
-            passwordError.classList.add('hidden');
-            adminPasswordModal.classList.remove('hidden');
-        }
-        
-        // 隐藏管理员密码弹窗
-        function hideAdminPasswordModal() {
-            adminPasswordModal.classList.add('hidden');
-        }
-        
-        // 验证管理员密码
-        function verifyAdminPassword() {
-            const password = adminPasswordInput.value.trim();
-            
-            if (password === ADMIN_PASSWORD) {
-                hideAdminPasswordModal();
-                adminPanel.classList.remove('hidden');
-            } else {
-                passwordError.classList.remove('hidden');
-                adminPasswordInput.classList.add('input-error');
-                
-                setTimeout(() => {
-                    passwordError.classList.add('hidden');
-                    adminPasswordInput.classList.remove('input-error');
-                }, 3000);
-            }
-        }
-        
-        // 筛选客户列表
-        function filterCustomerList() {
-            const filterText = customerFilterInput.value.trim().toLowerCase();
-            updateCustomerList(filterText);
-        }
-        
-        // 显示删除确认弹窗
-        function showDeleteConfirmModal(id) {
-            deleteCustomerId = id;
-            deleteConfirmModal.classList.remove('hidden');
-        }
-        
-        // 隐藏删除确认弹窗
-        function hideDeleteConfirmModal() {
-            deleteConfirmModal.classList.add('hidden');
-            deleteCustomerId = null;
-        }
-        
-        // 确认删除客户
-        function confirmDeleteCustomer() {
-            if (!deleteCustomerId) return;
-            
-            // 从数组中删除
-            customerData = customerData.filter(customer => customer.id !== deleteCustomerId);
-            // 从选中集合中删除
-            selectedCustomerIds.delete(deleteCustomerId);
-            
-            // 更新本地存储
-            localStorage.setItem('customerData', JSON.stringify(customerData));
-            
-            // 更新客户列表
-            updateCustomerList(customerFilterInput.value.trim().toLowerCase());
-            
-            // 隐藏弹窗
-            hideDeleteConfirmModal();
-            
-            // 更新选中数量
-            updateSelectedCount();
-            
-            alert('客户记录已成功删除');
-        }
-        
-        // 更新客户列表
-        function updateCustomerList(filterText = '') {
-            customerList.innerHTML = '';
-            
-            // 筛选客户数据
-            let filteredData = customerData;
-            if (filterText) {
-                filteredData = customerData.filter(customer => 
-                    customer.name.toLowerCase().includes(filterText)
-                );
-            }
-            
-            if (filteredData.length === 0) {
-                customerList.innerHTML = `
-                    <tr>
-                        <td colspan="5" class="py-4 px-4 text-center text-gray-500">${filterText ? '未找到匹配的客户' : '暂无客户数据'}</td>
-                    </tr>
-                `;
-                selectAllCheckbox.disabled = true;
-                batchDeleteBtn.disabled = true;
-                return;
-            }
-            
-            selectAllCheckbox.disabled = false;
-            
-            filteredData.forEach((customer, index) => {
-                const row = document.createElement('tr');
-                
-                // 构建定制内容的HTML，按顺序显示文字和图标
-                let contentHtml = '<div class="custom-content-cell">';
-                
-                // 先显示文字1
-                if (customer.text1) {
-                    contentHtml += `<span>${customer.text1}</span>`;
-                }
-                
-                // 再显示所有图标（按存储顺序）
-                if (customer.customIcons && customer.customIcons.length > 0) {
-                    customer.customIcons.forEach(iconClass => {
-                        contentHtml += `<i class="${iconClass}"></i>`;
-                    });
-                }
-                
-                // 最后显示文字2
-                if (customer.text2) {
-                    contentHtml += `<span>${customer.text2}</span>`;
-                }
-                
-                contentHtml += '</div>';
-                
-                row.innerHTML = `
-                    <td class="checkbox-column">
-                        <input type="checkbox" class="customer-checkbox" data-id="${customer.id}" ${selectedCustomerIds.has(customer.id) ? 'checked' : ''}>
-                    </td>
-                    <td class="w-16">${index + 1}</td>
-                    <td>${customer.name}</td>
-                    <td>${contentHtml}</td>
-                    <td class="action-column">
-                        <i class="fas fa-trash delete-btn" onclick="showDeleteConfirmModal(${customer.id})" title="删除"></i>
-                    </td>
-                `;
-                
-                // 添加复选框事件
-                const checkbox = row.querySelector('.customer-checkbox');
-                checkbox.addEventListener('change', function(e) {
-                    if (this.checked) {
-                        selectedCustomerIds.add(customer.id);
-                    } else {
-                        selectedCustomerIds.delete(customer.id);
-                    }
-                    updateSelectedCount();
-                });
-                
-                customerList.appendChild(row);
-            });
-            
-            updateSelectedCount();
-        }
-        
-        // 查看客户详情
-        function viewCustomerDetail(id) {
-            const customer = customerData.find(c => c.id === id);
-            if (!customer) return;
-            
-            customerName.value = customer.name;
-            textInput1.value = customer.text1 || '';
-            textInput2.value = customer.text2 || '';
-            
-            orderedItems = [];
-            
-            if (customer.text1) {
-                orderedItems.push({
-                    type: 'text',
-                    content: customer.text1,
-                    charCount: calculateCharCount(customer.text1),
-                    inputId: 'text-input-1'
-                });
-            }
-            
-            if (customer.customIcons && customer.customIcons.length > 0) {
-                customer.customIcons.forEach(iconClass => {
-                    orderedItems.push({
-                        type: 'custom',
-                        iconClass: iconClass,
-                        charCount: 3
-                    });
-                });
-            }
-            
-            if (customer.text2) {
-                orderedItems.push({
-                    type: 'text',
-                    content: customer.text2,
-                    charCount: calculateCharCount(customer.text2),
-                    inputId: 'text-input-2'
-                });
-            }
-            
-            updatePreview();
-            updateTotalCharCount();
-            
-            textCounter1.textContent = `${calculateCharCount(customer.text1 || '')}/15`;
-            textCounter2.textContent = `${calculateCharCount(customer.text2 || '')}/15`;
-            
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-        
-        // 导出客户PNG
-        function exportCustomerPNG(id) {
-            viewCustomerDetail(id);
-            setTimeout(exportToPNG, 500);
-        }
-
-        // 新增：导出所有数据
-        function exportAllData() {
-            const data = {
-                customers: customerData,
-                exportDate: new Date().toISOString(),
-                version: '1.0',
-                totalCount: customerData.length
-            };
-            
-            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = `powerbank-data-${new Date().toISOString().slice(0,10)}.json`;
-            link.click();
-            URL.revokeObjectURL(url);
-        }
-
-        // 新增：导入数据
-        function importData(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                try {
-                    const importedData = JSON.parse(e.target.result);
-                    
-                    // 验证数据格式
-                    if (!importedData.customers || !Array.isArray(importedData.customers)) {
-                        alert('无效的数据文件格式：缺少 customers 数组');
-                        return;
-                    }
-                    
-                    // 显示导入选项
-                    const importOption = confirm(
-                        `发现 ${importedData.customers.length} 条记录。\n\n` +
-                        `确定要导入吗？\n` +
-                        `- 点击「确定」：合并导入（保留现有数据）\n` +
-                        `- 点击「取消」：覆盖导入（替换所有数据）`
-                    );
-                    
-                    if (importOption) {
-                        // 合并导入 - 避免ID冲突
-                        const existingIds = new Set(customerData.map(c => c.id));
-                        const newCustomers = importedData.customers.filter(c => !existingIds.has(c.id));
-                        
-                        if (newCustomers.length > 0) {
-                            customerData = [...customerData, ...newCustomers];
-                            localStorage.setItem('customerData', JSON.stringify(customerData));
-                            updateCustomerList(customerFilterInput.value.trim().toLowerCase());
-                            alert(`成功合并导入 ${newCustomers.length} 条新记录`);
-                        } else {
-                            alert('没有新的记录可以导入（所有记录已存在）');
-                        }
-                    } else {
-                        // 覆盖导入
-                        if (confirm('确定要覆盖所有现有数据吗？此操作不可恢复！')) {
-                            customerData = importedData.customers;
-                            localStorage.setItem('customerData', JSON.stringify(customerData));
-                            updateCustomerList(customerFilterInput.value.trim().toLowerCase());
-                            alert(`成功覆盖导入 ${customerData.length} 条记录`);
-                        }
-                    }
-                    
-                } catch (error) {
-                    console.error('导入失败:', error);
-                    alert('导入失败：文件格式错误或损坏');
-                }
-                
-                // 清空input，以便再次选择同一个文件
-                event.target.value = '';
-            };
-            reader.readAsText(file);
-        }
-
-        // 初始化应用
-        document.addEventListener('DOMContentLoaded', init);
-    </script>
-</body>
-</html>
+        // 导出
