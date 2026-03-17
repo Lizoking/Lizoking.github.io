@@ -18,8 +18,8 @@
     <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
     <!-- FileSaver 用于下载ZIP文件 -->
     <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
-    <!-- Supabase SDK -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Supabase 客户端（CDN引入，避免npm依赖问题） -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.4/dist/umd/supabase.min.js"></script>
     
     <!-- 字体图标定义 -->
     <style>
@@ -106,6 +106,35 @@
         .icon-56:before { content: "\e937"; }
         .icon-57:before { content: "\e938"; }
         .icon-58:before { content: "\e939"; }
+        .icon-59:before { content: "\e93a"; }
+        .icon-60:before { content: "\e93b"; }
+        .icon-61:before { content: "\e93c"; }
+        .icon-62:before { content: "\e93d"; }
+        .icon-63:before { content: "\e93e"; }
+        .icon-64:before { content: "\e93f"; }
+        .icon-65:before { content: "\e940"; }
+        .icon-66:before { content: "\e941"; }
+        .icon-67:before { content: "\e942"; }
+        .icon-68:before { content: "\e943"; }
+        .icon-69:before { content: "\e944"; }
+        .icon-70:before { content: "\e945"; }
+        .icon-71:before { content: "\e946"; }
+        .icon-72:before { content: "\e947"; }
+        .icon-73:before { content: "\e948"; }
+        .icon-74:before { content: "\e949"; }
+        .icon-75:before { content: "\e94a"; }
+        .icon-76:before { content: "\e94b"; }
+        .icon-77:before { content: "\e94c"; }
+        .icon-78:before { content: "\e94d"; }
+        .icon-79:before { content: "\e94e"; }
+        .icon-80:before { content: "\e94f"; }
+        .icon-81:before { content: "\e950"; }
+        .icon-82:before { content: "\e951"; }
+        .icon-83:before { content: "\e952"; }
+        .icon-84:before { content: "\e953"; }
+        .icon-85:before { content: "\e954"; }
+        .icon-86:before { content: "\e955"; }
+        .icon-87:before { content: "\e956"; }
         .icon-89:before { content: "\e965"; }
         .icon-90:before { content: "\e966"; }
         .icon-91:before { content: "\e967"; }
@@ -839,22 +868,57 @@
     </div>
 
     <script>
-        // ===== Supabase 配置 =====
-        // 替换为你的 Supabase 信息
-        const SUPABASE_URL = "https://kajwdvystciyjhnopzyo.supabase.co";
-        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImthandkdnlzdGNpeWpobm9wenlvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2ODAyMzYsImV4cCI6MjA4OTI1NjIzNn0.P3OMq-fMZDgKgkCxRwyXFI3e15v0TQn6Z34_6cftKJc";
-        
-        // 初始化 Supabase 客户端
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-            global: {
-                fetch: (url, options = {}) => {
-                    return Promise.race([
-                        fetch(url, { ...options, signal: AbortSignal.timeout(10000) }),
-                        new Promise((_, reject) => setTimeout(() => reject(new Error('请求超时')), 10000))
-                    ]);
+        // ==================== Supabase 核心配置（仅需修改这里！） ====================
+        const SUPABASE_CONFIG = {
+            url: 'https://你的项目ID.supabase.co', // 替换为你的 Supabase URL
+            anonKey: '你的 anon 公钥', // 替换为你的 Supabase anon key
+            tableName: 'customization_data' // Supabase 数据表名（需提前创建）
+        };
+
+        // 初始化 Supabase 客户端（错误隔离，不影响页面其他功能）
+        let supabase = null;
+        async function initSupabase() {
+            try {
+                // 校验配置
+                if (!SUPABASE_CONFIG.url || !SUPABASE_CONFIG.anonKey) {
+                    console.warn('Supabase 配置未完善，将使用本地存储模式');
+                    return false;
                 }
+
+                // 创建 Supabase 客户端
+                supabase = window.supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey, {
+                    auth: {
+                        persistSession: true,
+                        autoRefreshToken: true
+                    },
+                    global: {
+                        fetch: (url, options) => {
+                            console.log('Supabase 请求:', url, options.method || 'GET');
+                            return fetch(url, options);
+                        }
+                    }
+                });
+
+                // 测试连接
+                const { data, error } = await supabase.from(SUPABASE_CONFIG.tableName).select('*').limit(1);
+                if (error) throw error;
+                
+                console.log('✅ Supabase 初始化成功，已连接数据库');
+                return true;
+            } catch (error) {
+                console.error('❌ Supabase 初始化失败（将使用本地存储）:', error.message);
+                // 创建降级客户端，避免后续代码报错
+                supabase = {
+                    from: () => ({
+                        select: () => ({ data: [], error }),
+                        insert: () => ({ data: [], error }),
+                        delete: () => ({ error })
+                    }),
+                    auth: { getUser: () => ({ data: { user: null } }) }
+                };
+                return false;
             }
-        });
+        }
 
         // ===== 172个图标的列表（使用 icon-1 到 icon-172 格式） =====
         const iconList = [];
@@ -925,15 +989,15 @@
         const cancelDeleteBtn = document.getElementById('cancel-delete');
         const confirmDeleteBtn = document.getElementById('confirm-delete');
         
-        // 存储客户定制数据（从 Supabase 获取）
-        let customerData = [];
+        // 存储客户定制数据
+        let customerData = JSON.parse(localStorage.getItem('customerData')) || [];
         let currentCustomerId = null;
-        
-        // 按输入顺序存储的项目
-        let orderedItems = [];
 
         // 初始化
-        function init() {
+        async function init() {
+            // 优先初始化 Supabase（异步，不阻塞页面）
+            await initSupabase();
+            
             generateIconGrid();
             
             customerName.addEventListener('input', validateForm);
@@ -963,28 +1027,67 @@
             exportSelectedPdfBtn.addEventListener('click', exportSelectedToPDF);
             copyCombinedBtn.addEventListener('click', copyCombinedText);
             
-            // 从 Supabase 获取客户数据
-            fetchCustomerData();
+            // 从 Supabase 加载数据（如果连接成功）
+            await loadDataFromSupabase();
+            updateCustomerList();
         }
 
-        // 从 Supabase 获取客户数据
-        async function fetchCustomerData() {
+        // 从 Supabase 加载数据
+        async function loadDataFromSupabase() {
             try {
+                if (!supabase || !SUPABASE_CONFIG.url) return;
+                
                 const { data, error } = await supabase
-                    .from('customer_customizations')
+                    .from(SUPABASE_CONFIG.tableName)
                     .select('*')
-                    .order('created_at', { ascending: false });
+                    .order('timestamp', { ascending: false });
                 
                 if (error) throw error;
                 
-                customerData = data || [];
-                updateCustomerList();
+                if (data && data.length > 0) {
+                    customerData = data;
+                    localStorage.setItem('customerData', JSON.stringify(customerData));
+                    console.log('✅ 从 Supabase 加载了', data.length, '条数据');
+                }
             } catch (error) {
-                console.error('获取客户数据失败:', error);
-                alert('获取数据失败，请检查网络或稍后重试');
-                // 降级使用 localStorage
-                customerData = JSON.parse(localStorage.getItem('customerData')) || [];
-                updateCustomerList();
+                console.warn('❌ 从 Supabase 加载数据失败，使用本地存储:', error.message);
+            }
+        }
+
+        // 保存数据到 Supabase
+        async function saveToSupabase(data) {
+            try {
+                if (!supabase || !SUPABASE_CONFIG.url) return false;
+                
+                const { error } = await supabase
+                    .from(SUPABASE_CONFIG.tableName)
+                    .insert([data]);
+                
+                if (error) throw error;
+                console.log('✅ 数据已保存到 Supabase');
+                return true;
+            } catch (error) {
+                console.error('❌ 保存到 Supabase 失败:', error.message);
+                return false;
+            }
+        }
+
+        // 从 Supabase 删除数据
+        async function deleteFromSupabase(id) {
+            try {
+                if (!supabase || !SUPABASE_CONFIG.url) return false;
+                
+                const { error } = await supabase
+                    .from(SUPABASE_CONFIG.tableName)
+                    .delete()
+                    .eq('id', id);
+                
+                if (error) throw error;
+                console.log('✅ 从 Supabase 删除数据 ID:', id);
+                return true;
+            } catch (error) {
+                console.error('❌ 从 Supabase 删除数据失败:', error.message);
+                return false;
             }
         }
 
@@ -1307,7 +1410,7 @@
             exportPdfBtn.disabled = !formValid;
         }
         
-        // 提交定制到 Supabase
+        // 提交定制
         async function submitCustomization() {
             if (!customerName.value.trim()) {
                 customerName.classList.add('input-error');
@@ -1330,60 +1433,27 @@
             const text2 = textInput2.value;
             const customIcons = orderedItems.filter(item => item.type === 'custom').map(item => item.iconClass);
             
+            const customerId = Date.now();
             const customizationData = {
+                id: customerId,
                 name: customerName.value.trim(),
                 text1: text1,
                 text2: text2,
-                custom_icons: customIcons, // 注意字段名用下划线（Supabase 推荐）
-                total_chars: calculateTotalChars(),
-                created_at: new Date().toISOString()
+                customIcons: customIcons,
+                totalChars: calculateTotalChars(),
+                timestamp: new Date().toISOString()
             };
             
-            try {
-                // 插入数据到 Supabase
-                const { data, error } = await supabase
-                    .from('customer_customizations')
-                    .insert([customizationData])
-                    .select();
-                
-                if (error) throw error;
-                
-                // 更新本地数据
-                customerData.unshift({
-                    id: data[0].id,
-                    ...customizationData
-                });
-                
-                currentCustomerId = data[0].id;
-                successModal.classList.remove('hidden');
-                updateCustomerList();
-                
-                // 清空表单
-                clearPreview();
-                customerName.value = '';
-            } catch (error) {
-                console.error('提交失败:', error);
-                alert('提交失败，请检查网络或稍后重试');
-                
-                // 降级使用 localStorage
-                const customerId = Date.now();
-                const fallbackData = {
-                    id: customerId,
-                    name: customerName.value.trim(),
-                    text1: text1,
-                    text2: text2,
-                    customIcons: customIcons,
-                    totalChars: calculateTotalChars(),
-                    timestamp: new Date().toISOString()
-                };
-                
-                customerData.push(fallbackData);
-                localStorage.setItem('customerData', JSON.stringify(customerData));
-                
-                currentCustomerId = customerId;
-                successModal.classList.remove('hidden');
-                updateCustomerList();
-            }
+            // 先保存到 Supabase（如果连接成功）
+            await saveToSupabase(customizationData);
+            
+            // 再保存到本地存储（降级方案）
+            customerData.push(customizationData);
+            localStorage.setItem('customerData', JSON.stringify(customerData));
+            
+            updateCustomerList();
+            currentCustomerId = customerId;
+            successModal.classList.remove('hidden');
         }
         
         // 导出为PNG - 不带背景（优化版）
@@ -1477,109 +1547,4 @@
                 const imgData = canvas.toDataURL('image/png', 1.0);
                 const imgWidth = 210;
                 const imgHeight = (canvas.height * imgWidth) / canvas.width;
-                const yOffset = (297 - imgHeight) / 2;
-                pdf.addImage(imgData, 'PNG', 0, yOffset, imgWidth, imgHeight);
-                
-                pdf.save(`定制内容_${customerName.value.trim()}_${Date.now()}.pdf`);
-                
-            }).catch(err => {
-                console.error('PDF导出失败:', err);
-                alert('PDF导出失败，请重试！');
-            }).finally(() => {
-                pdfSimpleContainer.style.display = 'none';
-                pdfSimpleContainer.style.position = '';
-                pdfSimpleContainer.style.left = '';
-                pdfSimpleContainer.style.top = '';
-            });
-        }
-        
-        // 生成单个客户PDF并返回Blob
-        function generateCustomerPDF(customer) {
-            return new Promise((resolve, reject) => {
-                let combinedHtml = '';
-                
-                if (currentCustomerId === customer.id && orderedItems.length > 0) {
-                    // 当前预览的就是这个客户，直接用 orderedItems 的顺序
-                    orderedItems.forEach(item => {
-                        if (item.type === 'text') {
-                            combinedHtml += `<span>${item.content}</span>`;
-                        } else if (item.type === 'custom') {
-                            combinedHtml += `<i class="${item.iconClass}"></i>`;
-                        }
-                    });
-                } else {
-                    // 如果不是当前预览的客户，按存储的顺序
-                    if (customer.text1) combinedHtml += `<span>${customer.text1}</span>`;
-                    
-                    const icons = customer.custom_icons || customer.customIcons || [];
-                    if (icons.length > 0) {
-                        icons.forEach(iconClass => {
-                            combinedHtml += `<i class="${iconClass}"></i>`;
-                        });
-                    }
-                    
-                    if (customer.text2) combinedHtml += `<span>${customer.text2}</span>`;
-                }
-                
-                if (!combinedHtml.trim()) {
-                    reject(new Error(`客户 ${customer.name} 没有定制内容`));
-                    return;
-                }
-
-                pdfSimpleContent.innerHTML = combinedHtml;
-
-                pdfSimpleContainer.style.display = 'block';
-                pdfSimpleContainer.style.position = 'absolute';
-                pdfSimpleContainer.style.left = '-9999px';
-                pdfSimpleContainer.style.top = '0';
-
-                const canvasOptions = {
-                    scale: 2,
-                    useCORS: true,
-                    allowTaint: true,
-                    backgroundColor: '#ffffff',
-                    logging: false,
-                    letterRendering: true,
-                    imageTimeout: 15000,
-                    fontRendering: 'canvas'
-                };
-                
-                html2canvas(pdfSimpleContainer, canvasOptions).then(canvas => {
-                    const { jsPDF } = window.jspdf;
-                    const pdf = new jsPDF({
-                        orientation: 'portrait',
-                        unit: 'mm',
-                        format: 'a4',
-                        compress: true
-                    });
-                    
-                    const imgData = canvas.toDataURL('image/png', 1.0);
-                    const imgWidth = 210;
-                    const imgHeight = (canvas.height * imgWidth) / canvas.width;
-                    
-                    const yOffset = (297 - imgHeight) / 2;
-                    pdf.addImage(imgData, 'PNG', 0, yOffset, imgWidth, imgHeight);
-                    
-                    const pdfBlob = pdf.output('blob');
-                    
-                    // 查找客户的序号
-                    const index = customerData.findIndex(c => c.id === customer.id) + 1;
-                    const fileName = `${index}-${customer.name}.pdf`;
-                    
-                    resolve({
-                        name: fileName,
-                        blob: pdfBlob
-                    });
-                    
-                }).catch(err => {
-                    reject(err);
-                }).finally(() => {
-                    pdfSimpleContainer.style.display = 'none';
-                    pdfSimpleContainer.style.position = '';
-                    pdfSimpleContainer.style.left = '';
-                    pdfSimpleContainer.style.top = '';
-                });
-            });
-        }
-        
-        // 导出
+                const yOffset = (2
