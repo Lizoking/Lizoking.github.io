@@ -18,6 +18,10 @@
     <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
     <!-- FileSaver 用于下载ZIP文件 -->
     <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+    <!-- 移除Supabase（改用腾讯云开发） -->
+    <!-- 引入腾讯云开发SDK -->
+    <script src="https://res.wx.qq.com/open/js/jweixin-1.6.0.js"></script>
+    <script src="https://imgcache.qq.com/qcloud/tcbjs/1.26.0/tcb.js"></script>
     
     <!-- 字体图标定义 -->
     <style>
@@ -220,668 +224,19 @@
     </style>
     
     <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        primary: '#3B82F6',
-                        secondary: '#10B981',
-                        accent: '#F59E0B',
-                        neutral: '#F3F4F6',
-                        'neutral-dark': '#1F2937'
-                    },
-                    fontFamily: {
-                        sans: ['Inter', 'Noto Sans SC', 'sans-serif']
-                    },
-                    boxShadow: {
-                        'custom': '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-                        'custom-hover': '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)'
-                    }
-                }
-            }
-        }
-    </script>
-    
-    <style>
-        /* ===== 全局样式 ===== */
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+        // ===== 腾讯云开发配置（已填入你的环境ID） =====
+        const app = tcb.init({
+            env: "my-custom-data-9gynn5a1d9f48be3" // 你的腾讯云环境ID
+        });
+        // 匿名登录（无需注册，直接使用）
+        app.auth({
+            persistence: "local"
+        }).anonymousAuthProvider().signIn();
+        // 获取数据库引用
+        const db = app.database();
+        const collection = db.collection('customer_orders'); // 对应腾讯云的集合名
         
-        :root {
-            --base-font-size: 24px;
-            --base-line-height: 1.2;
-        }
-        
-        /* ICON网格 - 每行10个，172个图标需要18行 */
-        .icon-grid {
-            display: grid;
-            grid-template-columns: repeat(10, 1fr);
-            gap: 0.5rem;
-        }
-        
-        /* ICON项样式 */
-        .icon-item {
-            cursor: pointer;
-            transition: all 0.2s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            height: 2.5rem;
-            width: 2.5rem;
-            border-radius: 0.375rem;
-            font-size: 1.5rem;
-            font-family: "icomoon", sans-serif;
-            overflow: hidden;
-            position: relative;
-        }
-        
-        .icon-item i {
-            font-size: 1.5rem;
-            color: inherit;
-        }
-        
-        .icon-item:hover {
-            background-color: rgba(59, 130, 246, 0.1);
-            transform: scale(1.1);
-        }
-        
-        /* ===== 预览项样式 ===== */
-        .preview-item {
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center;
-            padding: 0.5rem 0.75rem;
-            margin: 0.25rem;
-            background-color: #F3F4F6;
-            border-radius: 0.375rem;
-            cursor: grab;
-            user-select: none;
-            transition: all 0.2s ease;
-            border: 2px solid transparent;
-            min-width: 2rem;
-            min-height: 2rem;
-            font-family: "Noto Sans SC", sans-serif;
-            font-size: var(--base-font-size);
-            gap: 4px;
-        }
-        
-        .preview-item i {
-            font-size: inherit;
-            color: inherit;
-            display: inline-block;
-            vertical-align: middle;
-            line-height: 1;
-            flex-shrink: 0;
-            font-family: "icomoon", sans-serif;
-        }
-        
-        .preview-item span {
-            display: inline-block;
-            line-height: 1.2;
-            vertical-align: middle;
-        }
-        
-        /* 删除按钮样式 */
-        .preview-item .fa-times-circle {
-            font-family: "Font Awesome 6 Free" !important;
-            font-weight: 900;
-            color: #9ca3af;
-            transition: color 0.2s;
-            margin-left: 0.5rem;
-            font-size: 0.875rem;
-        }
-        
-        .preview-item .fa-times-circle:hover {
-            color: #ef4444;
-        }
-        
-        .preview-item:hover {
-            background-color: #E5E7EB;
-            transform: translateY(-2px);
-            border-color: #3B82F6;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-        
-        .preview-item:active {
-            cursor: grabbing;
-            background-color: #DBEAFE;
-            border-color: #2563EB;
-        }
-        
-        .input-error {
-            border-color: #EF4444;
-        }
-        
-        .error-message {
-            color: #EF4444;
-            font-size: 0.75rem;
-            margin-top: 0.25rem;
-        }
-        
-        .char-counter {
-            font-size: 0.75rem;
-            color: #6B7280;
-            text-align: right;
-            margin-top: 0.25rem;
-        }
-        
-        .char-counter.error {
-            color: #EF4444;
-        }
-        
-        .powerbank-preview {
-            background-color: #F9FAFB;
-            border: 1px solid #E5E7EB;
-            border-radius: 0.75rem;
-            padding: 1.5rem;
-            min-height: 120px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .powerbank-preview::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 0.5rem;
-            background: linear-gradient(90deg, #3B82F6, #10B981, #F59E0B);
-        }
-        
-        .custom-scrollbar::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
-        }
-        
-        .custom-scrollbar::-webkit-scrollbar-track {
-            background: #F3F4F6;
-            border-radius: 3px;
-        }
-        
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: #D1D5DB;
-            border-radius: 3px;
-        }
-        
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-            background: #9CA3AF;
-        }
-        
-        /* ===== 合并预览区域 ===== */
-        #combined-preview {
-             font-size: 17px;
-             display: flex !important;
-             align-items: center !important;
-             justify-content: flex-start !important; 
-             flex-wrap: wrap;
-             gap: 4px;
-             min-height: 80px;
-             padding: 30px;
-             background-color: #F9FAFB;
-             background-image: url(background.svg);  
-             background-repeat: no-repeat;
-             background-position: left center;
-             background-size: contain;  
-             border-radius: 0.1rem;
-        }
-        
-        #combined-preview i {
-            font-size: inherit;
-            color: inherit;
-            display: inline-block;
-            vertical-align: middle;
-            line-height: 1;
-            font-family: "icomoon", sans-serif;
-        }
-        
-        #combined-preview span {
-            display: inline-block;
-            line-height: 1.2;
-            vertical-align: middle;
-        }
-        
-        /* ===== PDF导出内容 ===== */
-        .pdf-simple-content {
-            width: 800px;
-            background: white;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center;
-            font-family: "Noto Sans SC", "icomoon", sans-serif;
-            font-size: 48px;
-            line-height: 1.2;
-            padding: 40px;
-            box-sizing: border-box;
-            gap: 8px;
-            flex-wrap: wrap;
-            margin: 0 auto;
-        }
-        
-        .pdf-simple-content i {
-            font-size: inherit;
-            color: black;
-            display: inline-block;
-            vertical-align: middle;
-            line-height: 1;
-            font-family: "icomoon", sans-serif;
-        }
-        
-        .pdf-simple-content span {
-            display: inline-block;
-            line-height: 1.2;
-            vertical-align: middle;
-        }
-        
-        /* 管理员表格样式 */
-        .admin-table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        
-        .admin-table th {
-            background-color: #f3f4f6;
-            padding: 0.5rem;
-            text-align: left;
-            font-size: 0.75rem;
-            font-weight: 600;
-            color: #374151;
-            border-bottom: 2px solid #d1d5db;
-        }
-        
-        .admin-table td {
-            padding: 0.5rem;
-            border-bottom: 1px solid #e5e7eb;
-        }
-        
-        .admin-table tr:hover {
-            background-color: #f9fafb;
-        }
-        
-        .checkbox-column {
-            width: 40px;
-            text-align: center;
-        }
-        
-        .action-column {
-            width: 100px;
-            text-align: center;
-        }
-        
-        .delete-btn {
-            color: #ef4444;
-            cursor: pointer;
-            transition: color 0.2s;
-            margin: 0 5px;
-        }
-        
-        .delete-btn:hover {
-            color: #dc2626;
-        }
-        
-        .batch-delete-btn {
-            background-color: #ef4444;
-            color: white;
-            padding: 0.5rem 1rem;
-            border-radius: 0.375rem;
-            font-size: 0.875rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            transition: background-color 0.2s;
-        }
-        
-        .batch-delete-btn:hover {
-            background-color: #dc2626;
-        }
-        
-        .batch-delete-btn:disabled {
-            background-color: #fca5a5;
-            cursor: not-allowed;
-        }
-        
-        /* 定制内容单元格样式 */
-        .custom-content-cell {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-            flex-wrap: wrap;
-        }
-        
-        .custom-content-cell i {
-            font-size: 20px;
-            color: #333;
-            font-family: "icomoon", sans-serif;
-        }
-        
-        .custom-content-cell span {
-            font-size: 14px;
-            color: #333;
-        }
-    </style>
-</head>
-<body class="bg-gray-50 min-h-screen font-sans">
-    <div class="container mx-auto px-4 py-8 max-w-5xl">
-        <!-- 标题区域 -->
-        <header class="text-center mb-8">
-            <h1 class="text-3xl font-bold text-neutral-dark mb-2">定制内容收集</h1>
-            <p class="text-gray-600">BUENO</p>
-        </header>
-        
-        <!-- 主要内容区域 -->
-        <main class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <!-- 左侧：输入区域 -->
-            <div class="bg-white rounded-xl shadow-custom p-6">
-                <h2 class="text-xl font-semibold mb-4 flex items-center">
-                    <i class="fas fa-pencil-alt mr-2 text-primary"></i>文字输入
-                </h2>
-                
-                <!-- 客户信息 -->
-                <div class="mb-4">
-                    <label for="customer-name" class="block text-sm font-medium text-gray-700 mb-1">姓名 <span class="text-red-500">*</span></label>
-                    <input 
-                        type="text" 
-                        id="customer-name" 
-                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all"
-                        placeholder="请输入姓名"
-                        required
-                    >
-                    <div class="error-message hidden" id="name-error">
-                        <i class="fas fa-exclamation-circle mr-1"></i>
-                        请输入姓名
-                    </div>
-                </div>
-                
-                <!-- 文字输入框 -->
-                <div class="space-y-4">
-                    <div>
-                        <label for="text-input-1" class="block text-sm font-medium text-gray-700 mb-1">文字内容 1（选填）</label>
-                        <input 
-                            type="text" 
-                            id="text-input-1" 
-                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all"
-                            placeholder="选填，输入文字（支持中文、英文、数字、标点）"
-                            maxlength="15"
-                        >
-                        <div class="char-counter" id="text-counter-1">0/15</div>
-                    </div>
-                    
-                    <div>
-                        <label for="text-input-2" class="block text-sm font-medium text-gray-700 mb-1">文字内容 2（选填）</label>
-                        <input 
-                            type="text" 
-                            id="text-input-2" 
-                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all"
-                            placeholder="选填，输入文字（支持中文、英文、数字、标点）"
-                            maxlength="15"
-                        >
-                        <div class="char-counter" id="text-counter-2">0/15</div>
-                    </div>
-                    
-                    <div class="error-message hidden" id="text-error">
-                        <i class="fas fa-exclamation-circle mr-1"></i>
-                        请输入有效的文字内容（仅支持中文、英文、数字和常用标点 . , ! ? ; : - _ @ # & * ( ) [ ] { }）
-                    </div>
-                </div>
-                
-                <!-- 总字符计数 -->
-                <div class="mt-6">
-                    <div class="flex justify-between items-center">
-                        <span class="text-sm font-medium text-gray-700">总字符数：</span>
-                        <span id="total-chars" class="text-sm font-semibold">0</span>
-                        <span class="text-sm text-gray-500">/ 15</span>
-                    </div>
-                    <div class="w-full bg-gray-200 rounded-full h-2.5 mt-1">
-                        <div id="char-progress" class="bg-primary h-2.5 rounded-full" style="width: 0%"></div>
-                    </div>
-                    <div id="total-chars-error" class="error-message hidden">
-                        <i class="fas fa-exclamation-circle mr-1"></i>
-                        总字符数超过限制（15字符）
-                    </div>
-                </div>
-            </div>
-            
-            <!-- 右侧：预览区域 -->
-            <div class="bg-white rounded-xl shadow-custom p-6">
-                <h2 class="text-xl font-semibold mb-4 flex items-center">
-                    <i class="fas fa-eye mr-2 text-primary"></i>调整预览
-                </h2>
-                
-                <div class="powerbank-preview mb-4">
-                    <div id="preview-container" class="flex flex-wrap items-center justify-center gap-2 min-h-[100px]">
-                        <p class="text-gray-400 text-center">按输入顺序显示</p>
-                    </div>
-                </div>
-                
-                <div class="text-center">
-                    <div class="flex justify-center space-x-2">
-                        <button id="clear-preview" class="px-3 py-1.5 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg text-sm transition-colors flex items-center">
-                            <i class="fas fa-trash-alt mr-1"></i> 清空预览
-                        </button>
-                    </div>
-                </div>
-                
-                <!-- 合并预览区域 -->
-                <div class="mt-6">
-                    <h3 class="text-md font-semibold mb-2 flex items-center">
-                        <i class="fas fa-file-alt mr-2 text-primary"></i>合并预览
-                    </h3>
-                    <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                        <div id="combined-preview" class="min-h-[80px]">
-                            <p class="text-gray-400 text-base">合并后的内容将显示在这里</p>
-                        </div>
-                        <div class="mt-2 flex justify-between items-center">
-                            <span class="text-xs text-gray-500">总字符数: <span id="combined-chars">0</span>/15</span>
-                            <button id="copy-combined" class="px-3 py-1 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded text-xs transition-colors flex items-center">
-                                <i class="fas fa-copy mr-1"></i> 复制
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </main>
-        
-        <!-- ICON选择器区域（172个图标） -->
-        <section class="mt-8 bg-white rounded-xl shadow-custom p-6">
-            <h2 class="text-xl font-semibold mb-4 flex items-center">
-                <i class="fas fa-smile mr-2 text-primary"></i>emoji选择（支持重复选择）
-            </h2>
-            
-            <div class="icon-grid custom-scrollbar overflow-auto max-h-96 p-2" id="icon-grid">
-                <!-- 172个图标将通过JavaScript动态生成 -->
-            </div>
-        </section>
-        
-        <!-- 提交区域 -->
-        <footer class="mt-8 text-center">
-            <div class="flex flex-col md:flex-row justify-center gap-4">
-                <button 
-                    id="submit-customization" 
-                    class="px-8 py-3 bg-primary hover:bg-blue-600 text-white rounded-lg font-medium shadow-custom hover:shadow-custom-hover transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                    disabled
-                >
-                    <i class="fas fa-check-circle mr-2"></i>提交定制
-                </button>
-                
-                <button 
-                    id="export-png" 
-                    class="px-8 py-3 bg-secondary hover:bg-green-600 text-white rounded-lg font-medium shadow-custom hover:shadow-custom-hover transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                    disabled
-                >
-                    <i class="fas fa-download mr-2"></i>导出PNG
-                </button>
-                
-                <button 
-                    id="export-pdf" 
-                    class="px-8 py-3 bg-accent hover:bg-yellow-600 text-white rounded-lg font-medium shadow-custom hover:shadow-custom-hover transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                    disabled
-                >
-                    <i class="fas fa-file-pdf mr-2"></i>生成PDF
-                </button>
-            </div>
-            
-            <!-- 管理员区域 -->
-            <div class="mt-8 border-t pt-4">
-                <button id="toggle-admin-panel" class="text-sm text-gray-500 hover:text-primary transition-colors">
-                    <i class="fas fa-lock mr-1"></i> 管理员面板
-                </button>
-                
-                <!-- 管理员密码弹窗 -->
-                <div id="admin-password-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
-                    <div class="bg-white rounded-xl p-8 max-w-md w-full mx-4 transform transition-all">
-                        <div class="text-center mb-4">
-                            <h3 class="text-xl font-bold text-gray-800">管理员验证</h3>
-                            <p class="text-gray-600 mt-2">请输入管理员密码</p>
-                        </div>
-                        <div class="mb-4">
-                            <input 
-                                type="password" 
-                                id="admin-password" 
-                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all"
-                                placeholder="输入管理员密码"
-                            >
-                            <div class="error-message hidden" id="password-error">
-                                <i class="fas fa-exclamation-circle mr-1"></i>
-                                密码错误，请重试
-                            </div>
-                        </div>
-                        <div class="flex justify-center gap-4">
-                            <button id="cancel-password" class="px-6 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-medium transition-colors">
-                                取消
-                            </button>
-                            <button id="confirm-password" class="px-6 py-2 bg-primary hover:bg-blue-600 text-white rounded-lg font-medium transition-colors">
-                                确认
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                
-                <div id="admin-panel" class="mt-4 bg-gray-50 p-4 rounded-lg hidden">
-                    <h3 class="text-lg font-semibold mb-2">客户定制列表</h3>
-                    
-                    <!-- 筛选和全选栏 -->
-                    <div class="mb-4 flex items-center justify-between">
-                        <div class="flex items-center gap-4">
-                            <label class="flex items-center">
-                                <input type="checkbox" id="select-all" class="mr-2">
-                                <span class="text-sm">全选</span>
-                            </label>
-                            <span id="selected-count" class="text-sm text-gray-600">已选择 0 项</span>
-                            <button id="batch-delete" class="batch-delete-btn" disabled>
-                                <i class="fas fa-trash mr-1"></i> 批量删除
-                            </button>
-                        </div>
-                        <input 
-                            type="text" 
-                            id="customer-filter" 
-                            class="w-64 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all"
-                            placeholder="输入姓名筛选..."
-                        >
-                    </div>
-                    
-                    <div class="max-h-96 overflow-y-auto custom-scrollbar">
-                        <table class="admin-table" id="customer-table">
-                            <thead>
-                                <tr>
-                                    <th class="checkbox-column"></th>
-                                    <th class="w-16">序号</th>
-                                    <th>姓名</th>
-                                    <th>定制内容</th>
-                                    <th class="action-column">操作</th>
-                                </tr>
-                            </thead>
-                            <tbody id="customer-list">
-                                <!-- 客户列表将通过JavaScript动态生成 -->
-                            </tbody>
-                        </table>
-                    </div>
-                    
-                    <div class="mt-4 flex justify-end gap-2">
-                        <button id="export-selected-excel" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm transition-colors flex items-center">
-                            <i class="fas fa-file-excel mr-1"></i> 导出选中Excel
-                        </button>
-                        <button id="export-selected-pdf" class="px-4 py-2 bg-accent hover:bg-yellow-600 text-white rounded-lg text-sm transition-colors flex items-center">
-                            <i class="fas fa-file-pdf mr-1"></i> 导出选中PDF（ZIP）
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </footer>
-        
-        <!-- 提交成功弹窗 -->
-        <div id="success-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
-            <div class="bg-white rounded-xl p-8 max-w-md w-full mx-4 transform transition-all">
-                <div class="text-center">
-                    <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-100 text-green-500 mb-4">
-                        <i class="fas fa-check-circle text-3xl"></i>
-                    </div>
-                    <h3 class="text-2xl font-bold text-gray-800 mb-2">提交成功！</h3>
-                    <p class="text-gray-600 mb-6">您的移动电源定制请求已提交，我们将尽快处理。</p>
-                    <div class="flex justify-center gap-4">
-                        <button id="close-modal" class="px-6 py-2 bg-primary hover:bg-blue-600 text-white rounded-lg font-medium transition-colors">
-                            确定
-                        </button>
-                        <button id="export-single-png" class="px-6 py-2 bg-secondary hover:bg-green-600 text-white rounded-lg font-medium transition-colors">
-                            导出PNG
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- 删除确认弹窗 -->
-        <div id="delete-confirm-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
-            <div class="bg-white rounded-xl p-8 max-w-md w-full mx-4 transform transition-all">
-                <div class="text-center">
-                    <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-100 text-red-500 mb-4">
-                        <i class="fas fa-exclamation-triangle text-3xl"></i>
-                    </div>
-                    <h3 class="text-xl font-bold text-gray-800 mb-2">确认删除</h3>
-                    <p class="text-gray-600 mb-6">确定要删除该客户的定制记录吗？此操作不可恢复。</p>
-                    <div class="flex justify-center gap-4">
-                        <button id="cancel-delete" class="px-6 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-medium transition-colors">
-                            取消
-                        </button>
-                        <button id="confirm-delete" class="px-6 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg font-medium transition-colors">
-                            确认删除
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- 纯内容PDF导出容器 -->
-        <div id="pdf-simple-container" class="hidden" style="position: absolute; left: -9999px; top: 0;">
-            <div class="pdf-simple-content" id="pdf-simple-content">
-                <!-- 只显示合并预览的内容 -->
-            </div>
-        </div>
-    </div>
-
-    <script>
-        // ===== Supabase 配置 =====
-        const SUPABASE_URL = 'https://kajwdvystciyjhnopzyo.supabase.co';
-        const SUPABASE_ANON_KEY = 'sb_publishable_Buv5Z28bCl0cL5ON2LelPQ_jFrTg3jN';
-        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        const TABLE_NAME = 'customer_orders';
-
-        // ===== 172个图标的列表（使用 icon-1 到 icon-172 格式） =====
-        const iconList = [];
-        for (let i = 1; i <= 172; i++) {
-            iconList.push({
-                id: `icon-${i}`,
-                type: 'custom',
-                iconClass: `icon-${i}`
-            });
-        }
-
+        // ===== 原有配置保留 =====
         // 管理员密码
         const ADMIN_PASSWORD = 'admin123';
         
@@ -941,7 +296,7 @@
         const cancelDeleteBtn = document.getElementById('cancel-delete');
         const confirmDeleteBtn = document.getElementById('confirm-delete');
         
-        // 存储客户定制数据
+        // 存储客户定制数据（优先从云端加载）
         let customerData = [];
         let currentCustomerId = null;
         
@@ -950,10 +305,10 @@
 
         // 初始化
         function init() {
-            generateIconGrid();
+            // 先从云端加载数据
+            loadDataFromCloud();
             
-            // 从云端加载数据
-            loadFromSupabase();
+            generateIconGrid();
             
             customerName.addEventListener('input', validateForm);
             textInput1.addEventListener('input', handleTextInput);
@@ -981,93 +336,50 @@
             exportSelectedExcelBtn.addEventListener('click', exportSelectedToExcel);
             exportSelectedPdfBtn.addEventListener('click', exportSelectedToPDF);
             copyCombinedBtn.addEventListener('click', copyCombinedText);
-            
-            updateCustomerList();
         }
 
-        // 从云端加载数据
-        async function loadFromSupabase() {
-            try {
-                const { data, error } = await supabase
-                    .from(TABLE_NAME)
-                    .select('*')
-                    .order('id', { ascending: false });
-                
-                if (!error && data) {
-                    customerData = data.map(item => ({
-                        id: item.id,
-                        name: item.name,
-                        text1: item.text1 || '',
-                        text2: item.text2 || '',
-                        customIcons: item.customIcons || [],
-                        totalChars: item.totalChars || 0,
-                        timestamp: item.timestamp || new Date().toISOString()
-                    }));
-                    
-                    // 同时存本地做备份
-                    localStorage.setItem('customerData', JSON.stringify(customerData));
-                    
-                    updateCustomerList();
-                    console.log('从云端加载成功', customerData.length, '条记录');
-                }
-            } catch (error) {
-                console.error('加载失败，使用本地缓存', error);
+        // ===== 新增：从云端加载数据 =====
+        function loadDataFromCloud() {
+            collection.get().then(res => {
+                // 转换云端数据格式，保持和原有逻辑兼容
+                customerData = res.data.map(item => ({
+                    id: item._id || item.id, // 兼容云端ID和原有ID
+                    name: item.name,
+                    text1: item.text1 || '',
+                    text2: item.text2 || '',
+                    customIcons: item.customIcons || [],
+                    totalChars: item.totalChars || 0,
+                    timestamp: item.timestamp || item.createTime.toISOString()
+                }));
+                // 更新本地列表显示
+                updateCustomerList();
+            }).catch(err => {
+                console.error('加载云端数据失败:', err);
+                // 降级使用本地存储
                 customerData = JSON.parse(localStorage.getItem('customerData')) || [];
                 updateCustomerList();
-            }
-        }
-
-        // 保存到云端
-        async function saveToSupabase(data) {
-            try {
-                const { error } = await supabase
-                    .from(TABLE_NAME)
-                    .insert([data]);
-                
-                return !error;
-            } catch (error) {
-                console.error('保存失败', error);
-                return false;
-            }
-        }
-
-        // 从云端删除（批量）
-        async function deleteFromSupabase(ids) {
-            try {
-                for (const id of ids) {
-                    const { error } = await supabase
-                        .from(TABLE_NAME)
-                        .delete()
-                        .eq('id', id);
-                    
-                    if (error) {
-                        console.error('删除失败', id, error);
-                    }
-                }
-                return true;
-            } catch (error) {
-                console.error('批量删除失败', error);
-                return false;
-            }
+            });
         }
 
         // 生成172个图标的网格
         function generateIconGrid() {
             iconGrid.innerHTML = '';
             
-            iconList.forEach(icon => {
+            // 生成172个图标
+            for (let i = 1; i <= 172; i++) {
+                const iconClass = `icon-${i}`;
                 const iconItem = document.createElement('div');
                 iconItem.className = 'icon-item';
-                iconItem.dataset.iconClass = icon.iconClass;
+                iconItem.dataset.iconClass = iconClass;
                 
                 const iconElement = document.createElement('i');
-                iconElement.className = icon.iconClass;
+                iconElement.className = iconClass;
                 iconItem.appendChild(iconElement);
                 
-                iconItem.addEventListener('click', () => toggleIconSelection(icon.iconClass));
+                iconItem.addEventListener('click', () => toggleIconSelection(iconClass));
                 
                 iconGrid.appendChild(iconItem);
-            });
+            }
         }
 
         // 图标选择逻辑 - 按点击顺序添加到末尾
@@ -1076,6 +388,7 @@
             const currentTotal = calculateTotalChars();
             
             if (currentTotal + charCount <= 15) {
+                // 添加到 orderedItems 末尾
                 orderedItems.push({
                     type: 'custom',
                     iconClass: iconClass,
@@ -1097,6 +410,7 @@
             const counter = input === textInput1 ? textCounter1 : textCounter2;
             const inputId = input.id;
 
+            // 允许中英文、数字和常用标点符号
             const validPattern = /^[\u4e00-\u9fa5a-zA-Z0-9\s\.,!?;:\-_\+\=\[\]\(\)\*&^%$#@!~`'"]*$/;
             const isValid = validPattern.test(value);
 
@@ -1109,13 +423,17 @@
             const charCount = calculateCharCount(value);
             counter.textContent = `${charCount}/15`;
 
+            // 更新 orderedItems 中的文字
             updateTextInOrderedItems(inputId, value, charCount);
             
+            // 更新总字符数显示和预览
             updateTotalCharCount();
             updatePreview();
         }
 
+        // 更新 orderedItems 中的文字
         function updateTextInOrderedItems(inputId, value, charCount) {
+            // 查找是否已存在该输入框的文字项
             const existingIndex = orderedItems.findIndex(item => item.type === 'text' && item.inputId === inputId);
             
             if (value) {
@@ -1127,19 +445,24 @@
                 };
                 
                 if (existingIndex !== -1) {
+                    // 更新已存在的文字项
                     orderedItems[existingIndex] = textItem;
                 } else {
+                    // 添加到末尾
                     orderedItems.push(textItem);
                 }
             } else if (existingIndex !== -1) {
+                // 如果文字为空，移除该文字项
                 orderedItems.splice(existingIndex, 1);
             }
         }
 
+        // 计算字符数
         function calculateCharCount(text) {
             let count = 0;
             for (let i = 0; i < text.length; i++) {
                 const char = text.charAt(i);
+                // 中文字符算2，其他算1
                 if (/[\u4e00-\u9fa5]/.test(char)) {
                     count += 2;
                 } else {
@@ -1149,10 +472,12 @@
             return count;
         }
 
+        // 计算总字符数
         function calculateTotalChars() {
             return orderedItems.reduce((total, item) => total + item.charCount, 0);
         }
 
+        // 更新预览区域 - 按 orderedItems 顺序显示
         function updatePreview() {
             previewContainer.innerHTML = '';
             
@@ -1189,6 +514,7 @@
             updateCombinedPreview();
         }
         
+        // 更新合并预览
         function updateCombinedPreview() {
             if (orderedItems.length === 0) {
                 combinedPreview.innerHTML = '<p class="text-gray-400 text-base">合并后的内容将显示在这里</p>';
@@ -1221,6 +547,7 @@
             }
         }
         
+        // 复制合并文本
         function copyCombinedText() {
             if (orderedItems.length === 0) return;
             
@@ -1250,10 +577,12 @@
             });
         }
 
+        // 移除项目
         function removeItem(index) {
             const item = orderedItems[index];
             
             if (item.type === 'text') {
+                // 如果是文字，清空对应的输入框
                 if (item.inputId === 'text-input-1') {
                     textInput1.value = '';
                     textCounter1.textContent = '0/15';
@@ -1268,6 +597,7 @@
             updatePreview();
         }
 
+        // 清空预览
         function clearPreview() {
             textInput1.value = '';
             textInput2.value = '';
@@ -1282,12 +612,14 @@
             totalCharsError.classList.add('hidden');
         }
 
+        // 更新总字符数显示
         function updateTotalCharCount() {
             const total = calculateTotalChars();
             
             totalChars.textContent = total;
             charProgress.style.width = `${(total / 15) * 100}%`;
             
+            // 根据总字符数更新进度条颜色
             if (total >= 15) {
                 charProgress.classList.remove('bg-primary');
                 charProgress.classList.add('bg-green-500');
@@ -1309,27 +641,32 @@
             validateForm();
         }
 
+        // 验证表单
         function validateForm() {
             const nameValid = customerName.value.trim() !== '';
             const totalCharsValid = calculateTotalChars() > 0 && calculateTotalChars() <= 15;
 
+            // 允许中英文、数字和常用标点符号
             const validPattern = /^[\u4e00-\u9fa5a-zA-Z0-9\s\.,!?;:\-_\+\=\[\]\(\)\*&^%$#@!~`'"]*$/;
             const text1Valid = validPattern.test(textInput1.value || '');
             const text2Valid = validPattern.test(textInput2.value || '');
             const finalTextValid = text1Valid && text2Valid;
 
+            // 显示/隐藏文本错误提示
             if (!finalTextValid && (textInput1.value || textInput2.value)) {
                 textError.classList.remove('hidden');
             } else {
                 textError.classList.add('hidden');
             }
 
+            // 显示/隐藏总字符数超限错误
             if (calculateTotalChars() > 15) {
                 totalCharsError.classList.remove('hidden');
             } else {
                 totalCharsError.classList.add('hidden');
             }
 
+            // 姓名验证
             if (!nameValid) {
                 customerName.classList.add('input-error');
                 nameError.classList.remove('hidden');
@@ -1338,14 +675,15 @@
                 nameError.classList.add('hidden');
             }
 
+            // 按钮启用条件：姓名不为空 && 总字符数在1-15之间 && 文字内容合法
             const formValid = nameValid && totalCharsValid && finalTextValid;
             submitBtn.disabled = !formValid;
             exportPngBtn.disabled = !formValid;
             exportPdfBtn.disabled = !formValid;
         }
         
-        // 提交定制 - 保存到云端
-        async function submitCustomization() {
+        // 提交定制（修改：同步到云端）
+        function submitCustomization() {
             if (!customerName.value.trim()) {
                 customerName.classList.add('input-error');
                 nameError.classList.remove('hidden');
@@ -1367,31 +705,62 @@
             const text2 = textInput2.value;
             const customIcons = orderedItems.filter(item => item.type === 'custom').map(item => item.iconClass);
             
-            const customerId = Date.now();
             const customizationData = {
-                id: customerId,
                 name: customerName.value.trim(),
                 text1: text1,
                 text2: text2,
                 customIcons: customIcons,
                 totalChars: calculateTotalChars(),
-                timestamp: new Date().toISOString()
+                createTime: new Date(), // 云端时间戳
+                device: navigator.userAgent // 记录提交设备
             };
             
-            const success = await saveToSupabase(customizationData);
-            
-            if (success) {
-                customerData.push(customizationData);
+            // 1. 保存到云端（核心修改）
+            collection.add({
+                data: customizationData
+            }).then(res => {
+                // 2. 本地数据兼容
+                const customerId = res.id || Date.now();
+                customerData.push({
+                    id: customerId,
+                    ...customizationData,
+                    timestamp: customizationData.createTime.toISOString()
+                });
+                
+                // 3. 本地存储降级
                 localStorage.setItem('customerData', JSON.stringify(customerData));
+                
+                // 4. 更新列表和弹窗
                 updateCustomerList();
                 currentCustomerId = customerId;
                 successModal.classList.remove('hidden');
-            } else {
-                alert('保存失败，请重试');
-            }
+            }).catch(err => {
+                console.error('提交到云端失败:', err);
+                // 降级使用本地存储
+                const customerId = Date.now();
+                const localData = {
+                    id: customerId,
+                    name: customerName.value.trim(),
+                    text1: text1,
+                    text2: text2,
+                    customIcons: customIcons,
+                    totalChars: calculateTotalChars(),
+                    timestamp: new Date().toISOString()
+                };
+                
+                customerData.push(localData);
+                localStorage.setItem('customerData', JSON.stringify(customerData));
+                
+                updateCustomerList();
+                currentCustomerId = customerId;
+                successModal.classList.remove('hidden');
+                alert('云端提交失败，已保存到本地！');
+            });
         }
         
+        // 导出为PNG - 不带背景（优化版）
         function exportToPNG() {
+            // 创建一个临时容器，只复制内容不复制背景
             const contentContainer = document.createElement('div');
             contentContainer.style.cssText = `
                 font-size: 16px;
@@ -1405,7 +774,10 @@
                 font-family: "Noto Sans SC", "icomoon", sans-serif;
             `;
             
+            // 复制合并预览的内容（不包含背景）
             contentContainer.innerHTML = combinedPreview.innerHTML;
+            
+            // 临时添加到 body
             contentContainer.style.position = 'absolute';
             contentContainer.style.left = '-9999px';
             contentContainer.style.top = '0';
@@ -1413,7 +785,7 @@
             
             html2canvas(contentContainer, {
                 scale: 3,
-                backgroundColor: null,
+                backgroundColor: null,  // 透明背景
                 logging: false,
                 useCORS: true, 
                 allowTaint: true,
@@ -1425,16 +797,20 @@
                 link.download = `powerbank-${customerName.value.trim()}-${Date.now()}.png`;
                 link.href = canvas.toDataURL('image/png', 1.0);
                 link.click();
+                
+                // 清理临时元素
                 document.body.removeChild(contentContainer);
             }).catch(err => {
                 console.error('导出PNG失败:', err);
                 alert('导出PNG失败，请重试');
+                // 出错也要清理
                 if (document.body.contains(contentContainer)) {
                     document.body.removeChild(contentContainer);
                 }
             });
         }
         
+        // 导出PDF
         function exportToPDF() {
             const combinedHtml = combinedPreview.innerHTML;
             
@@ -1444,6 +820,7 @@
             }
 
             pdfSimpleContent.innerHTML = combinedHtml;
+
             pdfSimpleContainer.style.display = 'block';
             pdfSimpleContainer.style.position = 'absolute';
             pdfSimpleContainer.style.left = '-9999px';
@@ -1474,6 +851,7 @@
                 const imgHeight = (canvas.height * imgWidth) / canvas.width;
                 const yOffset = (297 - imgHeight) / 2;
                 pdf.addImage(imgData, 'PNG', 0, yOffset, imgWidth, imgHeight);
+                
                 pdf.save(`定制内容_${customerName.value.trim()}_${Date.now()}.pdf`);
                 
             }).catch(err => {
@@ -1487,11 +865,13 @@
             });
         }
         
+        // 生成单个客户PDF并返回Blob
         function generateCustomerPDF(customer) {
             return new Promise((resolve, reject) => {
                 let combinedHtml = '';
                 
                 if (currentCustomerId === customer.id && orderedItems.length > 0) {
+                    // 当前预览的就是这个客户，直接用 orderedItems 的顺序
                     orderedItems.forEach(item => {
                         if (item.type === 'text') {
                             combinedHtml += `<span>${item.content}</span>`;
@@ -1500,12 +880,15 @@
                         }
                     });
                 } else {
+                    // 如果不是当前预览的客户，按存储的顺序
                     if (customer.text1) combinedHtml += `<span>${customer.text1}</span>`;
+                    
                     if (customer.customIcons && customer.customIcons.length > 0) {
                         customer.customIcons.forEach(iconClass => {
                             combinedHtml += `<i class="${iconClass}"></i>`;
                         });
                     }
+                    
                     if (customer.text2) combinedHtml += `<span>${customer.text2}</span>`;
                 }
                 
@@ -1515,6 +898,7 @@
                 }
 
                 pdfSimpleContent.innerHTML = combinedHtml;
+
                 pdfSimpleContainer.style.display = 'block';
                 pdfSimpleContainer.style.position = 'absolute';
                 pdfSimpleContainer.style.left = '-9999px';
@@ -1549,6 +933,7 @@
                     
                     const pdfBlob = pdf.output('blob');
                     
+                    // 查找客户的序号
                     const index = customerData.findIndex(c => c.id === customer.id) + 1;
                     const fileName = `${index}-${customer.name}.pdf`;
                     
@@ -1568,6 +953,7 @@
             });
         }
         
+        // 导出选中客户的PDF为ZIP压缩包
         async function exportSelectedToPDF() {
             const selectedCustomers = customerData.filter(c => selectedCustomerIds.has(c.id));
             
@@ -1610,6 +996,7 @@
             }
         }
 
+        // 导出选中客户的Excel
         function exportSelectedToExcel() {
             const selectedCustomers = customerData.filter(c => selectedCustomerIds.has(c.id));
             
@@ -1618,15 +1005,19 @@
                 return;
             }
 
+            // 创建CSV内容 - 只包含序号和姓名
             let csvContent = "\uFEFF序号,姓名\n";
+            
             selectedCustomers.forEach((customer, index) => {
                 const row = [
                     index + 1,
                     customer.name
                 ].join(',');
+                
                 csvContent += row + '\n';
             });
             
+            // 下载CSV文件（Excel可打开）
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement('a');
             const url = URL.createObjectURL(blob);
@@ -1638,32 +1029,56 @@
             URL.revokeObjectURL(url);
         }
 
+        // 显示批量删除确认
         function showBatchDeleteConfirm() {
             if (selectedCustomerIds.size === 0) return;
+            
             const customerNames = customerData
                 .filter(c => selectedCustomerIds.has(c.id))
                 .map(c => c.name)
                 .join('、');
+            
             if (confirm(`确定要删除选中的 ${selectedCustomerIds.size} 个客户吗？\n\n客户：${customerNames}\n\n此操作不可恢复！`)) {
                 batchDeleteCustomers();
             }
         }
 
-        async function batchDeleteCustomers() {
-            const idsToDelete = Array.from(selectedCustomerIds);
+        // 批量删除客户（修改：同步删除云端数据）
+        function batchDeleteCustomers() {
+            // 1. 先删除云端数据
+            const deletePromises = [];
+            selectedCustomerIds.forEach(id => {
+                deletePromises.push(collection.doc(id).remove());
+            });
             
-            customerData = customerData.filter(customer => !selectedCustomerIds.has(customer.id));
-            localStorage.setItem('customerData', JSON.stringify(customerData));
-            
-            await deleteFromSupabase(idsToDelete);
-            
-            selectedCustomerIds.clear();
-            updateCustomerList(customerFilterInput.value.trim().toLowerCase());
-            selectAllCheckbox.checked = false;
-            updateSelectedCount();
-            alert('选中的客户已成功删除');
+            Promise.all(deletePromises).then(() => {
+                console.log('云端批量删除成功');
+            }).catch(err => {
+                console.error('云端批量删除失败:', err);
+            }).finally(() => {
+                // 2. 本地数据删除（核心逻辑保留）
+                customerData = customerData.filter(customer => !selectedCustomerIds.has(customer.id));
+                
+                // 3. 清空选中集合
+                selectedCustomerIds.clear();
+                
+                // 4. 更新本地存储
+                localStorage.setItem('customerData', JSON.stringify(customerData));
+                
+                // 5. 更新客户列表
+                updateCustomerList(customerFilterInput.value.trim().toLowerCase());
+                
+                // 6. 更新全选状态
+                selectAllCheckbox.checked = false;
+                
+                // 7. 更新选中数量
+                updateSelectedCount();
+                
+                alert('选中的客户已成功删除');
+            });
         }
 
+        // 切换全选
         function toggleSelectAll(e) {
             const checkboxes = document.querySelectorAll('.customer-checkbox');
             checkboxes.forEach(cb => {
@@ -1677,9 +1092,11 @@
             updateSelectedCount();
         }
 
+        // 更新选中数量显示
         function updateSelectedCount() {
             selectedCountSpan.textContent = `已选择 ${selectedCustomerIds.size} 项`;
             batchDeleteBtn.disabled = selectedCustomerIds.size === 0;
+            
             const totalCheckboxes = document.querySelectorAll('.customer-checkbox').length;
             if (selectedCustomerIds.size === totalCheckboxes && totalCheckboxes > 0) {
                 selectAllCheckbox.checked = true;
@@ -1688,16 +1105,19 @@
             }
         }
 
+        // 显示管理员密码弹窗
         function showAdminPasswordModal() {
             adminPasswordInput.value = '';
             passwordError.classList.add('hidden');
             adminPasswordModal.classList.remove('hidden');
         }
         
+        // 隐藏管理员密码弹窗
         function hideAdminPasswordModal() {
             adminPasswordModal.classList.add('hidden');
         }
         
+        // 验证管理员密码
         function verifyAdminPassword() {
             const password = adminPasswordInput.value.trim();
             
@@ -1707,6 +1127,7 @@
             } else {
                 passwordError.classList.remove('hidden');
                 adminPasswordInput.classList.add('input-error');
+                
                 setTimeout(() => {
                     passwordError.classList.add('hidden');
                     adminPasswordInput.classList.remove('input-error');
@@ -1714,39 +1135,60 @@
             }
         }
         
+        // 筛选客户列表
         function filterCustomerList() {
             const filterText = customerFilterInput.value.trim().toLowerCase();
             updateCustomerList(filterText);
         }
         
+        // 显示删除确认弹窗
         function showDeleteConfirmModal(id) {
             deleteCustomerId = id;
             deleteConfirmModal.classList.remove('hidden');
         }
         
+        // 隐藏删除确认弹窗
         function hideDeleteConfirmModal() {
             deleteConfirmModal.classList.add('hidden');
             deleteCustomerId = null;
         }
         
-        async function confirmDeleteCustomer() {
+        // 确认删除客户（修改：同步删除云端）
+        function confirmDeleteCustomer() {
             if (!deleteCustomerId) return;
             
-            customerData = customerData.filter(customer => customer.id !== deleteCustomerId);
-            localStorage.setItem('customerData', JSON.stringify(customerData));
-            
-            await deleteFromSupabase([deleteCustomerId]);
-            
-            selectedCustomerIds.delete(deleteCustomerId);
-            updateCustomerList(customerFilterInput.value.trim().toLowerCase());
-            hideDeleteConfirmModal();
-            updateSelectedCount();
-            alert('客户记录已成功删除');
+            // 1. 删除云端数据
+            collection.doc(deleteCustomerId).remove().then(() => {
+                console.log('云端删除成功');
+            }).catch(err => {
+                console.error('云端删除失败:', err);
+            }).finally(() => {
+                // 2. 本地数据删除
+                customerData = customerData.filter(customer => customer.id !== deleteCustomerId);
+                // 3. 从选中集合中删除
+                selectedCustomerIds.delete(deleteCustomerId);
+                
+                // 4. 更新本地存储
+                localStorage.setItem('customerData', JSON.stringify(customerData));
+                
+                // 5. 更新客户列表
+                updateCustomerList(customerFilterInput.value.trim().toLowerCase());
+                
+                // 6. 隐藏弹窗
+                hideDeleteConfirmModal();
+                
+                // 7. 更新选中数量
+                updateSelectedCount();
+                
+                alert('客户记录已成功删除');
+            });
         }
         
+        // 更新客户列表
         function updateCustomerList(filterText = '') {
             customerList.innerHTML = '';
             
+            // 筛选客户数据
             let filteredData = customerData;
             if (filterText) {
                 filteredData = customerData.filter(customer => 
@@ -1770,18 +1212,26 @@
             filteredData.forEach((customer, index) => {
                 const row = document.createElement('tr');
                 
+                // 构建定制内容的HTML，按顺序显示文字和图标
                 let contentHtml = '<div class="custom-content-cell">';
+                
+                // 先显示文字1
                 if (customer.text1) {
                     contentHtml += `<span>${customer.text1}</span>`;
                 }
+                
+                // 再显示所有图标（按存储顺序）
                 if (customer.customIcons && customer.customIcons.length > 0) {
                     customer.customIcons.forEach(iconClass => {
                         contentHtml += `<i class="${iconClass}"></i>`;
                     });
                 }
+                
+                // 最后显示文字2
                 if (customer.text2) {
                     contentHtml += `<span>${customer.text2}</span>`;
                 }
+                
                 contentHtml += '</div>';
                 
                 row.innerHTML = `
@@ -1796,6 +1246,7 @@
                     </td>
                 `;
                 
+                // 添加复选框事件
                 const checkbox = row.querySelector('.customer-checkbox');
                 checkbox.addEventListener('change', function(e) {
                     if (this.checked) {
@@ -1812,6 +1263,7 @@
             updateSelectedCount();
         }
         
+        // 查看客户详情
         function viewCustomerDetail(id) {
             const customer = customerData.find(c => c.id === id);
             if (!customer) return;
@@ -1859,11 +1311,13 @@
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
         
+        // 导出客户PNG
         function exportCustomerPNG(id) {
             viewCustomerDetail(id);
             setTimeout(exportToPNG, 500);
         }
 
+        // 初始化应用
         document.addEventListener('DOMContentLoaded', init);
     </script>
 </body>
