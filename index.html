@@ -1,3 +1,872 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>定制内容收集</title>
+    <!-- Tailwind CSS v3 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Inter Font + 中文字体 -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- html2canvas for PNG export & PDF content capture -->
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <!-- jsPDF for PDF export -->
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+    <!-- JSZip 用于压缩ZIP -->
+    <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+    <!-- FileSaver 用于下载ZIP文件 -->
+    <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+    <!-- Supabase SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <!-- 字体图标定义 -->
+    <style>
+        @font-face {
+            font-family: 'icomoon';
+            src:  url('fonts/icomoon.eot?f5td7i');
+            src:  url('fonts/icomoon.eot?f5td7i#iefix') format('embedded-opentype'),
+                url('fonts/icomoon.ttf?f5td7i') format('truetype'),
+                url('fonts/icomoon.woff?f5td7i') format('woff'),
+                url('fonts/icomoon.svg?f5td7i#icomoon') format('svg');
+            font-weight: normal;
+            font-style: normal;
+            font-display: block;
+        }
+
+        [class^="icon-"], [class*=" icon-"] {
+            font-family: 'icomoon' !important;
+            speak: never;
+            font-style: normal;
+            font-weight: normal;
+            font-variant: normal;
+            text-transform: none;
+            line-height: 1;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* 图标映射 - 172个图标，格式 icon-1 到 icon-172 */
+        .icon-1:before { content: "\e900"; }
+        .icon-2:before { content: "\e901"; }
+        .icon-3:before { content: "\e902"; }
+        .icon-4:before { content: "\e903"; }
+        .icon-5:before { content: "\e904"; }
+        .icon-6:before { content: "\e905"; }
+        .icon-7:before { content: "\e906"; }
+        .icon-8:before { content: "\e907"; }
+        .icon-9:before { content: "\e908"; }
+        .icon-10:before { content: "\e909"; }
+        .icon-11:before { content: "\e90a"; }
+        .icon-12:before { content: "\e90b"; }
+        .icon-13:before { content: "\e90c"; }
+        .icon-14:before { content: "\e90d"; }
+        .icon-15:before { content: "\e90e"; }
+        .icon-16:before { content: "\e90f"; }
+        .icon-17:before { content: "\e910"; }
+        .icon-18:before { content: "\e911"; }
+        .icon-19:before { content: "\e912"; }
+        .icon-20:before { content: "\e913"; }
+        .icon-21:before { content: "\e914"; }
+        .icon-22:before { content: "\e915"; }
+        .icon-23:before { content: "\e916"; }
+        .icon-24:before { content: "\e917"; }
+        .icon-25:before { content: "\e918"; }
+        .icon-26:before { content: "\e919"; }
+        .icon-27:before { content: "\e91a"; }
+        .icon-28:before { content: "\e91b"; }
+        .icon-29:before { content: "\e91c"; }
+        .icon-30:before { content: "\e91d"; }
+        .icon-31:before { content: "\e91e"; }
+        .icon-32:before { content: "\e91f"; }
+        .icon-33:before { content: "\e920"; }
+        .icon-34:before { content: "\e921"; }
+        .icon-35:before { content: "\e922"; }
+        .icon-36:before { content: "\e923"; }
+        .icon-37:before { content: "\e924"; }
+        .icon-38:before { content: "\e925"; }
+        .icon-39:before { content: "\e926"; }
+        .icon-40:before { content: "\e927"; }
+        .icon-41:before { content: "\e928"; }
+        .icon-42:before { content: "\e929"; }
+        .icon-43:before { content: "\e92a"; }
+        .icon-44:before { content: "\e92b"; }
+        .icon-45:before { content: "\e92c"; }
+        .icon-46:before { content: "\e92d"; }
+        .icon-47:before { content: "\e92e"; }
+        .icon-48:before { content: "\e92f"; }
+        .icon-49:before { content: "\e930"; }
+        .icon-50:before { content: "\e931"; }
+        .icon-51:before { content: "\e932"; }
+        .icon-52:before { content: "\e933"; }
+        .icon-53:before { content: "\e934"; }
+        .icon-54:before { content: "\e935"; }
+        .icon-55:before { content: "\e936"; }
+        .icon-56:before { content: "\e937"; }
+        .icon-57:before { content: "\e938"; }
+        .icon-58:before { content: "\e939"; }
+        .icon-59:before { content: "\e93a"; }
+        .icon-60:before { content: "\e93b"; }
+        .icon-61:before { content: "\e93c"; }
+        .icon-62:before { content: "\e93d"; }
+        .icon-63:before { content: "\e93e"; }
+        .icon-64:before { content: "\e93f"; }
+        .icon-65:before { content: "\e940"; }
+        .icon-66:before { content: "\e941"; }
+        .icon-67:before { content: "\e942"; }
+        .icon-68:before { content: "\e943"; }
+        .icon-69:before { content: "\e944"; }
+        .icon-70:before { content: "\e945"; }
+        .icon-71:before { content: "\e946"; }
+        .icon-72:before { content: "\e947"; }
+        .icon-73:before { content: "\e948"; }
+        .icon-74:before { content: "\e949"; }
+        .icon-75:before { content: "\e94a"; }
+        .icon-76:before { content: "\e94b"; }
+        .icon-77:before { content: "\e94c"; }
+        .icon-78:before { content: "\e94d"; }
+        .icon-79:before { content: "\e94e"; }
+        .icon-80:before { content: "\e94f"; }
+        .icon-81:before { content: "\e950"; }
+        .icon-82:before { content: "\e951"; }
+        .icon-83:before { content: "\e952"; }
+        .icon-84:before { content: "\e953"; }
+        .icon-85:before { content: "\e954"; }
+        .icon-86:before { content: "\e955"; }
+        .icon-87:before { content: "\e956"; }
+        .icon-89:before { content: "\e965"; }
+        .icon-90:before { content: "\e966"; }
+        .icon-91:before { content: "\e967"; }
+        .icon-92:before { content: "\e968"; }
+        .icon-93:before { content: "\e969"; }
+        .icon-94:before { content: "\e96a"; }
+        .icon-95:before { content: "\e96b"; }
+        .icon-96:before { content: "\e96c"; }
+        .icon-97:before { content: "\e96d"; }
+        .icon-98:before { content: "\e96e"; }
+        .icon-99:before { content: "\e96f"; }
+        .icon-100:before { content: "\e970"; }
+        .icon-101:before { content: "\e971"; }
+        .icon-102:before { content: "\e972"; }
+        .icon-103:before { content: "\e973"; }
+        .icon-104:before { content: "\e974"; }
+        .icon-105:before { content: "\e975"; }
+        .icon-106:before { content: "\e976"; }
+        .icon-107:before { content: "\e977"; }
+        .icon-108:before { content: "\e978"; }
+        .icon-109:before { content: "\e979"; }
+        .icon-110:before { content: "\e97a"; }
+        .icon-111:before { content: "\e97b"; }
+        .icon-112:before { content: "\e97c"; }
+        .icon-113:before { content: "\e97d"; }
+        .icon-114:before { content: "\e97e"; }
+        .icon-115:before { content: "\e97f"; }
+        .icon-116:before { content: "\e980"; }
+        .icon-117:before { content: "\e981"; }
+        .icon-118:before { content: "\e982"; }
+        .icon-119:before { content: "\e983"; }
+        .icon-120:before { content: "\e984"; }
+        .icon-121:before { content: "\e985"; }
+        .icon-122:before { content: "\e986"; }
+        .icon-123:before { content: "\e987"; }
+        .icon-124:before { content: "\e988"; }
+        .icon-125:before { content: "\e989"; }
+        .icon-126:before { content: "\e98a"; }
+        .icon-127:before { content: "\e98b"; }
+        .icon-128:before { content: "\e98c"; }
+        .icon-129:before { content: "\e98d"; }
+        .icon-130:before { content: "\e98e"; }
+        .icon-131:before { content: "\e98f"; }
+        .icon-132:before { content: "\e990"; }
+        .icon-133:before { content: "\e991"; }
+        .icon-134:before { content: "\e992"; }
+        .icon-135:before { content: "\e993"; }
+        .icon-136:before { content: "\e994"; }
+        .icon-137:before { content: "\e995"; }
+        .icon-138:before { content: "\e996"; }
+        .icon-139:before { content: "\e997"; }
+        .icon-140:before { content: "\e998"; }
+        .icon-141:before { content: "\e999"; }
+        .icon-142:before { content: "\e99a"; }
+        .icon-143:before { content: "\e99b"; }
+        .icon-144:before { content: "\e99c"; }
+        .icon-145:before { content: "\e99d"; }
+        .icon-146:before { content: "\e99e"; }
+        .icon-147:before { content: "\e99f"; }
+        .icon-148:before { content: "\e9a0"; }
+        .icon-149:before { content: "\e9a1"; }
+        .icon-150:before { content: "\e9a2"; }
+        .icon-151:before { content: "\e9a3"; }
+        .icon-152:before { content: "\e9a4"; }
+        .icon-153:before { content: "\e9a5"; }
+        .icon-154:before { content: "\e9a6"; }
+        .icon-155:before { content: "\e9a7"; }
+        .icon-156:before { content: "\e9a8"; }
+        .icon-157:before { content: "\e9a9"; }
+        .icon-158:before { content: "\e9aa"; }
+        .icon-159:before { content: "\e9ab"; }
+        .icon-160:before { content: "\e9ac"; }
+        .icon-161:before { content: "\e9ad"; }
+        .icon-162:before { content: "\e9ae"; }
+        .icon-163:before { content: "\e9af"; }
+        .icon-164:before { content: "\e9b0"; }
+        .icon-165:before { content: "\e9b1"; }
+        .icon-166:before { content: "\e9b2"; }
+        .icon-167:before { content: "\e9b3"; }
+        .icon-168:before { content: "\e9b4"; }
+        .icon-169:before { content: "\e9b5"; }
+        .icon-170:before { content: "\e9b6"; }
+        .icon-171:before { content: "\e9b7"; }
+        .icon-172:before { content: "\e9b8"; }
+    </style>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3B82F6',
+                        secondary: '#10B981',
+                        accent: '#F59E0B',
+                        neutral: '#F3F4F6',
+                        'neutral-dark': '#1F2937'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'Noto Sans SC', 'sans-serif']
+                    },
+                    boxShadow: {
+                        'custom': '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+                        'custom-hover': '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)'
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        /* ===== 全局样式 ===== */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        :root {
+            --base-font-size: 24px;
+            --base-line-height: 1.2;
+        }
+        
+        /* ICON网格 - 每行10个，172个图标需要18行 */
+        .icon-grid {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            gap: 0.5rem;
+        }
+        
+        /* ICON项样式 */
+        .icon-item {
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 2.5rem;
+            width: 2.5rem;
+            border-radius: 0.375rem;
+            font-size: 1.5rem;
+            font-family: "icomoon", sans-serif;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .icon-item i {
+            font-size: 1.5rem;
+            color: inherit;
+        }
+        
+        .icon-item:hover {
+            background-color: rgba(59, 130, 246, 0.1);
+            transform: scale(1.1);
+        }
+        
+        /* ===== 预览项样式 ===== */
+        .preview-item {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center;
+            padding: 0.5rem 0.75rem;
+            margin: 0.25rem;
+            background-color: #F3F4F6;
+            border-radius: 0.375rem;
+            cursor: grab;
+            user-select: none;
+            transition: all 0.2s ease;
+            border: 2px solid transparent;
+            min-width: 2rem;
+            min-height: 2rem;
+            font-family: "Noto Sans SC", sans-serif;
+            font-size: var(--base-font-size);
+            gap: 4px;
+        }
+        
+        .preview-item i {
+            font-size: inherit;
+            color: inherit;
+            display: inline-block;
+            vertical-align: middle;
+            line-height: 1;
+            flex-shrink: 0;
+            font-family: "icomoon", sans-serif;
+        }
+        
+        .preview-item span {
+            display: inline-block;
+            line-height: 1.2;
+            vertical-align: middle;
+        }
+        
+        /* 删除按钮样式 */
+        .preview-item .fa-times-circle {
+            font-family: "Font Awesome 6 Free" !important;
+            font-weight: 900;
+            color: #9ca3af;
+            transition: color 0.2s;
+            margin-left: 0.5rem;
+            font-size: 0.875rem;
+        }
+        
+        .preview-item .fa-times-circle:hover {
+            color: #ef4444;
+        }
+        
+        .preview-item:hover {
+            background-color: #E5E7EB;
+            transform: translateY(-2px);
+            border-color: #3B82F6;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        .preview-item:active {
+            cursor: grabbing;
+            background-color: #DBEAFE;
+            border-color: #2563EB;
+        }
+        
+        .input-error {
+            border-color: #EF4444;
+        }
+        
+        .error-message {
+            color: #EF4444;
+            font-size: 0.75rem;
+            margin-top: 0.25rem;
+        }
+        
+        .char-counter {
+            font-size: 0.75rem;
+            color: #6B7280;
+            text-align: right;
+            margin-top: 0.25rem;
+        }
+        
+        .char-counter.error {
+            color: #EF4444;
+        }
+        
+        .powerbank-preview {
+            background-color: #F9FAFB;
+            border: 1px solid #E5E7EB;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            min-height: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .powerbank-preview::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 0.5rem;
+            background: linear-gradient(90deg, #3B82F6, #10B981, #F59E0B);
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #F3F4F6;
+            border-radius: 3px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #D1D5DB;
+            border-radius: 3px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #9CA3AF;
+        }
+        
+        /* ===== 合并预览区域 ===== */
+        #combined-preview {
+             font-size: 17px;
+             display: flex !important;
+             align-items: center !important;
+             justify-content: flex-start !important; 
+             flex-wrap: wrap;
+             gap: 4px;
+             min-height: 80px;
+             padding: 30px;
+             background-color: #F9FAFB;
+             background-image: url(background.svg);  
+             background-repeat: no-repeat;
+             background-position: left center;
+             background-size: contain;  
+             border-radius: 0.1rem;
+        }
+        
+        #combined-preview i {
+            font-size: inherit;
+            color: inherit;
+            display: inline-block;
+            vertical-align: middle;
+            line-height: 1;
+            font-family: "icomoon", sans-serif;
+        }
+        
+        #combined-preview span {
+            display: inline-block;
+            line-height: 1.2;
+            vertical-align: middle;
+        }
+        
+        /* ===== PDF导出内容 ===== */
+        .pdf-simple-content {
+            width: 800px;
+            background: white;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center;
+            font-family: "Noto Sans SC", "icomoon", sans-serif;
+            font-size: 48px;
+            line-height: 1.2;
+            padding: 40px;
+            box-sizing: border-box;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin: 0 auto;
+        }
+        
+        .pdf-simple-content i {
+            font-size: inherit;
+            color: black;
+            display: inline-block;
+            vertical-align: middle;
+            line-height: 1;
+            font-family: "icomoon", sans-serif;
+        }
+        
+        .pdf-simple-content span {
+            display: inline-block;
+            line-height: 1.2;
+            vertical-align: middle;
+        }
+        
+        /* 管理员表格样式 */
+        .admin-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .admin-table th {
+            background-color: #f3f4f6;
+            padding: 0.5rem;
+            text-align: left;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #374151;
+            border-bottom: 2px solid #d1d5db;
+        }
+        
+        .admin-table td {
+            padding: 0.5rem;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .admin-table tr:hover {
+            background-color: #f9fafb;
+        }
+        
+        .checkbox-column {
+            width: 40px;
+            text-align: center;
+        }
+        
+        .action-column {
+            width: 100px;
+            text-align: center;
+        }
+        
+        .delete-btn {
+            color: #ef4444;
+            cursor: pointer;
+            transition: color 0.2s;
+            margin: 0 5px;
+        }
+        
+        .delete-btn:hover {
+            color: #dc2626;
+        }
+        
+        .batch-delete-btn {
+            background-color: #ef4444;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: background-color 0.2s;
+        }
+        
+        .batch-delete-btn:hover {
+            background-color: #dc2626;
+        }
+        
+        .batch-delete-btn:disabled {
+            background-color: #fca5a5;
+            cursor: not-allowed;
+        }
+        
+        /* 定制内容单元格样式 */
+        .custom-content-cell {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            flex-wrap: wrap;
+        }
+        
+        .custom-content-cell i {
+            font-size: 20px;
+            color: #333;
+            font-family: "icomoon", sans-serif;
+        }
+        
+        .custom-content-cell span {
+            font-size: 14px;
+            color: #333;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen font-sans">
+    <div class="container mx-auto px-4 py-8 max-w-5xl">
+        <!-- 标题区域 -->
+        <header class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-neutral-dark mb-2">定制内容收集</h1>
+            <p class="text-gray-600">BUENO</p>
+        </header>
+        
+        <!-- 主要内容区域 -->
+        <main class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- 左侧：输入区域 -->
+            <div class="bg-white rounded-xl shadow-custom p-6">
+                <h2 class="text-xl font-semibold mb-4 flex items-center">
+                    <i class="fas fa-pencil-alt mr-2 text-primary"></i>文字输入
+                </h2>
+                
+                <!-- 客户信息 -->
+                <div class="mb-4">
+                    <label for="customer-name" class="block text-sm font-medium text-gray-700 mb-1">姓名 <span class="text-red-500">*</span></label>
+                    <input 
+                        type="text" 
+                        id="customer-name" 
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all"
+                        placeholder="请输入姓名"
+                        required
+                    >
+                    <div class="error-message hidden" id="name-error">
+                        <i class="fas fa-exclamation-circle mr-1"></i>
+                        请输入姓名
+                    </div>
+                </div>
+                
+                <!-- 文字输入框 -->
+                <div class="space-y-4">
+                    <div>
+                        <label for="text-input-1" class="block text-sm font-medium text-gray-700 mb-1">文字内容 1（选填）</label>
+                        <input 
+                            type="text" 
+                            id="text-input-1" 
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all"
+                            placeholder="选填，输入文字（支持中文、英文、数字、标点）"
+                            maxlength="15"
+                        >
+                        <div class="char-counter" id="text-counter-1">0/15</div>
+                    </div>
+                    
+                    <div>
+                        <label for="text-input-2" class="block text-sm font-medium text-gray-700 mb-1">文字内容 2（选填）</label>
+                        <input 
+                            type="text" 
+                            id="text-input-2" 
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all"
+                            placeholder="选填，输入文字（支持中文、英文、数字、标点）"
+                            maxlength="15"
+                        >
+                        <div class="char-counter" id="text-counter-2">0/15</div>
+                    </div>
+                    
+                    <div class="error-message hidden" id="text-error">
+                        <i class="fas fa-exclamation-circle mr-1"></i>
+                        请输入有效的文字内容（仅支持中文、英文、数字和常用标点 . , ! ? ; : - _ @ # & * ( ) [ ] { }）
+                    </div>
+                </div>
+                
+                <!-- 总字符计数 -->
+                <div class="mt-6">
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm font-medium text-gray-700">总字符数：</span>
+                        <span id="total-chars" class="text-sm font-semibold">0</span>
+                        <span class="text-sm text-gray-500">/ 15</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2.5 mt-1">
+                        <div id="char-progress" class="bg-primary h-2.5 rounded-full" style="width: 0%"></div>
+                    </div>
+                    <div id="total-chars-error" class="error-message hidden">
+                        <i class="fas fa-exclamation-circle mr-1"></i>
+                        总字符数超过限制（15字符）
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 右侧：预览区域 -->
+            <div class="bg-white rounded-xl shadow-custom p-6">
+                <h2 class="text-xl font-semibold mb-4 flex items-center">
+                    <i class="fas fa-eye mr-2 text-primary"></i>调整预览
+                </h2>
+                
+                <div class="powerbank-preview mb-4">
+                    <div id="preview-container" class="flex flex-wrap items-center justify-center gap-2 min-h-[100px]">
+                        <p class="text-gray-400 text-center">按输入顺序显示</p>
+                    </div>
+                </div>
+                
+                <div class="text-center">
+                    <div class="flex justify-center space-x-2">
+                        <button id="clear-preview" class="px-3 py-1.5 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg text-sm transition-colors flex items-center">
+                            <i class="fas fa-trash-alt mr-1"></i> 清空预览
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- 合并预览区域 -->
+                <div class="mt-6">
+                    <h3 class="text-md font-semibold mb-2 flex items-center">
+                        <i class="fas fa-file-alt mr-2 text-primary"></i>合并预览
+                    </h3>
+                    <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                        <div id="combined-preview" class="min-h-[80px]">
+                            <p class="text-gray-400 text-base">合并后的内容将显示在这里</p>
+                        </div>
+                        <div class="mt-2 flex justify-between items-center">
+                            <span class="text-xs text-gray-500">总字符数: <span id="combined-chars">0</span>/15</span>
+                            <button id="copy-combined" class="px-3 py-1 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded text-xs transition-colors flex items-center">
+                                <i class="fas fa-copy mr-1"></i> 复制
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+        
+        <!-- ICON选择器区域（172个图标） -->
+        <section class="mt-8 bg-white rounded-xl shadow-custom p-6">
+            <h2 class="text-xl font-semibold mb-4 flex items-center">
+                <i class="fas fa-smile mr-2 text-primary"></i>emoji选择（支持重复选择）
+            </h2>
+            
+            <div class="icon-grid custom-scrollbar overflow-auto max-h-96 p-2" id="icon-grid">
+                <!-- 172个图标将通过JavaScript动态生成 -->
+            </div>
+        </section>
+        
+        <!-- 提交区域 -->
+        <footer class="mt-8 text-center">
+            <div class="flex flex-col md:flex-row justify-center gap-4">
+                <button 
+                    id="submit-customization" 
+                    class="px-8 py-3 bg-primary hover:bg-blue-600 text-white rounded-lg font-medium shadow-custom hover:shadow-custom-hover transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled
+                >
+                    <i class="fas fa-check-circle mr-2"></i>提交定制
+                </button>
+                
+                <button 
+                    id="export-png" 
+                    class="px-8 py-3 bg-secondary hover:bg-green-600 text-white rounded-lg font-medium shadow-custom hover:shadow-custom-hover transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled
+                >
+                    <i class="fas fa-download mr-2"></i>导出PNG
+                </button>
+                
+                <button 
+                    id="export-pdf" 
+                    class="px-8 py-3 bg-accent hover:bg-yellow-600 text-white rounded-lg font-medium shadow-custom hover:shadow-custom-hover transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled
+                >
+                    <i class="fas fa-file-pdf mr-2"></i>生成PDF
+                </button>
+            </div>
+            
+            <!-- 管理员区域 -->
+            <div class="mt-8 border-t pt-4">
+                <button id="toggle-admin-panel" class="text-sm text-gray-500 hover:text-primary transition-colors">
+                    <i class="fas fa-lock mr-1"></i> 管理员面板
+                </button>
+                
+                <!-- 管理员密码弹窗 -->
+                <div id="admin-password-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+                    <div class="bg-white rounded-xl p-8 max-w-md w-full mx-4 transform transition-all">
+                        <div class="text-center mb-4">
+                            <h3 class="text-xl font-bold text-gray-800">管理员验证</h3>
+                            <p class="text-gray-600 mt-2">请输入管理员密码</p>
+                        </div>
+                        <div class="mb-4">
+                            <input 
+                                type="password" 
+                                id="admin-password" 
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all"
+                                placeholder="输入管理员密码"
+                            >
+                            <div class="error-message hidden" id="password-error">
+                                <i class="fas fa-exclamation-circle mr-1"></i>
+                                密码错误，请重试
+                            </div>
+                        </div>
+                        <div class="flex justify-center gap-4">
+                            <button id="cancel-password" class="px-6 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-medium transition-colors">
+                                取消
+                            </button>
+                            <button id="confirm-password" class="px-6 py-2 bg-primary hover:bg-blue-600 text-white rounded-lg font-medium transition-colors">
+                                确认
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="admin-panel" class="mt-4 bg-gray-50 p-4 rounded-lg hidden">
+                    <h3 class="text-lg font-semibold mb-2">客户定制列表</h3>
+                    
+                    <!-- 筛选和全选栏 -->
+                    <div class="mb-4 flex items-center justify-between">
+                        <div class="flex items-center gap-4">
+                            <label class="flex items-center">
+                                <input type="checkbox" id="select-all" class="mr-2">
+                                <span class="text-sm">全选</span>
+                            </label>
+                            <span id="selected-count" class="text-sm text-gray-600">已选择 0 项</span>
+                            <button id="batch-delete" class="batch-delete-btn" disabled>
+                                <i class="fas fa-trash mr-1"></i> 批量删除
+                            </button>
+                        </div>
+                        <input 
+                            type="text" 
+                            id="customer-filter" 
+                            class="w-64 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all"
+                            placeholder="输入姓名筛选..."
+                        >
+                    </div>
+                    
+                    <div class="max-h-96 overflow-y-auto custom-scrollbar">
+                        <table class="admin-table" id="customer-table">
+                            <thead>
+                                <tr>
+                                    <th class="checkbox-column"></th>
+                                    <th class="w-16">序号</th>
+                                    <th>姓名</th>
+                                    <th>定制内容</th>
+                                    <th class="action-column">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="customer-list">
+                                <!-- 客户列表将通过JavaScript动态生成 -->
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="mt-4 flex justify-end gap-2">
+                        <button id="export-selected-excel" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm transition-colors flex items-center">
+                            <i class="fas fa-file-excel mr-1"></i> 导出选中Excel
+                        </button>
+                        <button id="export-selected-pdf" class="px-4 py-2 bg-accent hover:bg-yellow-600 text-white rounded-lg text-sm transition-colors flex items-center">
+                            <i class="fas fa-file-pdf mr-1"></i> 导出选中PDF（ZIP）
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </footer>
+        
+        <!-- 提交成功弹窗 -->
+        <div id="success-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+            <div class="bg-white rounded-xl p-8 max-w-md w-full mx-4 transform transition-all">
+                <div class="text-center">
+                    <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-100 text-green-500 mb-4">
+                        <i class="fas fa-check-circle text-3xl"></i>
+                    </div>
+                    <h3 class="text-2xl font-bold text-gray-800 mb-2">提交成功！</h3>
+                    <p class="text-gray-600 mb-6">您的移动电源定制请求已提交，我们将尽快处理。</p>
+                    <div class="flex justify-center gap-4">
+                        <button id="close-modal" class="px-6 py-2 bg-primary hover:bg-blue-600 text-white rounded-lg font-medium transition-colors">
+                            确定
+                        </button>
+                        <button id="export-single-png" class="px-6 py-2 bg-secondary hover:bg-green-600 text-white rounded-lg font-medium transition-colors">
+                            导出PNG
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 删除确认弹窗 -->
+        <div id="delete-confirm-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+            <div class="bg-white rounded-xl p-8 max-w-md w-full mx-4 transform transition-all">
+                <div class="text-center">
+                    <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-100 text-red-500 mb-4">
+                        <i class="fas fa-exclamation-triangle text-3xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-800 mb-2">确认删除</h3>
+                    <p class="text-gray-600 mb-6">确定要删除该客户的定制记录吗？此操作不可恢复。</p>
+                    <div class="flex justify-center gap-4">
+                        <button id="cancel-delete" class="px-6 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-medium transition-colors">
+                            取消
+                        </button>
+                        <button id="confirm-delete" class="px-6 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg font-medium transition-colors">
+                            确认删除
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 纯内容PDF导出容器 -->
+        <div id="pdf-simple-container" class="hidden" style="position: absolute; left: -9999px; top: 0;">
+            <div class="pdf-simple-content" id="pdf-simple-content">
+                <!-- 只显示合并预览的内容 -->
+            </div>
+        </div>
+    </div>
+
     <script>
         // ===== Supabase 配置 =====
         const SUPABASE_URL = 'https://kajwdvystciyjhnopzyo.supabase.co';
@@ -1004,3 +1873,5 @@
 
         document.addEventListener('DOMContentLoaded', init);
     </script>
+</body>
+</html>
